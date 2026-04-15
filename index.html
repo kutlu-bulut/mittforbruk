@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vårt Forbruk v14.1</title>
+    <title>Vårt Forbruk v15.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -25,17 +25,17 @@
 
     <div id="loginScreen" class="fixed inset-0 z-[100] bg-indigo-600 flex items-center justify-center p-6 text-center">
         <div class="bg-white w-full max-w-sm rounded-3xl p-10 shadow-2xl animate-pop">
-            <h1 class="text-3xl font-black mb-10 italic tracking-tighter">Vårt Forbruk</h1>
+            <h1 class="text-3xl font-black mb-10 italic tracking-tighter text-indigo-600">Vårt Forbruk</h1>
             <button onclick="login()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold uppercase text-xs tracking-widest">Start appen</button>
-            <p class="mt-6 text-[8px] text-slate-300 font-mono uppercase tracking-widest">Version 14.1</p>
+            <p class="mt-6 text-[8px] text-slate-300 font-mono uppercase tracking-widest">Version 15.0</p>
         </div>
     </div>
 
     <div id="appContent" class="hidden">
         <header class="bg-white px-6 pt-12 pb-4 sticky top-0 z-40 border-b border-slate-100">
             <div class="flex justify-between items-baseline mb-3">
-                <h2 id="userNameDisplay" class="text-lg font-black text-indigo-600 italic uppercase tracking-tighter">...</h2>
-                <span class="text-[8px] bg-indigo-50 text-indigo-400 font-mono px-2 py-1 rounded">v14.1</span>
+                <h2 id="userNameDisplay" class="text-lg font-black text-indigo-600 italic uppercase tracking-tighter">Hei, ...</h2>
+                <span class="text-[8px] bg-indigo-50 text-indigo-400 font-mono px-2 py-1 rounded">v15.0</span>
             </div>
             <div class="flex justify-between items-center font-black">
                 <div class="flex flex-col">
@@ -52,9 +52,7 @@
         </header>
 
         <main class="p-4 max-w-md mx-auto pb-32">
-            <div id="sectionFeed" class="tab-content active animate-pop">
-                <div id="purchasesList" class="space-y-3"></div>
-            </div>
+            <div id="sectionFeed" class="tab-content active animate-pop"><div id="purchasesList" class="space-y-3"></div></div>
             
             <div id="sectionStats" class="tab-content animate-pop space-y-4">
                 <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
@@ -75,8 +73,17 @@
             </div>
 
             <div id="sectionHistory" class="tab-content animate-pop space-y-4">
-                <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Alle måneder</h3>
-                <div id="historyList" class="space-y-2"></div>
+                <div id="historyListView">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-4">Månedlig historikk</h3>
+                    <div id="historyList" class="space-y-2"></div>
+                </div>
+                <div id="historyDetailView" class="hidden space-y-4">
+                    <button onclick="closeHistoryDetail()" class="flex items-center gap-2 text-indigo-600 font-bold text-xs uppercase mb-2">
+                        <i data-lucide="chevron-left" class="w-4 h-4"></i> Tilbake til oversikt
+                    </button>
+                    <h3 id="historyDetailTitle" class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">...</h3>
+                    <div id="historyDetailList" class="space-y-2"></div>
+                </div>
             </div>
 
             <div id="sectionAdmin" class="tab-content animate-pop space-y-5">
@@ -85,29 +92,29 @@
                         <h4 class="text-[10px] font-black uppercase text-indigo-600 tracking-widest">Månedsbudsjett</h4>
                         <div class="flex flex-col gap-3">
                             <input type="number" id="budgetInput" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-black text-2xl border border-slate-100 text-center">
-                            <button onclick="updateBudget()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all">Oppdater Budsjett</button>
+                            <button onclick="updateBudget()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-100 active:scale-95 transition-all">Lagre Budsjett</button>
                         </div>
                     </div>
                     <div class="pt-6 border-t border-slate-100">
                         <h4 class="text-[10px] font-black uppercase text-indigo-600 mb-4 tracking-widest">Kategorier (Trykk for å endre)</h4>
                         <div id="customCatsList" class="flex flex-wrap gap-2 mb-4"></div>
-                        <button onclick="addCategoryPrompt()" class="w-full p-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-[10px] font-bold uppercase flex items-center justify-center gap-2 hover:bg-slate-50 transition-all">
+                        <button onclick="addCategoryPrompt()" class="w-full p-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-[10px] font-bold uppercase flex items-center justify-center gap-2">
                            <i data-lucide="plus-circle" class="w-4 h-4"></i> Ny kategori
                         </button>
                     </div>
-                    <button onclick="logout()" class="w-full py-4 text-slate-300 font-bold text-[9px] uppercase tracking-[0.3em] hover:text-rose-500 transition-all">Logg ut</button>
+                    <button onclick="logout()" class="w-full py-4 text-slate-300 font-bold text-[9px] uppercase tracking-[0.3em]">Logg ut</button>
                 </div>
             </div>
 
             <div id="sectionAdd" class="tab-content animate-pop">
                 <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-slate-100 space-y-6">
                     <div class="flex justify-between items-center border-b border-slate-50 pb-4">
-                        <h2 id="formTitle" class="text-xl font-black text-indigo-600 italic">Registrer kjøp</h2>
+                        <h2 id="formTitle" class="text-xl font-black text-indigo-600 italic uppercase">Registrer kjøp</h2>
                         <button onclick="cancelEdit()" id="btnCancel" class="hidden text-rose-500 text-[10px] font-black uppercase">Avbryt</button>
                     </div>
                     <input type="hidden" id="editId">
                     <div class="space-y-5">
-                        <input type="text" id="desc" placeholder="Hva er kjøpt?" class="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold text-lg focus:ring-2 ring-indigo-500/20 transition-all">
+                        <input type="text" id="desc" placeholder="Hva er kjøpt?" class="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold text-lg">
                         <div class="grid grid-cols-2 gap-3">
                             <input type="number" id="price" placeholder="Pris" class="w-full bg-slate-50 p-4 rounded-2xl outline-none font-black text-indigo-600 text-xl">
                             <div class="relative">
@@ -129,7 +136,7 @@
                                 <input type="radio" name="rating" id="star1" value="1"><label for="star1">★</label>
                             </div>
                         </div>
-                        <button onclick="savePurchase()" id="btnSave" class="w-full bg-slate-900 text-white py-5 rounded-[1.8rem] font-black text-lg shadow-lg uppercase tracking-widest active:scale-95 transition-all">Lagre Kjøp</button>
+                        <button onclick="savePurchase()" id="btnSave" class="w-full bg-slate-900 text-white py-5 rounded-[1.8rem] font-black text-lg shadow-lg uppercase tracking-widest active:scale-95 transition-all">Lagre Kjøpet</button>
                     </div>
                 </div>
             </div>
@@ -137,21 +144,11 @@
 
         <nav class="fixed bottom-0 left-0 right-0 glass-nav border-t border-slate-100 px-4 pt-3 pb-8 z-50">
             <div class="flex justify-between items-center max-w-md mx-auto">
-                <button onclick="switchTab('feed')" id="nav-feed" class="flex flex-col items-center gap-1 text-indigo-600 flex-1">
-                    <i data-lucide="layout-list" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase">Logg</span>
-                </button>
-                <button onclick="switchTab('stats')" id="nav-stats" class="flex flex-col items-center gap-1 text-slate-300 flex-1">
-                    <i data-lucide="pie-chart" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase">Innsikt</span>
-                </button>
-                <button onclick="switchTab('history')" id="nav-history" class="flex flex-col items-center gap-1 text-slate-300 flex-1">
-                    <i data-lucide="calendar" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase tracking-tighter">Historikk</span>
-                </button>
-                <button onclick="switchTab('admin')" id="nav-admin" class="flex flex-col items-center gap-1 text-slate-300 flex-1">
-                    <i data-lucide="user" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase">Profil</span>
-                </button>
-                <button onclick="switchTab('add')" id="nav-add" class="bg-slate-900 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-xl active:scale-90 transition-all ml-2">
-                    <i data-lucide="plus" class="w-4 h-4"></i><span class="text-[8px] font-black uppercase tracking-tight">Nytt</span>
-                </button>
+                <button onclick="switchTab('feed')" id="nav-feed" class="flex flex-col items-center gap-1 text-indigo-600 flex-1 transition-all"><i data-lucide="layout-list" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase">Logg</span></button>
+                <button onclick="switchTab('stats')" id="nav-stats" class="flex flex-col items-center gap-1 text-slate-300 flex-1 transition-all"><i data-lucide="pie-chart" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase">Innsikt</span></button>
+                <button onclick="switchTab('history')" id="nav-history" class="flex flex-col items-center gap-1 text-slate-300 flex-1 transition-all"><i data-lucide="calendar" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase tracking-tighter">Historikk</span></button>
+                <button onclick="switchTab('admin')" id="nav-admin" class="flex flex-col items-center gap-1 text-slate-300 flex-1 transition-all"><i data-lucide="user" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase">Profil</span></button>
+                <button onclick="switchTab('add')" id="nav-add" class="bg-slate-900 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-xl active:scale-90 transition-all ml-2"><i data-lucide="plus" class="w-4 h-4"></i><span class="text-[8px] font-black uppercase tracking-tight">Nytt</span></button>
             </div>
         </nav>
     </div>
@@ -177,7 +174,7 @@
 
         const ALLOWED_EMAILS = ['bulutcollections@gmail.com', 'ayluh_18@hotmail.com', 'ertaselli@gmail.com'];
         const FIXED_CATS = ['🛒 Mat', '🏠 Bolig', '🚗 Transport', '🛍️ Shopping', '✨ Annet'];
-        let currentBudget = 15000, selectedType = 'Behov', chart = null;
+        let currentBudget = 15000, selectedType = 'Behov', chart = null, allPurchases = [];
 
         setPersistence(auth, browserLocalPersistence);
 
@@ -188,7 +185,7 @@
             if (user && ALLOWED_EMAILS.includes(user.email.toLowerCase())) {
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('appContent').classList.remove('hidden');
-                document.getElementById('userNameDisplay').innerText = user.displayName.split(' ')[0];
+                document.getElementById('userNameDisplay').innerText = "Hei, " + user.displayName.split(' ')[0] + "!";
                 startApp();
             }
         });
@@ -214,9 +211,7 @@
                     const name = d.data().name;
                     if(!FIXED_CATS.includes(name)) {
                         sel.innerHTML += `<option value="${name}">${name}</option>`;
-                        adminList.innerHTML += `<span class="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase flex items-center gap-2 shadow-sm border border-indigo-100">
-                            <span onclick="editCategoryPrompt('${d.id}', '${name}')">${name}</span> <i onclick="deleteCategory('${d.id}')" data-lucide="x" class="w-3 h-3 cursor-pointer"></i>
-                        </span>`;
+                        adminList.innerHTML += `<span class="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase flex items-center gap-2 shadow-sm border border-indigo-100"><span onclick="editCategoryPrompt('${d.id}', '${name}')">${name}</span> <i onclick="deleteCategory('${d.id}')" data-lucide="x" class="w-3 h-3 cursor-pointer"></i></span>`;
                     }
                 });
                 lucide.createIcons();
@@ -226,25 +221,26 @@
                 const list = document.getElementById('purchasesList'); list.innerHTML = '';
                 const histList = document.getElementById('historyList'); histList.innerHTML = '';
                 let total = 0, kSum = 0, hSum = 0, catSums = {}, historyData = {};
+                allPurchases = [];
 
                 snap.forEach(dDoc => {
                     const p = dDoc.data(); const id = dDoc.id; const date = new Date(p.createdAt);
                     const monthKey = monthNames[date.getMonth()] + " " + date.getFullYear();
                     
+                    allPurchases.push({ ...p, id, date });
                     historyData[monthKey] = (historyData[monthKey] || 0) + p.price;
 
                     if(date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
                         total += p.price;
                         if(p.buyer.toLowerCase().includes('kutlu') || p.buyer.toLowerCase().includes('bulut')) kSum += p.price; else hSum += p.price;
-                        const c = p.category || '✨ Annet';
-                        catSums[c] = (catSums[c] || 0) + p.price;
+                        catSums[p.category || '✨ Annet'] = (catSums[p.category || '✨ Annet'] || 0) + p.price;
 
                         const card = document.createElement('div');
                         card.className = "bg-white p-5 rounded-[2rem] border border-slate-50 flex justify-between items-center shadow-sm animate-pop";
                         card.innerHTML = `
                             <div class="flex-1">
                                 <span class="text-[7px] font-black px-2 py-0.5 rounded-full ${p.type === 'Behov' ? 'bg-indigo-50 text-indigo-600' : 'bg-amber-50 text-amber-600'} uppercase">${p.type || 'Behov'}</span>
-                                <h3 class="font-bold text-slate-800 text-sm mt-1">${p.desc}</h3>
+                                <h3 class="font-bold text-slate-800 text-sm mt-1 tracking-tight">${p.desc}</h3>
                                 <p class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">${p.category || 'Annet'} • ${p.buyer.split(' ')[0]}</p>
                             </div>
                             <div class="text-right">
@@ -259,13 +255,14 @@
                 });
 
                 if(list.innerHTML === '') {
-                    list.innerHTML = '<div class="text-center py-12 text-slate-300 font-bold uppercase text-[10px]">Ingen kjøp i ' + monthNames[now.getMonth()] + ' ennå</div>';
+                    list.innerHTML = `<div class="text-center py-12 text-slate-300 font-bold uppercase text-[10px]">Ingen kjøp i ${monthNames[now.getMonth()]} ennå</div>`;
                 }
 
                 Object.keys(historyData).sort((a,b) => new Date(b) - new Date(a)).forEach(key => {
                     const row = document.createElement('div');
-                    row.className = "bg-white p-5 rounded-2xl flex justify-between items-center border border-slate-50 shadow-sm";
-                    row.innerHTML = `<span class="font-bold text-[10px] uppercase text-slate-400">${key}</span><span class="font-black text-slate-900">${historyData[key].toLocaleString()} kr</span>`;
+                    row.className = "bg-white p-5 rounded-2xl flex justify-between items-center border border-slate-50 shadow-sm active:bg-slate-50 transition-all cursor-pointer";
+                    row.onclick = () => showHistoryDetail(key);
+                    row.innerHTML = `<div class="flex flex-col"><span class="font-black text-slate-900">${key.toUpperCase()}</span><span class="text-[8px] font-bold text-indigo-400 uppercase tracking-widest">Klikk for detaljer</span></div><span class="font-black text-slate-900 text-lg tracking-tighter">${historyData[key].toLocaleString()} kr</span>`;
                     histList.appendChild(row);
                 });
 
@@ -280,6 +277,37 @@
                 lucide.createIcons();
             });
         }
+
+        window.showHistoryDetail = (monthYear) => {
+            const detailView = document.getElementById('historyDetailView');
+            const listView = document.getElementById('historyListView');
+            const detailList = document.getElementById('historyDetailList');
+            const title = document.getElementById('historyDetailTitle');
+            
+            title.innerText = `Detaljer for ${monthYear}`;
+            detailList.innerHTML = '';
+            
+            const monthNames = ["januar", "februar", "mars", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "desember"];
+            const [mName, mYear] = monthYear.split(' ');
+            
+            const filtered = allPurchases.filter(p => monthNames[p.date.getMonth()] === mName && p.date.getFullYear().toString() === mYear);
+            
+            filtered.forEach(p => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm";
+                card.innerHTML = `<div><span class="text-[7px] font-black px-2 py-0.5 rounded-full ${p.type === 'Behov' ? 'bg-indigo-50 text-indigo-600' : 'bg-amber-50 text-amber-600'} uppercase">${p.type}</span><h3 class="font-bold text-slate-800 text-xs mt-1 uppercase">${p.desc}</h3><p class="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">${p.category} • ${p.buyer.split(' ')[0]}</p></div><div class="text-right"><p class="font-black text-slate-900">${p.price.toLocaleString()} kr</p></div>`;
+                detailList.appendChild(card);
+            });
+            
+            listView.classList.add('hidden');
+            detailView.classList.remove('hidden');
+            window.scrollTo(0,0);
+        };
+
+        window.closeHistoryDetail = () => {
+            document.getElementById('historyDetailView').classList.add('hidden');
+            document.getElementById('historyListView').classList.remove('hidden');
+        };
 
         window.updateBudget = async () => {
             const v = parseFloat(document.getElementById('budgetInput').value);
@@ -335,6 +363,9 @@
         window.switchTab = (t) => {
             document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active'));
             document.getElementById('section' + t.charAt(0).toUpperCase() + t.slice(1)).classList.add('active');
+            
+            if(t === 'history') closeHistoryDetail();
+
             ['nav-feed', 'nav-stats', 'nav-history', 'nav-admin'].forEach(n => {
                 const el = document.getElementById(n);
                 el.classList.remove('text-indigo-600');
