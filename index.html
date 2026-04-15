@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="no">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vårt Forbruk</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .star-rating {
+            direction: rtl;
+            display: inline-flex;
+        }
+
+        .star-rating input {
+            display: none;
+        }
+
+        .star-rating label {
+            color: #d1d5db;
+            cursor: pointer;
+            font-size: 2.2rem;
+            transition: transform 0.1s;
+        }
+
+        .star-rating label:hover {
+            transform: scale(1.1);
+        }
+
+        .star-rating input:checked~label {
+            color: #fbbf24;
+            text-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .card-shadow {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+        }
+
+        .animate-pop {
+            animation: pop 0.3s ease-out;
+        }
+
+        @keyframes pop {
+            0% {
+                transform: scale(0.95);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-[#f8fafc] min-h-screen pb-28">
+
+    <header class="bg-[#4f46e5] text-white p-6 pb-10 rounded-b-[2.5rem] shadow-2xl relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
+        <div class="flex justify-between items-center mb-6 relative z-10">
+            <h1 class="text-2xl font-black tracking-tighter italic">MITT FORBRUK <span
+                    class="text-indigo-200 text-xs not-italic font-medium ml-1">v2.0</span></h1>
+            <div id="userBadge"
+                class="bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-2xl text-[10px] font-bold tracking-widest uppercase border border-white/10">
+                ...</div>
+        </div>
+        <div class="grid grid-cols-2 gap-4 relative z-10">
+            <div class="bg-white/10 backdrop-blur-md p-4 rounded-3xl border border-white/10">
+                <p class="text-indigo-100 text-[10px] font-bold uppercase mb-1 opacity-70">Denne måneden</p>
+                <p id="totalMonth" class="text-2xl font-black">0 kr</p>
+            </div>
+            <div class="bg-white/10 backdrop-blur-md p-4 rounded-3xl border border-white/10 text-right">
+                <p class="text-indigo-100 text-[10px] font-bold uppercase mb-1 opacity-70">Snitt Rating</p>
+                <p id="avgScore" class="text-2xl font-black">0.0</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="px-5 -mt-6 max-w-md mx-auto relative z-20">
+
+        <div class="flex p-1.5 bg-white/80 backdrop-blur rounded-[1.5rem] shadow-xl border border-white mb-6">
+            <button onclick="switchTab('feed')" id="tabFeed"
+                class="flex-1 py-3.5 rounded-[1.2rem] text-sm font-black transition-all bg-indigo-600 text-white shadow-md">Oversikt</button>
+            <button onclick="switchTab('add')" id="tabAdd"
+                class="flex-1 py-3.5 rounded-[1.2rem] text-sm font-black transition-all text-slate-400">Registrer</button>
+        </div>
+
+        <div id="sectionFeed" class="space-y-4 animate-pop">
+            <div id="purchasesList" class="space-y-4">
+            </div>
+        </div>
+
+        <div id="sectionAdd" class="hidden animate-pop">
+            <div class="bg-white p-7 rounded-[2.5rem] shadow-2xl border border-slate-100">
+                <h2 class="text-xl font-black text-slate-800 mb-6">Hva har skjedd?</h2>
+                <div class="space-y-5">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Beskrivelse</label>
+                        <input type="text" id="desc" placeholder="F.eks. Lunsj ute"
+                            class="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-indigo-500 focus:bg-white outline-none transition-all font-semibold">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Beløp (Kr)</label>
+                        <input type="number" id="price" placeholder="0"
+                            class="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-indigo-500 focus:bg-white outline-none transition-all font-black text-lg text-indigo-600">
+                    </div>
+                    <div class="text-center py-4 bg-slate-50 rounded-3xl">
+                        <p class="text-[10px] font-black text-slate-400 uppercase mb-2">Din vurdering (1-5)</p>
+                        <div class="star-rating">
+                            <input type="radio" name="rating" id="star5" value="5"><label for="star5">★</label>
+                            <input type="radio" name="rating" id="star4" value="4"><label for="star4">★</label>
+                            <input type="radio" name="rating" id="star3" value="3"><label for="star3">★</label>
+                            <input type="radio" name="rating" id="star2" value="2"><label for="star2">★</label>
+                            <input type="radio" name="rating" id="star1" value="1"><label for="star1">★</label>
+                        </div>
+                    </div>
+                    <button onclick="savePurchase()"
+                        class="w-full bg-indigo-600 text-white py-5 rounded-[2rem] font-black text-lg shadow-xl shadow-indigo-100 hover:bg-indigo-700 active:scale-[0.98] transition-all uppercase tracking-widest">Registrer
+                        Kjøp</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <nav
+        class="fixed bottom-6 left-6 right-6 glass rounded-[2.5rem] border border-white/40 shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-2.5 flex justify-around items-center">
+        <button onclick="setUser('Kutlu')" id="btnKutlu"
+            class="flex-1 flex flex-col items-center py-3 rounded-3xl transition-all">
+            <div class="w-10 h-10 rounded-2xl flex items-center justify-center mb-1 transition-colors" id="iconKutlu"><i
+                    data-lucide="user"></i></div>
+            <span class="text-[10px] font-black uppercase tracking-tighter">Kutlu</span>
+        </button>
+        <button onclick="setUser('Hulya')" id="btnHulya"
+            class="flex-1 flex flex-col items-center py-3 rounded-3xl transition-all">
+            <div class="w-10 h-10 rounded-2xl flex items-center justify-center mb-1 transition-colors" id="iconHulya"><i
+                    data-lucide="user-round text-slate-400"></i></div>
+            <span class="text-[10px] font-black uppercase tracking-tighter">Hulya</span>
+        </button>
+    </nav>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // DIN PERSONLIGE CONFIG FRA BILDET:
+        const firebaseConfig = {
+            apiKey: "AIzaSyD8KhKw3-sMepEOJ2zaxEcH7Wnxvi0c580",
+            authDomain: "mitt-forbruk-79b13.firebaseapp.com",
+            projectId: "mitt-forbruk-79b13",
+            storageBucket: "mitt-forbruk-79b13.firebasestorage.app",
+            messagingSenderId: "383383948424",
+            appId: "1:383383948424:web:dee99653e93b55d977a33d"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let currentUser = localStorage.getItem('currentUser') || 'Kutlu';
+
+        window.setUser = (name) => {
+            currentUser = name;
+            localStorage.setItem('currentUser', name);
+            location.reload();
+        };
+
+        window.switchTab = (tab) => {
+            const isFeed = tab === 'feed';
+            document.getElementById('sectionFeed').classList.toggle('hidden', !isFeed);
+            document.getElementById('sectionAdd').classList.toggle('hidden', isFeed);
+            document.getElementById('tabFeed').className = isFeed ? "flex-1 py-3.5 rounded-[1.2rem] text-sm font-black transition-all bg-indigo-600 text-white shadow-md" : "flex-1 py-3.5 rounded-[1.2rem] text-sm font-black transition-all text-slate-400";
+            document.getElementById('tabAdd').className = !isFeed ? "flex-1 py-3.5 rounded-[1.2rem] text-sm font-black transition-all bg-indigo-600 text-white shadow-md" : "flex-1 py-3.5 rounded-[1.2rem] text-sm font-black transition-all text-slate-400";
+        };
+
+        window.savePurchase = async () => {
+            const desc = document.getElementById('desc').value;
+            const price = document.getElementById('price').value;
+            const rating = document.querySelector('input[name="rating"]:checked')?.value || 0;
+            if (!desc || !price || rating === 0) return alert("Fyll ut alt, takk!");
+
+            await addDoc(collection(db, "purchases"), {
+                desc, price: parseFloat(price), myRating: parseInt(rating),
+                partnerRating: 0, buyer: currentUser, createdAt: Date.now()
+            });
+            document.getElementById('desc').value = '';
+            document.getElementById('price').value = '';
+            switchTab('feed');
+        };
+
+        window.ratePartner = async (id, val) => {
+            await updateDoc(doc(db, "purchases", id), { partnerRating: val });
+        };
+
+        window.deletePurchase = async (id) => {
+            if (confirm("Slette dette kjøpet?")) await deleteDoc(doc(db, "purchases", id));
+        };
+
+        // Lytt på data
+        onSnapshot(query(collection(db, "purchases"), orderBy("createdAt", "desc")), (snap) => {
+            const list = document.getElementById('purchasesList');
+            list.innerHTML = '';
+            let total = 0, rSum = 0, count = 0;
+
+            snap.forEach(dDoc => {
+                const p = dDoc.data(); const id = dDoc.id;
+                total += p.price; rSum += p.myRating; count++;
+
+                const card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-[2rem] card-shadow border border-slate-50";
+
+                let partnerAction = '';
+                if (p.buyer !== currentUser && p.partnerRating === 0) {
+                    partnerAction = `<div class="mt-4 pt-4 border-t border-slate-50 flex items-center justify-between">
+                        <span class="text-[9px] font-black text-indigo-400 uppercase italic">Hva mener du?</span>
+                        <div class="flex gap-1.5">
+                            ${[1, 2, 3, 4, 5].map(i => `<button onclick="ratePartner('${id}', ${i})" class="w-8 h-8 bg-slate-50 rounded-xl text-[10px] font-black hover:bg-indigo-50 hover:text-indigo-600 transition-colors border border-transparent hover:border-indigo-100 italic">★${i}</button>`).join('')}
+                        </div>
+                    </div>`;
+                } else if (p.partnerRating > 0) {
+                    partnerAction = `<div class="mt-4 pt-3 border-t border-slate-50 text-[9px] font-black text-slate-300 uppercase italic tracking-widest">Partner-Rating: ${"★".repeat(p.partnerRating)}</div>`;
+                }
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div onclick="deletePurchase('${id}')">
+                            <h3 class="font-black text-slate-800 text-md leading-tight">${p.desc}</h3>
+                            <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">${p.buyer} • ${new Date(p.createdAt).toLocaleDateString()}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-black text-indigo-600 text-lg leading-none">${p.price.toLocaleString()} kr</p>
+                            <div class="text-amber-400 text-xs mt-1">${"★".repeat(p.myRating)}</div>
+                        </div>
+                    </div>
+                    ${partnerAction}
+                `;
+                list.appendChild(card);
+            });
+            document.getElementById('totalMonth').innerText = total.toLocaleString() + " kr";
+            document.getElementById('avgScore').innerText = count > 0 ? (rSum / count).toFixed(1) : "0.0";
+            document.getElementById('userBadge').innerText = currentUser;
+
+            // Highlight aktiv bruker
+            const isKutlu = currentUser === 'Kutlu';
+            document.getElementById('iconKutlu').className = isKutlu ? "w-10 h-10 rounded-2xl flex items-center justify-center mb-1 bg-indigo-600 text-white shadow-lg" : "w-10 h-10 rounded-2xl flex items-center justify-center mb-1 bg-slate-100 text-slate-400";
+            document.getElementById('iconHulya').className = !isKutlu ? "w-10 h-10 rounded-2xl flex items-center justify-center mb-1 bg-indigo-600 text-white shadow-lg" : "w-10 h-10 rounded-2xl flex items-center justify-center mb-1 bg-slate-100 text-slate-400";
+
+            lucide.createIcons();
+        });
+    </script>
+</body>
+
+</html>
