@@ -121,7 +121,8 @@
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
 
-        const ALLOWED_EMAILS = ['din.epost@gmail.com', 'hulya.sin.epost@gmail.com']; // BYTT UT DISSE!
+        
+const ALLOWED_EMAILS = ['bulutcollections@gmail.com', 'ayluh_18@hotmail.com'];
 
         window.login = () => signInWithPopup(auth, provider);
         window.logout = () => signOut(auth);
