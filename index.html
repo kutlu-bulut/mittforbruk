@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vårt Forbruk v6.0</title>
+    <title>Vårt Forbruk v6.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -22,14 +22,26 @@
     <div id="loginScreen" class="fixed inset-0 z-[100] bg-indigo-600 flex items-center justify-center p-6 text-center">
         <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl animate-pop relative">
             <i data-lucide="shield-check" class="w-12 h-12 mx-auto mb-4 text-indigo-600"></i>
-            <h2 class="text-2xl font-black mb-8 italic">Vårt Forbruk</h2>
+            <h2 class="text-2xl font-black mb-6 italic">Vårt Forbruk</h2>
             
-            <button onclick="login()" id="loginBtn" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-3 active:scale-95 transition-all">
-                Logg inn med Google
-            </button>
+            <div id="authActions" class="space-y-3">
+                <button onclick="login()" id="loginBtn" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-3 active:scale-95 transition-all">
+                    Logg inn med Google
+                </button>
+                
+                <button onclick="checkAuthManual()" id="manualBtn" class="hidden w-full bg-indigo-100 text-indigo-700 py-3 rounded-xl font-black text-[10px] uppercase tracking-wider">
+                    Står du fast? Prøv her
+                </button>
+            </div>
 
-            <div id="statusMsg" class="mt-4 text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Initialiserer...</div>
-            <div class="absolute bottom-4 left-0 right-0 text-[8px] text-slate-300 font-mono">VERSION 6.0</div>
+            <div id="statusMsg" class="mt-6 text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Initialiserer...</div>
+            
+            <div id="safariTip" class="mt-8 pt-6 border-t border-slate-50 text-[9px] text-slate-400 leading-relaxed hidden">
+                <p class="font-bold mb-1 uppercase">Tips for iPhone:</p>
+                Gå til Innstillinger > Safari > Skru AV "Stopp sporing mellom nettsteder" hvis du ikke kommer inn.
+            </div>
+
+            <div class="absolute bottom-4 left-0 right-0 text-[8px] text-slate-300 font-mono">VERSION 6.1</div>
         </div>
     </div>
 
@@ -39,9 +51,9 @@
                 <div>
                     <div class="flex items-center gap-2">
                         <h2 id="userNameDisplay" class="text-lg font-black text-indigo-600 italic uppercase">Laster...</h2>
-                        <span class="text-[8px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-400 font-mono">v6.0</span>
+                        <span class="text-[8px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-400 font-mono">v6.1</span>
                     </div>
-                    <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest" id="currentDateDisplay">April 2026</p>
+                    <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest" id="headerDateDisplay">April 2026</p>
                 </div>
                 <button onclick="logout()" class="bg-slate-50 p-2 rounded-xl text-slate-300"><i data-lucide="log-out" class="w-5 h-5"></i></button>
             </div>
@@ -102,7 +114,7 @@
                             <input type="radio" name="rating" id="star1" value="1"><label for="star1">★</label>
                         </div>
                     </div>
-                    <button onclick="savePurchase()" class="w-full bg-indigo-600 text-white py-5 rounded-[1.8rem] font-black text-md shadow-lg uppercase">Lagre Kjøp</button>
+                    <button onclick="savePurchase()" class="w-full bg-indigo-600 text-white py-5 rounded-[1.8rem] font-black text-md shadow-lg active:scale-95 transition-all uppercase">Lagre Kjøp</button>
                 </div>
             </div>
         </main>
@@ -131,42 +143,59 @@
         const DEFAULT_CATS = ['🛒 Mat', '🏠 Bolig', '🚗 Transport', '🛍️ Shopping', '✨ Annet'];
         let currentBudget = 15000, selectedType = 'Behov', chart = null;
 
-        // Tving nettleseren til å huske brukeren
+        // Tving lokal lagring av innlogging
         setPersistence(auth, browserLocalPersistence);
 
         window.login = () => {
-            document.getElementById('statusMsg').innerText = "Videresender...";
+            document.getElementById('statusMsg').innerText = "Videresender til Google...";
             signInWithRedirect(auth, provider);
         };
 
         window.logout = () => signOut(auth).then(() => location.reload());
 
-        // Håndter resultatet når man kommer tilbake til siden
-        document.getElementById('statusMsg').innerText = "Sjekker status...";
-        
-        getRedirectResult(auth).then((result) => {
-            if (result?.user) {
-                document.getElementById('statusMsg').innerText = "Suksess! Laster app...";
+        // Manuel sjekk-funksjon for Safari
+        window.checkAuthManual = () => {
+            document.getElementById('statusMsg').innerText = "Sjekker på nytt...";
+            if (auth.currentUser) {
+                handleUser(auth.currentUser);
             } else {
-                document.getElementById('statusMsg').innerText = "Venter på handling...";
+                getRedirectResult(auth).then((result) => {
+                    if (result?.user) handleUser(result.user);
+                    else document.getElementById('statusMsg').innerText = "Ingen bruker funnet. Logg inn på nytt.";
+                });
             }
-        }).catch((error) => {
-            document.getElementById('statusMsg').innerText = "FEIL: " + error.code;
-        });
+        };
+
+        // Timer for å vise nødknapp
+        setTimeout(() => {
+            if (document.getElementById('appContent').classList.contains('hidden')) {
+                document.getElementById('manualBtn').classList.remove('hidden');
+                document.getElementById('safariTip').classList.remove('hidden');
+            }
+        }, 3500);
+
+        function handleUser(user) {
+            const email = user.email.toLowerCase();
+            if (ALLOWED_EMAILS.includes(email)) {
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('appContent').classList.remove('hidden');
+                document.getElementById('userNameDisplay').innerText = user.displayName.split(' ')[0];
+                startApp();
+            } else {
+                alert("Adgang nektet for: " + email);
+                signOut(auth);
+            }
+        }
 
         onAuthStateChanged(auth, (user) => {
-            if (user) {
-                const email = user.email.toLowerCase();
-                if (ALLOWED_EMAILS.includes(email)) {
-                    document.getElementById('loginScreen').classList.add('hidden');
-                    document.getElementById('appContent').classList.remove('hidden');
-                    document.getElementById('userNameDisplay').innerText = user.displayName.split(' ')[0];
-                    startApp();
-                } else {
-                    alert("Adgang nektet for: " + email);
-                    signOut(auth);
-                }
-            }
+            if (user) handleUser(user);
+        });
+
+        // Hent resultat etter redirect
+        getRedirectResult(auth).then((result) => {
+            if (result?.user) handleUser(result.user);
+        }).catch((error) => {
+            document.getElementById('statusMsg').innerText = "FEIL: " + error.code;
         });
 
         async function startApp() {
