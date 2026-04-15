@@ -134,7 +134,7 @@ const ALLOWED_EMAILS = ['bulutcollections@gmail.com', 'ayluh_18@hotmail.com'];
                 document.getElementById('userNameDisplay').innerText = user.displayName;
                 startApp();
             } else if (user) {
-                alert("Ingen tilgang.");
+                alert("Ingen tilgang for: " + user.email);
                 signOut(auth);
             } else {
                 document.getElementById('loginScreen').classList.remove('hidden');
