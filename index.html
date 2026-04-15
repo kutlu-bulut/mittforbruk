@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Vårt Forbruk - Ultimate</title>
+    <title>Vårt Forbruk - Custom Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -11,7 +11,7 @@
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         .star-rating { direction: rtl; display: inline-flex; }
         .star-rating input { display: none; }
-        .star-rating label { color: #d1d5db; cursor: pointer; font-size: 1.8rem; padding: 0 0.1rem; transition: 0.1s; }
+        .star-rating label { color: #d1d5db; cursor: pointer; font-size: 1.8rem; padding: 0 0.1rem; }
         .star-rating input:checked ~ label { color: #fbbf24; }
         .animate-pop { animation: pop 0.3s ease-out; }
         @keyframes pop { 0% { transform: scale(0.98); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
@@ -19,15 +19,13 @@
 </head>
 <body class="bg-slate-50 min-h-screen pb-24 text-slate-900">
 
-    <div id="loginScreen" class="fixed inset-0 z-[100] bg-indigo-600 flex items-center justify-center p-6">
-        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl text-center animate-pop">
-            <div class="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto mb-6 text-indigo-600">
-                <i data-lucide="heart-handshake" class="w-10 h-10"></i>
-            </div>
+    <div id="loginScreen" class="fixed inset-0 z-[100] bg-indigo-600 flex items-center justify-center p-6 text-center">
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl animate-pop">
+            <i data-lucide="layout-grid" class="w-12 h-12 mx-auto mb-4 text-indigo-600"></i>
             <h2 class="text-2xl font-black mb-8 italic">Vårt Forbruk</h2>
-            <button onclick="login()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-3 active:scale-95 transition-all">
+            <button onclick="login()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-3">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" class="w-5 h-5">
-                Logg inn med Google
+                Logg inn
             </button>
         </div>
     </div>
@@ -39,13 +37,12 @@
                     <h2 id="userNameDisplay" class="text-lg font-black text-indigo-600 italic">Hei!</h2>
                     <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">April 2026</p>
                 </div>
-                <button onclick="logout()" class="text-slate-300 hover:text-red-500 transition-colors"><i data-lucide="log-out" class="w-5 h-5"></i></button>
+                <button onclick="logout()" class="text-slate-300"><i data-lucide="log-out" class="w-5 h-5"></i></button>
             </div>
-
             <div class="space-y-2">
                 <div class="flex justify-between items-end">
                     <span class="text-3xl font-black tracking-tighter" id="totalMonth">0 kr</span>
-                    <span class="text-slate-400 text-[10px] font-bold uppercase" id="budgetLabel">Budsjett: 15k</span>
+                    <span class="text-slate-400 text-[10px] font-bold uppercase" id="budgetLabel">Budsjett: --</span>
                 </div>
                 <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div id="budgetBar" class="h-full bg-indigo-500 transition-all duration-1000" style="width: 0%"></div>
@@ -65,19 +62,16 @@
             </div>
 
             <div id="sectionStats" class="hidden space-y-4 animate-pop">
+                <div class="bg-indigo-600 p-6 rounded-[2rem] shadow-lg text-white">
+                    <h3 class="text-[10px] font-black uppercase text-indigo-200 mb-3 tracking-widest text-center">Sett Månedsbudsjett</h3>
+                    <div class="flex gap-2">
+                        <input type="number" id="budgetInput" class="flex-1 p-3 bg-white/10 rounded-xl border border-white/20 outline-none font-black text-white">
+                        <button onclick="updateBudget()" class="bg-white text-indigo-600 px-5 rounded-xl font-black text-xs">OK</button>
+                    </div>
+                </div>
                 <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
                     <h3 class="text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest text-center">Behov vs. Lyst</h3>
                     <canvas id="typeChart" class="max-h-48 mx-auto"></canvas>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-white p-5 rounded-[2rem] border border-slate-100 text-center">
-                        <p class="text-[9px] font-bold text-slate-400 uppercase mb-1">Dagens Snitt</p>
-                        <p id="dailyAvg" class="text-xl font-black text-indigo-600">0 kr</p>
-                    </div>
-                    <div class="bg-white p-5 rounded-[2rem] border border-slate-100 text-center">
-                        <p class="text-[9px] font-bold text-slate-400 uppercase mb-1">Fordeling Bruk</p>
-                        <p id="userSplit" class="text-xs font-black text-slate-700">0 / 0</p>
-                    </div>
                 </div>
             </div>
 
@@ -86,16 +80,13 @@
                     <h2 id="formTitle" class="text-xl font-black mb-6 italic text-indigo-600">Nytt kjøp</h2>
                     <input type="hidden" id="editId">
                     <div class="space-y-4">
-                        <input type="text" id="desc" placeholder="Hva er kjøpt?" class="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none font-bold">
+                        <input type="text" id="desc" placeholder="Hva er kjøpt?" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold">
                         <div class="flex gap-2">
-                            <input type="number" id="price" placeholder="Pris" class="w-full p-4 bg-slate-50 rounded-2xl border-none outline-none font-black text-indigo-600 text-lg">
-                            <select id="category" class="p-4 bg-slate-50 rounded-2xl border-none outline-none font-bold text-xs text-slate-500">
-                                <option value="Mat">🛒 Mat</option>
-                                <option value="Bolig">🏠 Bolig</option>
-                                <option value="Transport">🚗 Transport</option>
-                                <option value="Shopping">🛍️ Shopping</option>
-                                <option value="Annet">✨ Annet</option>
-                            </select>
+                            <input type="number" id="price" placeholder="Pris" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-black text-indigo-600 text-lg">
+                            <div class="relative flex-1">
+                                <select id="category" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-xs text-slate-500 h-full appearance-none"></select>
+                                <button onclick="addCategoryPrompt()" class="absolute -top-2 -right-2 bg-indigo-600 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-lg"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                            </div>
                         </div>
                         <div class="flex bg-slate-100 p-1.5 rounded-2xl">
                             <button onclick="setType('Behov')" id="btnBehov" class="flex-1 py-3 rounded-xl text-[10px] font-black bg-white shadow-sm transition-all">BEHOV</button>
@@ -112,7 +103,6 @@
                             </div>
                         </div>
                         <button onclick="savePurchase()" id="btnSave" class="w-full bg-indigo-600 text-white py-5 rounded-[1.8rem] font-black text-md shadow-lg active:scale-95 transition-all uppercase tracking-widest">Lagre Kjøp</button>
-                        <button onclick="cancelEdit()" id="btnCancel" class="hidden w-full text-slate-400 font-bold text-xs py-2">Avbryt</button>
                     </div>
                 </div>
             </div>
@@ -121,7 +111,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, updateDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, updateDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const firebaseConfig = {
@@ -138,15 +128,11 @@
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
 
-        // DE TRE GODKJENTE E-POSTENE:
         const ALLOWED_EMAILS = ['bulutcollections@gmail.com', 'ayluh_18@hotmail.com', 'ertaselli@gmail.com'];
-        const BUDGET = 15000;
-        let selectedType = 'Behov';
-        let chart = null;
+        let currentBudget = 15000, selectedType = 'Behov', chart = null;
 
         window.login = () => signInWithPopup(auth, provider);
         window.logout = () => signOut(auth);
-        
         window.setType = (t) => {
             selectedType = t;
             document.getElementById('btnBehov').className = t === 'Behov' ? "flex-1 py-3 rounded-xl text-[10px] font-black bg-white shadow-sm" : "flex-1 py-3 rounded-xl text-[10px] font-black text-slate-400";
@@ -159,116 +145,43 @@
                 document.getElementById('appContent').classList.remove('hidden');
                 document.getElementById('userNameDisplay').innerText = "Hei, " + user.displayName.split(' ')[0] + "!";
                 startApp();
-            } else if (user) {
-                alert("Ingen tilgang for: " + user.email); signOut(auth);
-            }
+            } else if (user) { alert("Ingen tilgang."); signOut(auth); }
         });
 
-        function startApp() {
-            onSnapshot(query(collection(db, "purchases"), orderBy("createdAt", "desc")), (snap) => {
-                const list = document.getElementById('purchasesList');
-                list.innerHTML = '';
-                let total = 0, needs = 0, wants = 0, kutlu = 0, hulya = 0;
-                const now = new Date();
+        async function startApp() {
+            // Budsjett
+            onSnapshot(doc(db, "settings", "global"), (d) => {
+                if(d.exists()) {
+                    currentBudget = d.data().monthlyBudget;
+                    document.getElementById('budgetInput').value = currentBudget;
+                    document.getElementById('budgetLabel').innerText = "Budsjett: " + Math.round(currentBudget/1000) + "k";
+                }
+            });
 
+            // Kategorier
+            onSnapshot(query(collection(db, "categories"), orderBy("name")), (snap) => {
+                const sel = document.getElementById('category');
+                sel.innerHTML = '';
+                if(snap.empty) { // Default hvis tomt
+                    ['Mat', 'Bolig', 'Transport', 'Shopping'].forEach(c => sel.innerHTML += `<option value="${c}">${c}</option>`);
+                }
+                snap.forEach(doc => sel.innerHTML += `<option value="${doc.data().name}">${doc.data().name}</option>`);
+            });
+
+            // Kjøp
+            onSnapshot(query(collection(db, "purchases"), orderBy("createdAt", "desc")), (snap) => {
+                const list = document.getElementById('purchasesList'); list.innerHTML = '';
+                let total = 0, needs = 0, wants = 0;
+                const now = new Date();
                 snap.forEach(dDoc => {
-                    const p = dDoc.data(); const id = dDoc.id;
-                    const date = new Date(p.createdAt);
+                    const p = dDoc.data(); const id = dDoc.id; const date = new Date(p.createdAt);
                     if(date.getMonth() === now.getMonth()) {
                         total += p.price;
                         if(p.type === 'Behov') needs += p.price; else wants += p.price;
-                        if(p.buyer.includes('Kutlu') || p.buyer.includes('bulut')) kutlu += p.price; else hulya += p.price;
                     }
                     const card = document.createElement('div');
                     card.className = "bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex justify-between items-center animate-pop";
-                    card.innerHTML = `
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="text-[8px] font-black px-2 py-0.5 rounded-full ${p.type === 'Behov' ? 'bg-indigo-100 text-indigo-600' : 'bg-amber-100 text-amber-600'} uppercase">${p.type}</span>
-                                <span class="text-[8px] font-bold text-slate-300 uppercase">${date.toLocaleDateString('no-NO', {day:'2-digit', month:'short'})}</span>
-                            </div>
-                            <h3 class="font-black text-slate-800 text-sm uppercase">${p.desc}</h3>
-                            <div class="flex items-center gap-2 mt-1">
-                                <span class="text-amber-400 text-[10px]">${"★".repeat(p.myRating)}</span>
-                                <span class="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">${p.buyer.split(' ')[0]}</span>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <p class="font-black text-lg text-slate-800">${p.price.toLocaleString()} kr</p>
-                            <div class="flex gap-3 justify-end mt-2">
-                                <button onclick="editMode('${id}', '${p.desc}', ${p.price}, '${p.category}', '${p.type}', ${p.myRating})" class="text-slate-200"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                                <button onclick="deletePurchase('${id}')" class="text-slate-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                            </div>
-                        </div>`;
+                    card.innerHTML = `<div><div class="flex items-center gap-2 mb-1"><span class="text-[8px] font-black px-2 py-0.5 rounded-full ${p.type === 'Behov' ? 'bg-indigo-100 text-indigo-600' : 'bg-amber-100 text-amber-600'} uppercase">${p.type}</span></div><h3 class="font-black text-slate-800 text-sm uppercase">${p.desc}</h3><p class="text-[9px] font-bold text-slate-300 uppercase">${p.category} • ${p.buyer.split(' ')[0]}</p></div><div class="text-right"><p class="font-black text-lg text-slate-800">${p.price.toLocaleString()} kr</p><div class="text-amber-400 text-[10px]">${"★".repeat(p.myRating)}</div></div>`;
                     list.appendChild(card);
                 });
-                document.getElementById('totalMonth').innerText = total.toLocaleString() + " kr";
-                const pcent = Math.min((total / BUDGET) * 100, 100);
-                document.getElementById('budgetBar').style.width = pcent + "%";
-                document.getElementById('budgetBar').className = `h-full transition-all duration-1000 ${pcent > 90 ? 'bg-red-500' : 'bg-indigo-500'}`;
-                document.getElementById('dailyAvg').innerText = Math.round(total / now.getDate()) + " kr";
-                document.getElementById('userSplit').innerText = `K: ${Math.round(kutlu/1000)}k / H: ${Math.round(hulya/1000)}k`;
-                updateChart(needs, wants);
-                lucide.createIcons();
-            });
-        }
-
-        function updateChart(n, w) {
-            const ctx = document.getElementById('typeChart');
-            if(chart) chart.destroy();
-            chart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Behov', 'Lyst'],
-                    datasets: [{ data: [n, w], backgroundColor: ['#6366f1', '#fbbf24'], borderWidth: 0 }]
-                },
-                options: { cutout: '75%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10, weight: 'bold' } } } } }
-            });
-        }
-
-        window.savePurchase = async () => {
-            const id = document.getElementById('editId').value;
-            const desc = document.getElementById('desc').value;
-            const price = parseFloat(document.getElementById('price').value);
-            const cat = document.getElementById('category').value;
-            const rate = parseInt(document.querySelector('input[name="rating"]:checked')?.value || 0);
-            if(!desc || isNaN(price) || rate === 0) return alert("Fyll ut alt!");
-            const obj = { desc, price, category: cat, type: selectedType, myRating: rate, buyer: auth.currentUser.displayName, createdAt: Date.now() };
-            if(id) await updateDoc(doc(db, "purchases", id), obj);
-            else await addDoc(collection(db, "purchases"), obj);
-            cancelEdit(); switchTab('feed');
-        };
-
-        window.editMode = (id, desc, price, cat, type, rate) => {
-            switchTab('add');
-            document.getElementById('editId').value = id;
-            document.getElementById('desc').value = desc;
-            document.getElementById('price').value = price;
-            document.getElementById('category').value = cat;
-            setType(type);
-            document.getElementById(`star${rate}`).checked = true;
-            document.getElementById('formTitle').innerText = "Endre kjøp";
-            document.getElementById('btnCancel').classList.remove('hidden');
-        };
-
-        window.cancelEdit = () => {
-            document.getElementById('editId').value = ''; document.getElementById('desc').value = '';
-            document.getElementById('price').value = ''; document.getElementById('formTitle').innerText = "Nytt kjøp";
-            document.getElementById('btnCancel').classList.add('hidden');
-            document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
-        };
-
-        window.switchTab = (t) => {
-            document.getElementById('sectionFeed').classList.toggle('hidden', t !== 'feed');
-            document.getElementById('sectionStats').classList.toggle('hidden', t !== 'stats');
-            document.getElementById('sectionAdd').classList.toggle('hidden', t !== 'add');
-            document.getElementById('tabFeed').className = t === 'feed' ? "flex-1 py-2.5 rounded-xl text-[10px] font-black bg-white shadow-sm text-indigo-600" : "flex-1 py-2.5 rounded-xl text-[10px] font-black text-slate-500";
-            document.getElementById('tabStats').className = t === 'stats' ? "flex-1 py-2.5 rounded-xl text-[10px] font-black bg-white shadow-sm text-indigo-600" : "flex-1 py-2.5 rounded-xl text-[10px] font-black text-slate-500";
-            document.getElementById('tabAdd').className = t === 'add' ? "flex-1 py-2.5 rounded-xl text-[10px] font-black bg-white shadow-sm text-indigo-600" : "flex-1 py-2.5 rounded-xl text-[10px] font-black text-slate-500";
-        };
-
-        window.deletePurchase = async (id) => { if(confirm("Slette?")) await deleteDoc(doc(db, "purchases", id)); };
-        lucide.createIcons();
-    </script>
-</body>
-</html>
+                document
