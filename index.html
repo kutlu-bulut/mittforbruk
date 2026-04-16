@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vårt Forbruk v17.6 Rescue</title>
+    <title>Vårt Forbruk v17.7</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -12,7 +12,6 @@
         :root { --user-color: #4f46e5; --partner-color: #f43f5e; }
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; transition: background 0.2s; padding-bottom: env(safe-area-inset-bottom); }
         
-        /* Dark Mode */
         body.dark-mode { background-color: #0f172a; color: #f8fafc; }
         .dark-mode .bg-white { background-color: #1e293b; border-color: #334155; }
         .dark-mode header { background-color: #1e293b; border-color: #334155; }
@@ -20,18 +19,20 @@
         .dark-mode .text-slate-900 { color: #f1f5f9; }
         .dark-mode .bg-slate-50 { background-color: #0f172a; }
 
-        /* Solid Nav (Ikke gjennomsiktig) */
         .solid-nav { background-color: #ffffff; border-top: 1px solid #f1f5f9; }
 
         .animate-pop { animation: pop 0.2s ease-out; }
         @keyframes pop { 0% { transform: scale(0.98); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+        
         .nav-active { color: #4f46e5 !important; }
         .nav-dot { width: 3px; height: 3px; background: #4f46e5; border-radius: 50%; margin-top: 2px; opacity: 0; }
         .nav-active .nav-dot { opacity: 1; }
+        
         .brand-logo { font-style: italic; letter-spacing: -1px; }
         .fab-shadow { box-shadow: 0 10px 20px -5px rgba(79, 70, 229, 0.4); }
+        
         .color-dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
         .color-dot.active { border-color: #94a3b8; transform: scale(1.1); }
     </style>
@@ -42,13 +43,13 @@
         <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-10 shadow-2xl animate-pop">
             <h1 class="text-3xl font-black mb-10 brand-logo text-indigo-600 uppercase">Vårt Forbruk</h1>
             <button onclick="login()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold uppercase text-xs tracking-widest active:scale-95 transition-all">Start med Google</button>
-            <p class="mt-6 text-[8px] text-slate-300 font-mono uppercase tracking-widest">Version 17.6 Stable</p>
+            <p class="mt-6 text-[8px] text-slate-300 font-mono uppercase tracking-widest">Version 17.7</p>
         </div>
     </div>
 
     <div id="onboardingScreen" class="hidden fixed inset-0 z-[95] bg-slate-50 flex items-center justify-center p-6 text-center">
         <div class="max-w-sm w-full space-y-6 animate-pop">
-            <h2 class="text-2xl font-black tracking-tighter italic">Velkommen!</h2>
+            <h2 class="text-2xl font-black tracking-tighter italic">Nesten klar!</h2>
             <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6">
                 <button onclick="createHousehold()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest">Opprett husstand</button>
                 <input type="text" id="joinCodeInput" placeholder="Kode fra partner" class="w-full p-4 bg-slate-50 rounded-2xl border border-slate-50 outline-none text-center font-bold text-lg">
@@ -70,7 +71,7 @@
 
                 <div class="flex flex-col items-center mb-6">
                     <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Forbruk</span>
-                    <span id="totalMonth" class="text-4xl font-black tracking-tighter leading-none text-slate-900">0 kr</span>
+                    <span id="totalMonth" class="text-4xl font-black tracking-tighter leading-none">0 kr</span>
                 </div>
 
                 <div class="space-y-2">
@@ -104,20 +105,23 @@
 
             <div id="sectionInnstillinger" class="tab-content animate-pop space-y-6">
                 <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4 text-center">
-                    <h4 class="text-[10px] font-black uppercase text-indigo-600 tracking-widest">Husstand: <span id="hhNameDisplay" class="text-slate-400 ml-1 italic">...</span></h4>
+                    <h4 class="text-[10px] font-black uppercase text-indigo-600 tracking-widest">Husstandsinnstillinger</h4>
                     <input type="text" id="householdNameInput" placeholder="Husstandsnavn" class="w-full p-3 bg-slate-50 rounded-xl outline-none font-bold text-center border border-slate-50">
                     <input type="number" id="budgetInput" placeholder="Budsjett" class="w-full p-3 bg-slate-50 rounded-xl outline-none font-bold text-center border border-slate-50">
-                    <button onclick="updateHouseholdSettings()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-[10px] uppercase">Lagre Husstand</button>
+                    <button onclick="updateHouseholdSettings()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-[10px] uppercase">Lagre Endringer</button>
+                </div>
+                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                    <h4 class="text-[10px] font-black uppercase text-indigo-600 tracking-widest text-center mb-4">Alle Kategorier</h4>
+                    <div id="customCatsList" class="flex flex-wrap gap-2 mb-4"></div>
+                    <button onclick="addCategoryPrompt()" class="w-full p-3 border-2 border-dashed border-slate-100 rounded-xl text-slate-400 text-[10px] font-bold uppercase">+ Ny kategori</button>
                 </div>
                 <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm text-center">
-                    <h4 class="text-[10px] font-black uppercase text-indigo-600 mb-2">Invitasjonskode</h4>
-                    <div class="flex justify-between items-center bg-slate-900 p-4 rounded-xl text-white"><span id="displayHid" class="font-mono font-black">...</span><button onclick="copyHid()"><i data-lucide="copy" class="w-5 h-5"></i></button></div>
+                    <h4 class="text-[10px] font-black uppercase text-indigo-600 mb-2 italic">Invitasjon</h4>
+                    <div class="flex justify-between items-center bg-slate-900 p-4 rounded-xl text-white">
+                        <span id="displayHid" class="font-mono font-black">...</span>
+                        <button onclick="copyHid()"><i data-lucide="copy" class="w-5 h-5"></i></button>
+                    </div>
                     <div id="memberList" class="mt-4 text-left space-y-2"></div>
-                </div>
-                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
-                    <h4 class="text-[10px] font-black uppercase text-indigo-600 tracking-widest text-center">Kategorier</h4>
-                    <div id="customCatsList" class="flex flex-wrap gap-2"></div>
-                    <button onclick="addCategoryPrompt()" class="w-full p-3 border-2 border-dashed border-slate-100 rounded-xl text-slate-400 text-[10px] font-bold uppercase">+ Ny kategori</button>
                 </div>
             </div>
 
@@ -125,7 +129,7 @@
                 <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-6">
                     <div class="text-center"><h4 class="text-[10px] font-black uppercase text-indigo-600 mb-4">Min Profil</h4><input type="text" id="profileNameInput" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-black text-center text-lg mb-4 border border-slate-50"></div>
                     <div>
-                        <h4 class="text-[10px] font-black uppercase text-slate-400 mb-3 text-center">Min Farge</h4>
+                        <h4 class="text-[10px] font-black uppercase text-slate-400 mb-3 text-center">Min Signaturfarge</h4>
                         <div class="flex justify-center gap-4">
                             <div onclick="setUserColor('#6366f1')" class="color-dot bg-indigo-500" data-color="#6366f1"></div>
                             <div onclick="setUserColor('#f43f5e')" class="color-dot bg-rose-500" data-color="#f43f5e"></div>
@@ -165,11 +169,11 @@
 
         <nav class="fixed bottom-0 left-0 right-0 solid-nav px-2 pt-3 pb-8 z-50">
             <div class="flex justify-between items-center max-w-md mx-auto">
-                <button onclick="switchTab('hjem')" id="nav-hjem" class="flex flex-col items-center gap-1 text-slate-300 flex-1"><i data-lucide="home" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase">Hjem</span><div class="nav-dot"></div></button>
-                <button onclick="switchTab('innsikt')" id="nav-innsikt" class="flex flex-col items-center gap-1 text-slate-300 flex-1"><i data-lucide="pie-chart" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase">Innsikt</span><div class="nav-dot"></div></button>
-                <button onclick="switchTab('historikk')" id="nav-historikk" class="flex flex-col items-center gap-1 text-slate-300 flex-1"><i data-lucide="history" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase">Historikk</span><div class="nav-dot"></div></button>
-                <button onclick="switchTab('innstillinger')" id="nav-innstillinger" class="flex flex-col items-center gap-1 text-slate-300 flex-1"><i data-lucide="users" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase">Husstand</span><div class="nav-dot"></div></button>
-                <button onclick="switchTab('profil')" id="nav-profil" class="flex flex-col items-center gap-1 text-slate-300 flex-1"><i data-lucide="user" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase">Profil</span><div class="nav-dot"></div></button>
+                <button onclick="switchTab('hjem')" id="nav-hjem" class="flex flex-col items-center gap-1.5 text-slate-300 flex-1"><i data-lucide="home" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase">Hjem</span><div class="nav-dot"></div></button>
+                <button onclick="switchTab('innsikt')" id="nav-innsikt" class="flex flex-col items-center gap-1.5 text-slate-300 flex-1"><i data-lucide="pie-chart" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase">Innsikt</span><div class="nav-dot"></div></button>
+                <button onclick="switchTab('historikk')" id="nav-historikk" class="flex flex-col items-center gap-1.5 text-slate-300 flex-1"><i data-lucide="history" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase">Historikk</span><div class="nav-dot"></div></button>
+                <button onclick="switchTab('innstillinger')" id="nav-innstillinger" class="flex flex-col items-center gap-1.5 text-slate-300 flex-1"><i data-lucide="users" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase">Husstand</span><div class="nav-dot"></div></button>
+                <button onclick="switchTab('profil')" id="nav-profil" class="flex flex-col items-center gap-1.5 text-slate-300 flex-1"><i data-lucide="user" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase">Profil</span><div class="nav-dot"></div></button>
             </div>
         </nav>
     </div>
@@ -185,17 +189,13 @@
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                const email = user.email.toLowerCase();
-                if (['bulutcollections@gmail.com', 'ayluh_18@hotmail.com', 'ertaselli@gmail.com'].includes(email)) {
-                    await setDoc(doc(db, "users", user.uid), { hid: "original_familie", name: user.displayName.split(' ')[0], email, color: '#6366f1', darkMode: false }, { merge: true });
-                }
                 onSnapshot(doc(db, "users", user.uid), (d) => {
                     if (d.exists()) {
                         currentUserData = d.data(); currentHid = currentUserData.hid; selectedBuyer = currentUserData.name;
                         applyUserPreferences();
                         if (currentHid) startApp(); else { document.getElementById('loginScreen').classList.add('hidden'); document.getElementById('onboardingScreen').classList.remove('hidden'); }
                     } else {
-                        setDoc(doc(db, "users", user.uid), { name: user.displayName.split(' ')[0], email, color: '#6366f1', darkMode: false, hid: null });
+                        setDoc(doc(db, "users", user.uid), { name: user.displayName.split(' ')[0], email: user.email.toLowerCase(), color: '#6366f1', darkMode: false, hid: null });
                     }
                 });
             }
@@ -215,7 +215,7 @@
             document.getElementById('loginScreen').classList.add('hidden'); document.getElementById('onboardingScreen').classList.add('hidden'); document.getElementById('appContent').classList.remove('hidden');
             document.getElementById('displayHid').innerText = currentHid; document.getElementById('userNameDisplay').innerText = "Hei, " + currentUserData.name + "!";
             
-            onSnapshot(doc(db, "households", currentHid), (d) => { if(d.exists()) { document.getElementById('hhNameDisplay').innerText = d.data().name; document.getElementById('householdNameInput').value = d.data().name; }});
+            onSnapshot(doc(db, "households", currentHid), (d) => { if(d.exists()) { document.getElementById('householdNameInput').value = d.data().name; document.getElementById('hhNameDisplay').innerText = d.data().name; }});
             onSnapshot(doc(db, "households", currentHid, "settings", "global"), (d) => { if(d.exists()) { currentBudget = d.data().monthlyBudget; document.getElementById('budgetInput').value = currentBudget; document.getElementById('budgetLabel').innerText = "Budsjett: " + currentBudget.toLocaleString() + " kr"; }});
             
             onSnapshot(query(collection(db, "users"), where("hid", "==", currentHid)), (snap) => {
@@ -252,11 +252,24 @@
                 updateChart(catSums); updateHistory(all);
             });
 
+            // KATEGORI LISTENER FIX
             onSnapshot(query(collection(db, "households", currentHid, "categories"), orderBy("name")), (snap) => {
-                const sel = document.getElementById('category'); sel.innerHTML = '<option value="Mat">Mat</option><option value="Shopping">Shopping</option><option value="Transport">Transport</option><option value="Annet">Annet</option>';
-                const adminList = document.getElementById('customCatsList'); adminList.innerHTML = '';
+                const defaults = ["Mat", "Shopping", "Transport", "Annet"];
+                const sel = document.getElementById('category'); 
+                const adminList = document.getElementById('customCatsList');
+                sel.innerHTML = '';
+                adminList.innerHTML = '';
+
+                // Vis defaults først
+                defaults.forEach(cat => {
+                    sel.innerHTML += `<option value="${cat}">${cat}</option>`;
+                    adminList.innerHTML += `<span class="bg-slate-100 text-slate-500 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase flex items-center gap-2 border border-slate-200">${cat}</span>`;
+                });
+
+                // Legg til custom kategorier fra DB
                 snap.forEach(d => {
-                    const name = d.data().name; sel.innerHTML += `<option value="${name}">${name}</option>`;
+                    const name = d.data().name;
+                    sel.innerHTML += `<option value="${name}">${name}</option>`;
                     adminList.innerHTML += `<span class="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase flex items-center gap-2 border border-indigo-100">${name} <i onclick="deleteCategory('${d.id}')" data-lucide="x" class="w-3 h-3 cursor-pointer"></i></span>`;
                 });
                 lucide.createIcons();
