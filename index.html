@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vårt Forbruk v15.7</title>
+    <title>Vårt Forbruk v15.8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -23,24 +23,25 @@
         .nav-active span { font-weight: 900 !important; }
         .nav-dot { width: 4px; height: 4px; background: #4f46e5; border-radius: 50%; margin-top: 2px; opacity: 0; }
         .nav-active .nav-dot { opacity: 1; }
+        .brand-logo { font-style: italic; letter-spacing: -1px; }
     </style>
 </head>
 <body class="bg-[#F8FAFC] min-h-screen text-slate-900">
 
     <div id="loginScreen" class="fixed inset-0 z-[100] bg-indigo-600 flex items-center justify-center p-6 text-center">
         <div class="bg-white w-full max-w-sm rounded-3xl p-10 shadow-2xl animate-pop">
-            <h1 class="text-3xl font-black mb-10 italic tracking-tighter text-indigo-600">Vårt Forbruk</h1>
+            <h1 class="text-3xl font-black mb-10 brand-logo text-indigo-600">Vårt Forbruk</h1>
             <button onclick="login()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold uppercase text-xs tracking-widest active:scale-95 transition-all">Logg inn med Google</button>
-            <p class="mt-6 text-[8px] text-slate-300 font-mono uppercase tracking-widest">Version 15.7</p>
+            <p class="mt-6 text-[8px] text-slate-300 font-mono uppercase tracking-widest">Version 15.8</p>
         </div>
     </div>
 
     <div id="appContent" class="hidden">
-        <header class="bg-white px-6 pt-12 pb-6 sticky top-0 z-40 border-b border-slate-100 shadow-sm">
-            <div class="flex justify-between items-start mb-6">
+        <header class="bg-white px-6 pt-10 pb-6 sticky top-0 z-40 border-b border-slate-100 shadow-sm">
+            <div class="flex justify-between items-start mb-4">
                 <div>
-                    <h2 id="userNameDisplay" class="text-xs font-black text-slate-400 uppercase tracking-widest">Hei, ...</h2>
-                    <h1 id="pageTitleDisplay" class="text-2xl font-black text-slate-900 tracking-tighter uppercase">Oversikt</h1>
+                    <span class="text-[10px] font-black text-indigo-600 brand-logo uppercase tracking-tighter">Vårt Forbruk</span>
+                    <h2 id="userNameDisplay" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">Hei, ...</h2>
                 </div>
                 <div class="text-right">
                     <span id="budgetLabel" class="text-[10px] text-slate-500 font-black uppercase bg-slate-100 px-3 py-1.5 rounded-lg">Budsjett: --</span>
@@ -55,9 +56,9 @@
                             ...
                         </div>
                     </div>
-                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Brukt denne måneden</span>
+                    <h1 id="pageTitleDisplay" class="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Oversikt</h1>
                 </div>
-                <div class="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden border border-slate-50 shadow-inner">
+                <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-50 shadow-inner">
                     <div id="budgetBar" class="h-full bg-indigo-600 w-0 transition-all duration-1000"></div>
                 </div>
             </div>
@@ -97,7 +98,7 @@
             </div>
 
             <div id="sectionInnstillinger" class="tab-content animate-pop space-y-5">
-                <div class="bg-white p-6 rounded-3xl border border-slate-100 space-y-8 shadow-sm">
+                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-8">
                     <div>
                         <h4 class="text-[10px] font-black uppercase text-indigo-600 tracking-widest mb-3">Månedsbudsjett</h4>
                         <input type="number" id="budgetInput" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-black text-2xl text-center mb-2">
@@ -124,7 +125,7 @@
                             <button onclick="setBuyer('Kutlu')" id="btnBuyerK" class="flex-1 py-3 rounded-xl text-xs font-black transition-all uppercase tracking-widest">Kutlu</button>
                             <button onclick="setBuyer('Hulya')" id="btnBuyerH" class="flex-1 py-3 rounded-xl text-xs font-black transition-all uppercase tracking-widest">Hulya</button>
                         </div>
-                        <input type="text" id="desc" placeholder="Butikk eller vare..." class="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold text-lg">
+                        <input type="text" id="desc" placeholder="Hva har du kjøpt?" class="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold text-lg">
                         <div class="grid grid-cols-2 gap-3">
                             <input type="number" id="price" placeholder="Pris" class="w-full bg-slate-50 p-4 rounded-2xl outline-none font-black text-indigo-600 text-xl">
                             <select id="category" class="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold text-xs appearance-none"></select>
@@ -252,9 +253,7 @@
                     const p = dDoc.data(); const id = dDoc.id; const date = new Date(p.createdAt);
                     const sortKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
                     const displayKey = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
-                    
                     allPurchases.push({ ...p, id, date });
-                    
                     if(!historyMap[sortKey]) historyMap[sortKey] = { label: displayKey, sum: 0 };
                     historyMap[sortKey].sum += p.price;
 
@@ -266,7 +265,6 @@
                         const card = document.createElement('div');
                         card.className = "bg-white p-5 rounded-[2rem] border border-slate-100 flex flex-col gap-3 shadow-sm animate-pop active:scale-[0.98] transition-all cursor-pointer";
                         card.onclick = () => editMode(id, p.desc, p.price, p.category, p.type, p.myRating, p.buyer);
-                        
                         const buyerColor = p.buyer === 'Kutlu' ? 'bg-indigo-50 text-indigo-600' : 'bg-rose-50 text-rose-500';
                         const typeColor = p.type === 'Behov' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600';
 
@@ -289,7 +287,7 @@
                     const row = document.createElement('div');
                     row.className = "bg-white p-5 rounded-2xl flex justify-between items-center border border-slate-50 shadow-sm cursor-pointer active:bg-slate-50 transition-all";
                     row.onclick = () => showHistoryDetail(h.label);
-                    row.innerHTML = `<div class="flex flex-col"><span class="font-black text-slate-900 uppercase text-[10px] tracking-widest">${h.label}</span><span class="text-[8px] font-bold text-indigo-400 uppercase">Se alle kjøp</span></div><span class="font-black text-slate-900 text-lg tracking-tighter">${h.sum.toLocaleString()} kr</span>`;
+                    row.innerHTML = `<div class="flex flex-col"><span class="font-black text-slate-900 uppercase text-[10px] tracking-widest">${h.label}</span><span class="text-[8px] font-bold text-indigo-400 uppercase">Se detaljer</span></div><span class="font-black text-slate-900 text-lg tracking-tighter">${h.sum.toLocaleString()} kr</span>`;
                     histList.appendChild(row);
                 });
 
