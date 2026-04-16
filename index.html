@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vårt Forbruk v15.5</title>
+    <title>Vårt Forbruk v15.6</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -14,12 +14,17 @@
         @keyframes pop { 0% { transform: scale(0.98); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        .glass-nav { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+        .glass-nav { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); }
         .star-rating { direction: rtl; display: inline-flex; }
         .star-rating input { display: none; }
         .star-rating label { color: #e2e8f0; cursor: pointer; font-size: 1.5rem; padding: 0 0.1rem; }
         .star-rating input:checked ~ label { color: #fbbf24; }
-        .budget-glow { box-shadow: 0 0 20px rgba(79, 70, 229, 0.15); }
+        
+        /* Aktiv fane-indikator */
+        .nav-active { color: #4f46e5 !important; transform: scale(1.1); }
+        .nav-active span { font-weight: 900 !important; }
+        .nav-dot { width: 4px; height: 4px; background: #4f46e5; border-radius: 50%; margin-top: 2px; opacity: 0; }
+        .nav-active .nav-dot { opacity: 1; }
     </style>
 </head>
 <body class="bg-[#F8FAFC] min-h-screen text-slate-900">
@@ -27,109 +32,110 @@
     <div id="loginScreen" class="fixed inset-0 z-[100] bg-indigo-600 flex items-center justify-center p-6 text-center">
         <div class="bg-white w-full max-w-sm rounded-3xl p-10 shadow-2xl animate-pop">
             <h1 class="text-3xl font-black mb-10 italic tracking-tighter text-indigo-600">Vårt Forbruk</h1>
-            <button onclick="login()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold uppercase text-xs tracking-widest active:scale-95 transition-all">Start appen</button>
-            <p class="mt-6 text-[8px] text-slate-300 font-mono uppercase tracking-widest">Version 15.5</p>
+            <button onclick="login()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold uppercase text-xs tracking-widest active:scale-95 transition-all">Logg inn med Google</button>
+            <p class="mt-6 text-[8px] text-slate-300 font-mono uppercase tracking-widest">Version 15.6</p>
         </div>
     </div>
 
     <div id="appContent" class="hidden">
         <header class="bg-white px-6 pt-12 pb-6 sticky top-0 z-40 border-b border-slate-100 shadow-sm">
-            <div class="flex justify-between items-baseline mb-4">
-                <h2 id="userNameDisplay" class="text-lg font-black text-indigo-600 italic uppercase tracking-tighter">Hei, ...</h2>
-                <span class="text-[8px] bg-indigo-50 text-indigo-400 font-mono px-2 py-1 rounded">v15.5</span>
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 id="userNameDisplay" class="text-xs font-black text-slate-400 uppercase tracking-widest">Hei, ...</h2>
+                    <h1 id="pageTitleDisplay" class="text-2xl font-black text-slate-900 tracking-tighter">Oversikt</h1>
+                </div>
+                <div id="budgetStatusChip" class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm transition-colors">
+                    ...
+                </div>
             </div>
             
             <div class="space-y-3">
                 <div class="flex justify-between items-end">
                     <div class="flex flex-col">
-                        <span id="headerLabelText" class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Brukt i April</span>
                         <span id="totalMonth" class="text-3xl font-black tracking-tighter text-slate-900 leading-none">0 kr</span>
+                        <span class="text-[9px] text-slate-400 font-bold uppercase mt-1">Brukt denne måneden</span>
                     </div>
-                    <div class="text-right flex flex-col items-end">
-                        <span id="budgetDiffText" class="text-[9px] font-black px-2 py-1 rounded-lg mb-1">...</span>
-                        <span id="budgetLabel" class="text-[10px] text-slate-400 font-bold uppercase">Mål: --</span>
+                    <div class="text-right">
+                        <span id="budgetLabel" class="text-[10px] text-slate-500 font-black uppercase bg-slate-100 px-2 py-1 rounded">Mål: --</span>
                     </div>
                 </div>
-                <div class="w-full h-4 bg-slate-100 rounded-full overflow-hidden border border-slate-50 relative budget-glow">
-                    <div id="budgetBar" class="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 w-0 transition-all duration-1000"></div>
+                <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-50 shadow-inner">
+                    <div id="budgetBar" class="h-full bg-indigo-500 w-0 transition-all duration-1000"></div>
                 </div>
             </div>
         </header>
 
         <main class="p-4 max-w-md mx-auto pb-32">
-            <div id="sectionFeed" class="tab-content active animate-pop"><div id="purchasesList" class="space-y-3"></div></div>
-            <div id="sectionStats" class="tab-content animate-pop space-y-4">
-                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm"><div class="h-56"><canvas id="categoryChart"></canvas></div></div>
+            <div id="sectionOversikt" class="tab-content active animate-pop"><div id="purchasesList" class="space-y-3"></div></div>
+            
+            <div id="sectionAnalyse" class="tab-content animate-pop space-y-4">
+                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 text-center italic">Kategorifordeling</h3>
+                    <div class="h-64"><canvas id="categoryChart"></canvas></div>
+                </div>
                 <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm text-center">
-                    <div class="w-full h-5 bg-slate-100 rounded-full overflow-hidden flex mb-2 border border-slate-50">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 italic">Forbruks-duellen</h3>
+                    <div class="w-full h-6 bg-slate-100 rounded-full overflow-hidden flex mb-2 border border-slate-50">
                         <div id="battleK" class="h-full bg-indigo-500 transition-all duration-700" style="width: 50%"></div>
                         <div id="battleH" class="h-full bg-rose-400 flex-1"></div>
                     </div>
                     <div class="flex justify-between font-black text-[10px] uppercase px-1">
-                        <span class="text-indigo-600">Kutlu: <span id="statKSum">0</span></span>
-                        <span class="text-rose-500">Hulya: <span id="statHSum">0</span></span>
+                        <span id="labelKText" class="text-indigo-600">Kutlu: <span id="statKSum">0</span></span>
+                        <span id="labelHText" class="text-rose-500">Hulya: <span id="statHSum">0</span></span>
                     </div>
                 </div>
             </div>
 
-            <div id="sectionHistory" class="tab-content animate-pop space-y-4">
-                <div id="historyListView"><div id="historyList" class="space-y-2"></div></div>
+            <div id="sectionArkiv" class="tab-content animate-pop space-y-4">
+                <div id="historyListView">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-4">Tidligere måneder</h3>
+                    <div id="historyList" class="space-y-2"></div>
+                </div>
                 <div id="historyDetailView" class="hidden space-y-4">
-                    <button onclick="closeHistoryDetail()" class="flex items-center gap-2 text-indigo-600 font-bold text-xs uppercase"><i data-lucide="chevron-left" class="w-4 h-4"></i> Tilbake</button>
+                    <button onclick="closeHistoryDetail()" class="flex items-center gap-2 text-indigo-600 font-bold text-xs uppercase"><i data-lucide="chevron-left" class="w-4 h-4"></i> Tilbake til arkiv</button>
                     <h3 id="historyDetailTitle" class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">...</h3>
                     <div id="historyDetailList" class="space-y-2"></div>
                 </div>
             </div>
 
-            <div id="sectionAdmin" class="tab-content animate-pop space-y-5">
-                <div class="bg-white p-6 rounded-3xl border border-slate-100 space-y-6">
-                    <div class="space-y-4">
-                        <h4 class="text-[10px] font-black uppercase text-indigo-600 tracking-widest">Månedsbudsjett</h4>
-                        <div class="flex flex-col gap-3">
-                            <input type="number" id="budgetInput" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-black text-2xl border border-slate-100 text-center">
-                            <button onclick="updateBudget()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-100 active:scale-95 transition-all">Lagre Budsjett</button>
-                        </div>
+            <div id="sectionInnstillinger" class="tab-content animate-pop space-y-5">
+                <div class="bg-white p-6 rounded-3xl border border-slate-100 space-y-8 shadow-sm">
+                    <div>
+                        <h4 class="text-[10px] font-black uppercase text-indigo-600 tracking-widest mb-3">Månedsbudsjett</h4>
+                        <input type="number" id="budgetInput" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-black text-2xl text-center mb-2">
+                        <button onclick="updateBudget()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest">Lagre endringer</button>
                     </div>
-                    <div class="pt-6 border-t border-slate-100">
-                        <h4 class="text-[10px] font-black uppercase text-indigo-600 mb-4 tracking-widest">Kategorier</h4>
+                    <div class="pt-6 border-t">
+                        <h4 class="text-[10px] font-black uppercase text-indigo-600 mb-4 tracking-widest">Dine Kategorier</h4>
                         <div id="customCatsList" class="flex flex-wrap gap-2 mb-4"></div>
-                        <button onclick="addCategoryPrompt()" class="w-full p-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-[10px] font-bold uppercase flex items-center justify-center gap-2">
-                           <i data-lucide="plus-circle" class="w-4 h-4"></i> Ny kategori
-                        </button>
+                        <button onclick="addCategoryPrompt()" class="w-full p-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-[10px] font-bold uppercase">+ Ny kategori</button>
                     </div>
-                    <button onclick="logout()" class="w-full py-4 text-slate-300 font-bold text-[9px] uppercase tracking-[0.3em]">Logg ut</button>
+                    <button onclick="logout()" class="w-full py-2 text-slate-300 font-bold text-[9px] uppercase tracking-[0.3em]">Logg ut av appen</button>
                 </div>
             </div>
 
             <div id="sectionAdd" class="tab-content animate-pop">
                 <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl border border-slate-100 space-y-6">
                     <div class="flex justify-between items-center border-b border-slate-50 pb-4">
-                        <h2 id="formTitle" class="text-xl font-black text-indigo-600 italic uppercase">Registrer kjøp</h2>
+                        <h2 id="formTitle" class="text-xl font-black text-indigo-600 italic uppercase">Nytt kjøp</h2>
                         <button onclick="cancelEdit()" id="btnCancel" class="hidden text-slate-400 text-[10px] font-black uppercase">Avbryt</button>
                     </div>
                     <input type="hidden" id="editId">
                     <div class="space-y-5">
-                        <div class="space-y-2">
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Hvem betalte?</p>
-                            <div class="flex gap-2 p-1 bg-slate-100 rounded-2xl">
-                                <button onclick="setBuyer('Kutlu')" id="btnBuyerK" class="flex-1 py-3 rounded-xl text-xs font-black transition-all uppercase tracking-widest">Kutlu</button>
-                                <button onclick="setBuyer('Hulya')" id="btnBuyerH" class="flex-1 py-3 rounded-xl text-xs font-black transition-all uppercase tracking-widest">Hulya</button>
-                            </div>
+                        <div class="flex gap-2 p-1 bg-slate-100 rounded-2xl">
+                            <button onclick="setBuyer('Kutlu')" id="btnBuyerK" class="flex-1 py-3 rounded-xl text-xs font-black transition-all uppercase tracking-widest">Kutlu</button>
+                            <button onclick="setBuyer('Hulya')" id="btnBuyerH" class="flex-1 py-3 rounded-xl text-xs font-black transition-all uppercase tracking-widest">Hulya</button>
                         </div>
-                        <input type="text" id="desc" placeholder="Hva er kjøpt?" class="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold text-lg border border-transparent focus:border-indigo-100">
+                        <input type="text" id="desc" placeholder="Hva har du kjøpt?" class="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold text-lg">
                         <div class="grid grid-cols-2 gap-3">
                             <input type="number" id="price" placeholder="Pris" class="w-full bg-slate-50 p-4 rounded-2xl outline-none font-black text-indigo-600 text-xl">
-                            <div class="relative">
-                                <select id="category" class="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold text-xs h-full appearance-none"></select>
-                                <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300"><i data-lucide="chevron-down" class="w-4 h-4"></i></div>
-                            </div>
+                            <select id="category" class="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold text-xs appearance-none"></select>
                         </div>
                         <div class="flex bg-slate-100 p-1.5 rounded-xl">
                             <button onclick="setType('Behov')" id="btnBehov" class="flex-1 py-3 rounded-xl text-[10px] font-black bg-white shadow-sm transition-all uppercase">Behov</button>
                             <button onclick="setType('Lyst')" id="btnLyst" class="flex-1 py-3 rounded-xl text-[10px] font-black text-slate-400 transition-all uppercase">Lyst</button>
                         </div>
                         <div class="text-center bg-slate-50 py-5 rounded-3xl">
-                             <p class="text-[9px] font-bold text-slate-400 uppercase mb-2 tracking-widest">Glede & Verdi</p>
                             <div class="star-rating">
                                 <input type="radio" name="rating" id="star5" value="5"><label for="star5">★</label>
                                 <input type="radio" name="rating" id="star4" value="4"><label for="star4">★</label>
@@ -138,10 +144,8 @@
                                 <input type="radio" name="rating" id="star1" value="1"><label for="star1">★</label>
                             </div>
                         </div>
-                        <div class="pt-4 space-y-3">
-                            <button onclick="savePurchase()" id="btnSave" class="w-full bg-slate-900 text-white py-5 rounded-[1.8rem] font-black text-lg shadow-lg uppercase tracking-widest active:scale-95 transition-all">Lagre Kjøpet</button>
-                            <button onclick="deleteCurrentEdit()" id="btnDeleteForm" class="hidden w-full text-rose-500 py-3 font-bold text-[10px] uppercase tracking-widest">Slett dette kjøpet</button>
-                        </div>
+                        <button onclick="savePurchase()" id="btnSave" class="w-full bg-slate-900 text-white py-5 rounded-[1.8rem] font-black text-lg shadow-lg uppercase tracking-widest active:scale-95 transition-all">Lagre Kjøpet</button>
+                        <button onclick="deleteCurrentEdit()" id="btnDeleteForm" class="hidden w-full text-rose-500 py-2 font-bold text-[9px] uppercase tracking-widest">Slett dette kjøpet</button>
                     </div>
                 </div>
             </div>
@@ -149,11 +153,29 @@
 
         <nav class="fixed bottom-0 left-0 right-0 glass-nav border-t border-slate-100 px-4 pt-3 pb-8 z-50">
             <div class="flex justify-between items-center max-w-md mx-auto">
-                <button onclick="switchTab('feed')" id="nav-feed" class="flex flex-col items-center gap-1 text-indigo-600 flex-1 transition-all"><i data-lucide="layout-list" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase">Logg</span></button>
-                <button onclick="switchTab('stats')" id="nav-stats" class="flex flex-col items-center gap-1 text-slate-300 flex-1 transition-all"><i data-lucide="pie-chart" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase">Innsikt</span></button>
-                <button onclick="switchTab('history')" id="nav-history" class="flex flex-col items-center gap-1 text-slate-300 flex-1 transition-all"><i data-lucide="calendar" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase">Historikk</span></button>
-                <button onclick="switchTab('admin')" id="nav-admin" class="flex flex-col items-center gap-1 text-slate-300 flex-1 transition-all"><i data-lucide="user" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase">Profil</span></button>
-                <button onclick="switchTab('add')" id="nav-add" class="bg-slate-900 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-xl active:scale-90 transition-all ml-2"><i data-lucide="plus" class="w-4 h-4"></i><span class="text-[8px] font-black uppercase tracking-tight">Nytt</span></button>
+                <button onclick="switchTab('oversikt')" id="nav-oversikt" class="flex flex-col items-center gap-0.5 text-slate-300 flex-1 transition-all">
+                    <i data-lucide="layout-grid" class="w-6 h-6"></i>
+                    <span class="text-[7px] font-black uppercase">Oversikt</span>
+                    <div class="nav-dot"></div>
+                </button>
+                <button onclick="switchTab('analyse')" id="nav-analyse" class="flex flex-col items-center gap-0.5 text-slate-300 flex-1 transition-all">
+                    <i data-lucide="bar-chart-3" class="w-6 h-6"></i>
+                    <span class="text-[7px] font-black uppercase">Analyse</span>
+                    <div class="nav-dot"></div>
+                </button>
+                <button onclick="switchTab('arkiv')" id="nav-arkiv" class="flex flex-col items-center gap-0.5 text-slate-300 flex-1 transition-all">
+                    <i data-lucide="archive" class="w-6 h-6"></i>
+                    <span class="text-[7px] font-black uppercase">Arkiv</span>
+                    <div class="nav-dot"></div>
+                </button>
+                <button onclick="switchTab('innstillinger')" id="nav-innstillinger" class="flex flex-col items-center gap-0.5 text-slate-300 flex-1 transition-all">
+                    <i data-lucide="settings-2" class="w-6 h-6"></i>
+                    <span class="text-[7px] font-black uppercase">Innstillinger</span>
+                    <div class="nav-dot"></div>
+                </button>
+                <button onclick="switchTab('add')" id="nav-add" class="bg-slate-900 text-white px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-xl active:scale-90 transition-all ml-2">
+                    <i data-lucide="plus" class="w-4 h-4"></i><span class="text-[8px] font-black uppercase tracking-tight">Nytt</span>
+                </button>
             </div>
         </nav>
     </div>
@@ -182,7 +204,6 @@
         let currentBudget = 15000, selectedType = 'Behov', selectedBuyer = 'Kutlu', chart = null, allPurchases = [];
 
         setPersistence(auth, browserLocalPersistence);
-
         window.login = () => signInWithPopup(auth, provider);
         window.logout = () => signOut(auth).then(() => location.reload());
 
@@ -200,8 +221,7 @@
         async function startApp() {
             const now = new Date();
             const monthNames = ["januar", "februar", "mars", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "desember"];
-            document.getElementById('headerLabelText').innerText = "Brukt i " + monthNames[now.getMonth()];
-
+            
             onSnapshot(doc(db, "settings", "global"), (d) => {
                 if(d.exists()) {
                     currentBudget = d.data().monthlyBudget;
@@ -218,7 +238,7 @@
                     const name = d.data().name;
                     if(!FIXED_CATS.includes(name)) {
                         sel.innerHTML += `<option value="${name}">${name}</option>`;
-                        adminList.innerHTML += `<span class="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase flex items-center gap-2 shadow-sm border border-indigo-100"><span onclick="editCategoryPrompt('${d.id}', '${name}')">${name}</span> <i onclick="deleteCategory('${d.id}')" data-lucide="x" class="w-3 h-3 cursor-pointer"></i></span>`;
+                        adminList.innerHTML += `<span class="bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase flex items-center gap-2 border border-indigo-100"><span onclick="editCategoryPrompt('${d.id}', '${name}')">${name}</span> <i onclick="deleteCategory('${d.id}')" data-lucide="x" class="w-3 h-3 cursor-pointer"></i></span>`;
                     }
                 });
                 lucide.createIcons();
@@ -227,25 +247,28 @@
             onSnapshot(query(collection(db, "purchases"), orderBy("createdAt", "desc")), (snap) => {
                 const list = document.getElementById('purchasesList'); list.innerHTML = '';
                 const histList = document.getElementById('historyList'); histList.innerHTML = '';
-                let total = 0, kSum = 0, hSum = 0, catSums = {}, historyData = {};
+                let total = 0, kSum = 0, hSum = 0, catSums = {}, historyMap = {};
                 allPurchases = [];
 
                 snap.forEach(dDoc => {
                     const p = dDoc.data(); const id = dDoc.id; const date = new Date(p.createdAt);
-                    const monthKey = monthNames[date.getMonth()] + " " + date.getFullYear();
+                    const sortKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    const displayKey = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+                    
                     allPurchases.push({ ...p, id, date });
-                    historyData[monthKey] = (historyData[monthKey] || 0) + p.price;
+                    
+                    if(!historyMap[sortKey]) historyMap[sortKey] = { label: displayKey, sum: 0 };
+                    historyMap[sortKey].sum += p.price;
 
                     if(date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
                         total += p.price;
                         if(p.buyer.toLowerCase().includes('kutlu')) kSum += p.price; else hSum += p.price;
-                        catSums[p.category || '✨ Annet'] = (catSums[p.category || '✨ Annet'] || 0) + p.price;
+                        catSums[p.category] = (catSums[p.category] || 0) + p.price;
 
                         const card = document.createElement('div');
                         card.className = "bg-white p-5 rounded-[2rem] border border-slate-100 flex flex-col gap-3 shadow-sm animate-pop active:scale-[0.98] transition-all cursor-pointer";
                         card.onclick = () => editMode(id, p.desc, p.price, p.category, p.type, p.myRating, p.buyer);
                         
-                        // Farge-logikk for tags
                         const buyerColor = p.buyer === 'Kutlu' ? 'bg-indigo-50 text-indigo-600' : 'bg-rose-50 text-rose-500';
                         const typeColor = p.type === 'Behov' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600';
 
@@ -255,28 +278,39 @@
                                 <p class="font-black text-lg text-slate-900 tracking-tighter">${p.price.toLocaleString()} kr</p>
                             </div>
                             <div class="flex flex-wrap gap-2">
-                                <span class="text-[7px] font-black px-2 py-1 rounded-lg ${typeColor} uppercase tracking-widest">${p.type || 'Behov'}</span>
-                                <span class="text-[7px] font-black px-2 py-1 rounded-lg bg-slate-100 text-slate-500 uppercase tracking-widest">${p.category || 'Annet'}</span>
+                                <span class="text-[7px] font-black px-2 py-1 rounded-lg ${typeColor} uppercase tracking-widest">${p.type}</span>
+                                <span class="text-[7px] font-black px-2 py-1 rounded-lg bg-slate-100 text-slate-500 uppercase tracking-widest">${p.category}</span>
                                 <span class="text-[7px] font-black px-2 py-1 rounded-lg ${buyerColor} uppercase tracking-widest">${p.buyer}</span>
                             </div>`;
                         list.appendChild(card);
                     }
                 });
 
-                // Oppdater Budsjett-indikator
+                // Arkiv-bygging
+                Object.keys(historyMap).sort().reverse().forEach(key => {
+                    const h = historyMap[key];
+                    const row = document.createElement('div');
+                    row.className = "bg-white p-5 rounded-2xl flex justify-between items-center border border-slate-50 shadow-sm cursor-pointer active:bg-slate-50 transition-all";
+                    row.onclick = () => showHistoryDetail(h.label);
+                    row.innerHTML = `<div class="flex flex-col"><span class="font-black text-slate-900 uppercase text-[10px] tracking-widest">${h.label}</span><span class="text-[8px] font-bold text-indigo-400 uppercase">Se alle kjøp</span></div><span class="font-black text-slate-900 text-lg tracking-tighter">${h.sum.toLocaleString()} kr</span>`;
+                    histList.appendChild(row);
+                });
+
+                // Budsjett-indikator
                 const diff = currentBudget - total;
-                const diffEl = document.getElementById('budgetDiffText');
+                const chip = document.getElementById('budgetStatusChip');
                 if(diff >= 0) {
-                    diffEl.innerText = `${diff.toLocaleString()} kr igjen`;
-                    diffEl.className = "text-[9px] font-black px-2 py-1 rounded-lg mb-1 bg-emerald-100 text-emerald-700 uppercase";
+                    chip.innerText = `${diff.toLocaleString()} kr igjen`;
+                    chip.className = "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm bg-emerald-100 text-emerald-700";
                 } else {
-                    diffEl.innerText = `${Math.abs(diff).toLocaleString()} kr over`;
-                    diffEl.className = "text-[9px] font-black px-2 py-1 rounded-lg mb-1 bg-rose-100 text-rose-700 uppercase";
+                    chip.innerText = `${Math.abs(diff).toLocaleString()} kr over`;
+                    chip.className = "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm bg-rose-100 text-rose-700";
                 }
 
                 document.getElementById('totalMonth').innerText = total.toLocaleString() + " kr";
                 const pcent = Math.min((total / currentBudget) * 100, 100);
                 document.getElementById('budgetBar').style.width = pcent + "%";
+                document.getElementById('budgetBar').style.backgroundColor = pcent > 90 ? '#ef4444' : '#6366f1';
                 document.getElementById('statKSum').innerText = kSum.toLocaleString() + " kr";
                 document.getElementById('statHSum').innerText = hSum.toLocaleString() + " kr";
                 document.getElementById('battleK').style.width = total > 0 ? (kSum / total * 100) + "%" : "50%";
@@ -285,105 +319,74 @@
             });
         }
 
+        window.switchTab = (t) => {
+            document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('nav-active'));
+            
+            const targetId = 'section' + t.charAt(0).toUpperCase() + t.slice(1);
+            document.getElementById(targetId).classList.add('active');
+            document.getElementById('nav-' + t).classList.add('nav-active');
+            
+            document.getElementById('pageTitleDisplay').innerText = t === 'add' ? 'Nytt kjøp' : t.charAt(0).toUpperCase() + t.slice(1);
+            if(t === 'arkiv') closeHistoryDetail();
+            window.scrollTo(0,0);
+        };
+
         window.setBuyer = (b) => {
             selectedBuyer = b;
-            const kBtn = document.getElementById('btnBuyerK');
-            const hBtn = document.getElementById('btnBuyerH');
+            const kBtn = document.getElementById('btnBuyerK'), hBtn = document.getElementById('btnBuyerH');
             if(b === 'Kutlu') {
-                kBtn.className = "flex-1 py-3 rounded-xl text-xs font-black bg-indigo-600 text-white shadow-lg shadow-indigo-100 transition-all uppercase tracking-widest";
-                hBtn.className = "flex-1 py-3 rounded-xl text-xs font-black text-slate-400 transition-all uppercase tracking-widest";
+                kBtn.className = "flex-1 py-3 rounded-xl text-xs font-black bg-indigo-600 text-white shadow-lg uppercase tracking-widest";
+                hBtn.className = "flex-1 py-3 rounded-xl text-xs font-black text-slate-400 uppercase tracking-widest";
             } else {
-                kBtn.className = "flex-1 py-3 rounded-xl text-xs font-black text-slate-400 transition-all uppercase tracking-widest";
-                hBtn.className = "flex-1 py-3 rounded-xl text-xs font-black bg-rose-400 text-white shadow-lg shadow-rose-100 transition-all uppercase tracking-widest";
+                kBtn.className = "flex-1 py-3 rounded-xl text-xs font-black text-slate-400 uppercase tracking-widest";
+                hBtn.className = "flex-1 py-3 rounded-xl text-xs font-black bg-rose-400 text-white shadow-lg uppercase tracking-widest";
             }
         };
 
-        window.showHistoryDetail = (monthYear) => {
+        window.showHistoryDetail = (monthLabel) => {
             const detailView = document.getElementById('historyDetailView'), listView = document.getElementById('historyListView'), detailList = document.getElementById('historyDetailList');
-            document.getElementById('historyDetailTitle').innerText = `Detaljer for ${monthYear}`;
+            document.getElementById('historyDetailTitle').innerText = monthLabel;
             detailList.innerHTML = '';
-            const monthNames = ["januar", "februar", "mars", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "desember"];
-            const [mName, mYear] = monthYear.split(' ');
-            const filtered = allPurchases.filter(p => monthNames[p.date.getMonth()] === mName && p.date.getFullYear().toString() === mYear);
+            const filtered = allPurchases.filter(p => {
+                const d = new Date(p.createdAt);
+                const monthNames = ["januar", "februar", "mars", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "desember"];
+                return `${monthNames[d.getMonth()]} ${d.getFullYear()}` === monthLabel;
+            });
             filtered.forEach(p => {
                 const card = document.createElement('div');
-                card.className = "bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm";
-                card.innerHTML = `<div><h3 class="font-bold text-slate-800 text-xs uppercase tracking-tight">${p.desc}</h3><p class="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">${p.category} • ${p.buyer}</p></div><div class="text-right"><p class="font-black text-slate-900">${p.price.toLocaleString()} kr</p></div>`;
+                card.className = "bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center";
+                card.innerHTML = `<div><h3 class="font-bold text-slate-800 text-xs uppercase tracking-tight">${p.desc}</h3><p class="text-[8px] font-bold text-slate-400 uppercase">${p.category} • ${p.buyer}</p></div><div class="text-right"><p class="font-black text-slate-900">${p.price.toLocaleString()} kr</p></div>`;
                 detailList.appendChild(card);
             });
             listView.classList.add('hidden'); detailView.classList.remove('hidden');
         };
 
         window.closeHistoryDetail = () => { document.getElementById('historyDetailView').classList.add('hidden'); document.getElementById('historyListView').classList.remove('hidden'); };
-
-        window.updateBudget = async () => {
-            const v = parseFloat(document.getElementById('budgetInput').value);
-            if(v > 0) { await setDoc(doc(db, "settings", "global"), { monthlyBudget: v }); alert("Budsjett oppdatert!"); }
-        };
-
         window.savePurchase = async () => {
             const id = document.getElementById('editId').value, d = document.getElementById('desc').value, p = parseFloat(document.getElementById('price').value);
             const r = parseInt(document.querySelector('input[name="rating"]:checked')?.value || 0);
             if(!d || isNaN(p) || r === 0) return alert("Fyll ut alt!");
             const obj = { desc: d, price: p, category: document.getElementById('category').value, type: selectedType, myRating: r, buyer: selectedBuyer, createdAt: Date.now() };
-            if(id) await updateDoc(doc(db, "purchases", id), obj);
-            else await addDoc(collection(db, "purchases"), obj);
-            cancelEdit(); switchTab('feed');
+            if(id) await updateDoc(doc(db, "purchases", id), obj); else await addDoc(collection(db, "purchases"), obj);
+            cancelEdit(); switchTab('oversikt');
         };
-
         window.editMode = (id, desc, price, cat, type, rate, buyer) => {
-            switchTab('add');
-            document.getElementById('editId').value = id; document.getElementById('desc').value = desc;
+            switchTab('add'); document.getElementById('editId').value = id; document.getElementById('desc').value = desc;
             document.getElementById('price').value = price; document.getElementById('category').value = cat;
             window.setType(type); window.setBuyer(buyer || 'Kutlu');
-            document.getElementById(`star${rate}`).checked = true;
-            document.getElementById('formTitle').innerText = "Endre kjøp";
-            document.getElementById('btnCancel').classList.remove('hidden');
-            document.getElementById('btnDeleteForm').classList.remove('hidden');
+            document.getElementById(`star${rate}`).checked = true; document.getElementById('formTitle').innerText = "Endre kjøp";
+            document.getElementById('btnCancel').classList.remove('hidden'); document.getElementById('btnDeleteForm').classList.remove('hidden');
         };
-
-        window.deleteCurrentEdit = async () => {
-            const id = document.getElementById('editId').value;
-            if(id && confirm("Vil du slette dette kjøpet permanent?")) {
-                await deleteDoc(doc(db, "purchases", id));
-                cancelEdit();
-                switchTab('feed');
-            }
-        };
-
-        window.cancelEdit = () => {
-            document.getElementById('editId').value = ''; document.getElementById('desc').value = ''; document.getElementById('price').value = '';
-            document.getElementById('formTitle').innerText = "Registrer kjøp";
-            document.getElementById('btnCancel').classList.add('hidden');
-            document.getElementById('btnDeleteForm').classList.add('hidden');
-            document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
-        };
-
-        window.setType = (t) => {
-            selectedType = t;
-            document.getElementById('btnBehov').className = t === 'Behov' ? "flex-1 py-3 rounded-xl text-[10px] font-black bg-white shadow-sm transition-all uppercase" : "flex-1 py-3 rounded-xl text-[10px] font-black text-slate-400 transition-all uppercase";
-            document.getElementById('btnLyst').className = t === 'Lyst' ? "flex-1 py-3 rounded-xl text-[10px] font-black bg-white shadow-sm transition-all uppercase" : "flex-1 py-3 rounded-xl text-[10px] font-black text-slate-400 transition-all uppercase";
-        };
-
-        window.switchTab = (t) => {
-            document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active'));
-            document.getElementById('section' + t.charAt(0).toUpperCase() + t.slice(1)).classList.add('active');
-            ['nav-feed', 'nav-stats', 'nav-history', 'nav-admin'].forEach(n => {
-                const el = document.getElementById(n);
-                el.classList.remove('text-indigo-600');
-                el.classList.add('text-slate-300');
-            });
-            if(t !== 'add') document.getElementById('nav-' + t).classList.add('text-indigo-600');
-            window.scrollTo(0,0);
-        };
-
-        function updateChart(catSums) {
-            const ctx = document.getElementById('categoryChart'); if(chart) chart.destroy();
-            const labels = Object.keys(catSums); const data = Object.values(catSums);
-            if(labels.length === 0) return;
-            chart = new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ data, backgroundColor: ['#6366f1', '#fbbf24', '#10b981', '#f43f5e', '#8b5cf6', '#0ea5e9'], borderWidth: 0 }] }, options: { cutout: '80%', maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10, weight: 'bold' } } } } } });
-        }
+        window.deleteCurrentEdit = async () => { const id = document.getElementById('editId').value; if(id && confirm("Slette kjøp?")) { await deleteDoc(doc(db, "purchases", id)); cancelEdit(); switchTab('oversikt'); } };
+        window.cancelEdit = () => { document.getElementById('editId').value = ''; document.getElementById('desc').value = ''; document.getElementById('price').value = ''; document.getElementById('formTitle').innerText = "Nytt kjøp"; document.getElementById('btnCancel').classList.add('hidden'); document.getElementById('btnDeleteForm').classList.add('hidden'); document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false); };
+        window.setType = (t) => { selectedType = t; document.getElementById('btnBehov').className = t === 'Behov' ? "flex-1 py-3 rounded-xl text-[10px] font-black bg-white shadow-sm transition-all uppercase" : "flex-1 py-3 rounded-xl text-[10px] font-black text-slate-400 transition-all uppercase"; document.getElementById('btnLyst').className = t === 'Lyst' ? "flex-1 py-3 rounded-xl text-[10px] font-black bg-white shadow-sm transition-all uppercase" : "flex-1 py-3 rounded-xl text-[10px] font-black text-slate-400 transition-all uppercase"; };
+        function updateChart(catSums) { const ctx = document.getElementById('categoryChart'); if(chart) chart.destroy(); const labels = Object.keys(catSums); const data = Object.values(catSums); if(labels.length === 0) return; chart = new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ data, backgroundColor: ['#6366f1', '#fbbf24', '#10b981', '#f43f5e', '#8b5cf6', '#0ea5e9'], borderWidth: 0 }] }, options: { cutout: '80%', maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10, weight: 'bold' } } } } } }); }
+        window.updateBudget = async () => { const v = parseFloat(document.getElementById('budgetInput').value); if(v > 0) { await setDoc(doc(db, "settings", "global"), { monthlyBudget: v }); alert("Lagret!"); } };
+        window.addCategoryPrompt = async () => { const n = prompt("Ny kategori:"); if(n) await addDoc(collection(db, "categories"), { name: n.trim() }); };
+        window.deleteCategory = async (id) => { if(confirm("Slette?")) await deleteDoc(doc(db, "categories", id)); };
         lucide.createIcons();
+        switchTab('oversikt'); // Start på oversikt
     </script>
 </body>
 </html>
