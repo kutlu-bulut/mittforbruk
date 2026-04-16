@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vårt Forbruk v18.5</title>
+    <title>Vårt Forbruk v18.7</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -31,8 +31,9 @@
         .nav-dot { width: 4px; height: 4px; background: #4f46e5; border-radius: 50%; margin-top: 2px; opacity: 0; }
         
         /* Hjem-knapp utskilt i midten */
-        .home-btn-special { transform: translateY(-20px); background: #4f46e5; color: white !important; width: 60px; height: 60px; border-radius: 50%; box-shadow: 0 10px 20px -5px rgba(79, 70, 229, 0.5); display: flex; align-items: center; justify-content: center; border: 4px solid #F8FAFC; }
+        .home-btn-special { transform: translateY(-20px); background: #4f46e5; color: white !important; width: 60px; height: 60px; border-radius: 50%; box-shadow: 0 10px 20px -5px rgba(79, 70, 229, 0.5); display: flex; align-items: center; justify-content: center; border: 4px solid #F8FAFC; transition: 0.2s; }
         .dark-mode .home-btn-special { border-color: #0f172a; }
+        .home-btn-special:active { transform: translateY(-15px) scale(0.95); }
         
         .brand-logo { font-style: italic; letter-spacing: -1px; }
         .star-rating { direction: rtl; display: inline-flex; }
@@ -50,7 +51,23 @@
         <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-10 shadow-2xl animate-pop">
             <h1 class="text-3xl font-black mb-10 brand-logo text-indigo-600 uppercase">Vårt Forbruk</h1>
             <button onclick="login()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold uppercase text-xs tracking-widest">Start med Google</button>
-            <p class="mt-6 text-[8px] text-slate-300 font-mono uppercase tracking-widest">v18.5 Rescue</p>
+            <p class="mt-6 text-[8px] text-slate-300 font-mono uppercase tracking-widest">v18.7 Stable</p>
+        </div>
+    </div>
+
+    <div id="onboardingScreen" class="hidden fixed inset-0 z-[95] bg-slate-50 flex items-center justify-center p-6 text-center">
+        <div class="max-w-sm w-full space-y-6 animate-pop">
+            <h2 class="text-2xl font-black tracking-tighter italic text-slate-900">Velkommen!</h2>
+            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6">
+                <button onclick="createHousehold()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all">Opprett ny husstand</button>
+                <div class="relative flex py-2 items-center">
+                    <div class="flex-grow border-t border-slate-100"></div>
+                    <span class="mx-4 text-slate-300 text-[9px] font-black uppercase">Eller</span>
+                    <div class="flex-grow border-t border-slate-100"></div>
+                </div>
+                <input type="text" id="joinCodeInput" placeholder="Kode fra partner" class="w-full p-4 bg-slate-50 rounded-2xl border border-slate-50 outline-none text-center font-bold text-lg text-slate-900">
+                <button onclick="joinHousehold()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all">Bli med</button>
+            </div>
         </div>
     </div>
 
@@ -58,7 +75,7 @@
         <header class="bg-white sticky top-0 z-40 border-b border-slate-50">
             <div class="bg-indigo-600 py-3 text-center shadow-md flex justify-center items-center gap-2">
                 <span class="text-white font-black brand-logo uppercase tracking-tighter text-sm">Vårt Forbruk</span>
-                <span class="bg-indigo-500 text-indigo-100 text-[8px] px-1.5 py-0.5 rounded font-mono font-bold tracking-widest">v18.5</span>
+                <span class="bg-indigo-500 text-indigo-100 text-[8px] px-1.5 py-0.5 rounded font-mono font-bold tracking-widest">v18.7</span>
             </div>
             <div class="px-6 pt-5 pb-5">
                 <div class="flex justify-between items-start mb-6">
@@ -90,12 +107,18 @@
             <div id="sectionInnsikt" class="tab-content animate-pop space-y-4">
                 <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm text-center">
                     <h3 class="text-[10px] font-black text-slate-400 uppercase mb-6 italic">Fordeling</h3>
-                    <div class="h-64"><canvas id="categoryChart"></canvas></div>
+                    <div class="h-64 relative"><canvas id="categoryChart"></canvas></div>
                 </div>
                 <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm text-center">
                     <h3 class="text-[10px] font-black text-slate-400 uppercase mb-4 italic tracking-widest">Duellen</h3>
-                    <div class="w-full h-5 bg-slate-100 rounded-full overflow-hidden flex mb-2"><div id="battleK" class="h-full bg-indigo-500 transition-all duration-700"></div><div id="battleH" class="h-full bg-rose-400 flex-1"></div></div>
-                    <div class="flex justify-between font-black text-[10px] uppercase px-1"><span id="statKName">--</span><span id="statHName">--</span></div>
+                    <div class="w-full h-5 bg-slate-100 rounded-full overflow-hidden flex mb-2">
+                        <div id="battleK" class="h-full bg-slate-200 transition-all duration-700 w-1/2"></div>
+                        <div id="battleH" class="h-full bg-slate-200 flex-1"></div>
+                    </div>
+                    <div class="flex justify-between font-black text-[10px] uppercase px-1">
+                        <span id="statKName">--</span>
+                        <span id="statHName">--</span>
+                    </div>
                 </div>
             </div>
             
@@ -112,6 +135,11 @@
                     <h4 class="text-[10px] font-black uppercase text-indigo-600 tracking-widest text-center">Kategorier (klikk for å endre)</h4>
                     <div id="customCatsList" class="flex flex-wrap gap-2 mb-2"></div>
                     <button onclick="addCategoryPrompt()" class="w-full p-3 border-2 border-dashed border-slate-100 rounded-xl text-slate-400 text-[10px] font-bold uppercase">+ Ny kategori</button>
+                </div>
+                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm text-center">
+                    <h4 class="text-[10px] font-black uppercase text-indigo-600 mb-2 italic">Invitasjon</h4>
+                    <div class="flex justify-between items-center bg-slate-900 p-4 rounded-xl text-white"><span id="displayHid" class="font-mono font-black">...</span><button onclick="copyHid()"><i data-lucide="copy" class="w-5 h-5"></i></button></div>
+                    <div id="memberList" class="mt-4 text-left space-y-2"></div>
                 </div>
             </div>
 
@@ -133,7 +161,12 @@
                     <div class="flex justify-between items-center border-b border-slate-50 pb-4"><h2 id="formTitle" class="text-xl font-black text-indigo-600 italic uppercase">Nytt kjøp</h2><button onclick="switchTab('hjem')"><i data-lucide="x" class="w-6 h-6"></i></button></div>
                     <input type="hidden" id="editId">
                     <div class="space-y-5">
-                        <div class="flex gap-2 p-1 bg-slate-100 rounded-2xl" id="buyerSwitcher"></div>
+                        
+                        <div class="flex gap-2 p-1 bg-slate-100 rounded-2xl">
+                            <button onclick="setBuyer(currentUserData.name)" id="btnBuyer1" class="flex-1 py-3 rounded-xl text-xs font-black transition-all uppercase active:scale-95">Deg</button>
+                            <button onclick="setPartnerBuyer()" id="btnBuyer2" class="flex-1 py-3 rounded-xl text-xs font-black transition-all uppercase active:scale-95">Partner</button>
+                        </div>
+                        
                         <div class="space-y-1"><label class="text-[9px] font-black uppercase text-slate-400 ml-2">Dato</label><input type="date" id="dateInput" class="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold text-lg border border-slate-50"></div>
                         <input type="text" id="store" placeholder="Butikk (f.eks Meny)" class="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold text-lg border border-slate-50">
                         <input type="text" id="desc" placeholder="Vare/Beskrivelse" class="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold text-lg border border-slate-50">
@@ -174,21 +207,24 @@
         let currentHid = null, currentUserData = {}, currentBudget = 5000, selectedType = "Behov", selectedBuyer = "", householdMembers = [];
         const categoryEmojis = { "Mat": "🍔", "Shopping": "🛍️", "Transport": "🚗", "Bolig": "🏠", "Annet": "📦" };
         const profileColors = ["#6366f1", "#f43f5e", "#10b981", "#f59e0b", "#8b5cf6", "#06b6d4", "#f97316", "#ec4899", "#64748b", "#84cc16"];
+        let chart = null;
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // REDNINGSAKSJON: Tvinger e-postene deres tilbake til original_familie slik at dataene hentes
-                const email = user.email.toLowerCase();
-                if (['bulutcollections@gmail.com', 'ayluh_18@hotmail.com', 'ertaselli@gmail.com'].includes(email)) {
-                    await setDoc(doc(db, "users", user.uid), { hid: "original_familie" }, { merge: true });
-                }
-
                 onSnapshot(doc(db, "users", user.uid), (d) => {
                     if (d.exists()) {
                         currentUserData = d.data(); currentHid = currentUserData.hid; 
                         if(!selectedBuyer) selectedBuyer = currentUserData.name;
                         renderColorPicker(); applyUserPreferences();
-                        if (currentHid) startApp(); else document.getElementById('loginScreen').classList.add('hidden');
+                        
+                        if (currentHid) {
+                            startApp();
+                        } else {
+                            // GENERISK ONBOARDING HVIS BRUKEREN MANGLER HUSSTAND
+                            document.getElementById('loginScreen').classList.add('hidden');
+                            document.getElementById('appContent').classList.add('hidden');
+                            document.getElementById('onboardingScreen').classList.remove('hidden');
+                        }
                     } else {
                         setDoc(doc(db, "users", user.uid), { name: user.displayName.split(' ')[0], email: user.email.toLowerCase(), color: '#6366f1', darkMode: false, hid: null });
                     }
@@ -217,48 +253,66 @@
         }
 
         async function startApp() {
-            document.getElementById('loginScreen').classList.add('hidden'); document.getElementById('appContent').classList.remove('hidden');
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('onboardingScreen').classList.add('hidden');
+            document.getElementById('appContent').classList.remove('hidden');
+            
+            document.getElementById('displayHid').innerText = currentHid;
             document.getElementById('userNameDisplay').innerText = "Hei, " + currentUserData.name + "!";
             
             onSnapshot(doc(db, "households", currentHid), (d) => { if(d.exists()) { document.getElementById('hhNameDisplay').innerText = d.data().name; document.getElementById('householdNameInput').value = d.data().name; }});
             onSnapshot(doc(db, "households", currentHid, "settings", "global"), (d) => { if(d.exists()) { currentBudget = d.data().monthlyBudget; document.getElementById('budgetInput').value = currentBudget; document.getElementById('budgetLabel').innerText = "Budsjett: " + currentBudget.toLocaleString() + " kr"; }});
             
             onSnapshot(query(collection(db, "users"), where("hid", "==", currentHid)), (snap) => {
-                const list = document.getElementById('memberList'); list.innerHTML = ''; householdMembers = [];
-                snap.forEach(d => { const u = d.data(); householdMembers.push(u); list.innerHTML += `<div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-1"><div class="w-2.5 h-2.5 rounded-full" style="background:${u.color}"></div><span class="text-xs font-bold">${u.name}</span></div>`; });
-                renderSwitcher();
+                const list = document.getElementById('memberList'); list.innerHTML = '';
+                householdMembers = [];
+                snap.forEach(d => { 
+                    const u = d.data(); 
+                    householdMembers.push(u); 
+                    list.innerHTML += `<div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-1"><div class="w-2.5 h-2.5 rounded-full" style="background:${u.color}"></div><span class="text-xs font-bold">${u.name}</span></div>`;
+                });
+                
+                // Oppdater navnet på Partner-knappen
+                const p = householdMembers.find(m => m.name !== currentUserData.name);
+                if(p) document.getElementById('btnBuyer2').innerText = p.name;
+                
+                window.setBuyer(selectedBuyer || currentUserData.name);
             });
 
             onSnapshot(query(collection(db, "households", currentHid, "purchases"), orderBy("createdAt", "desc")), (snap) => {
-                const list = document.getElementById('purchasesList'); list.innerHTML = ''; let total = 0, buyerSums = {}, catSums = {}, all = [];
+                const list = document.getElementById('purchasesList'); list.innerHTML = ''; 
+                let total = 0, buyerSums = {}, catSums = {}, all = [];
                 const now = new Date();
+                
                 snap.forEach(dDoc => {
                     const p = dDoc.data(); const id = dDoc.id; const date = new Date(p.createdAt); all.push({ ...p, id });
                     
-                    // FIKS: Sørger for at vi kun ser gjeldende år OG måned!
                     if(date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
-                        total += p.price; buyerSums[p.buyer] = (buyerSums[p.buyer] || 0) + p.price; catSums[p.category] = (catSums[p.category] || 0) + p.price;
+                        total += p.price; 
+                        buyerSums[p.buyer] = (buyerSums[p.buyer] || 0) + p.price; 
+                        catSums[p.category] = (catSums[p.category] || 0) + p.price;
+                        
                         const card = document.createElement('div'); card.className = "bg-white p-5 rounded-[1.8rem] border border-slate-50 shadow-sm active:scale-95 cursor-pointer transition-all";
                         card.onclick = () => editMode(id, p.store, p.desc, p.price, p.category, p.type, p.buyer, p.rating, p.createdAt);
                         
-                        // Finner riktig farge til kjøperen dynamically
-                        let bColor = '#f43f5e';
+                        let bColor = '#94a3b8';
                         const buyerMember = householdMembers.find(m => m.name === p.buyer);
-                        if (buyerMember) bColor = buyerMember.color;
+                        if (buyerMember) bColor = buyerMember.color || '#4f46e5';
 
                         const emoji = categoryEmojis[p.category] || "🏷️";
-                        card.innerHTML = `<div class="flex justify-between items-start"><div class="flex flex-col"><h3 class="font-black text-xs uppercase text-slate-900">${p.store || 'Butikk'}</h3><p class="text-[10px] text-slate-400 font-bold">${p.desc}</p></div><p class="font-black text-lg text-slate-900">${p.price.toLocaleString()} kr</p></div><div class="flex gap-2"><span class="text-[7px] font-black px-2 py-1 rounded-lg ${ (p.type||'Behov') ==='Behov'?'bg-emerald-50 text-emerald-600':'bg-amber-50 text-amber-600'} uppercase">${p.type||'Behov'}</span><span class="text-[7px] font-black px-2 py-1 rounded-lg bg-slate-100 text-slate-500 uppercase">${emoji} ${p.category}</span><span class="text-[7px] font-black px-2 py-1 rounded-lg uppercase text-white" style="background:${bColor}">${p.buyer}</span></div>`;
+                        card.innerHTML = `<div class="flex justify-between items-start"><div class="flex flex-col"><h3 class="font-black text-xs uppercase text-slate-900">${p.store || 'Butikk'}</h3><p class="text-[10px] text-slate-400 font-bold">${p.desc}</p></div><p class="font-black text-lg text-slate-900">${p.price.toLocaleString()} kr</p></div><div class="flex gap-2 mt-2"><span class="text-[7px] font-black px-2 py-1 rounded-lg ${ (p.type||'Behov') ==='Behov'?'bg-emerald-50 text-emerald-600':'bg-amber-50 text-amber-600'} uppercase">${p.type||'Behov'}</span><span class="text-[7px] font-black px-2 py-1 rounded-lg bg-slate-100 text-slate-500 uppercase">${emoji} ${p.category}</span><span class="text-[7px] font-black px-2 py-1 rounded-lg uppercase text-white" style="background:${bColor}">${p.buyer}</span></div>`;
                         list.appendChild(card);
                     }
                 });
+                
                 document.getElementById('totalMonth').innerText = total.toLocaleString() + " kr";
-                document.getElementById('budgetBar').style.width = Math.min((total / currentBudget) * 100, 100) + "%";
+                document.getElementById('budgetBar').style.width = Math.min((total / (currentBudget||1)) * 100, 100) + "%";
                 const diff = currentBudget - total; document.getElementById('budgetStatusChip').innerText = diff >= 0 ? `${diff.toLocaleString()} kr under` : `${Math.abs(diff).toLocaleString()} kr over`;
                 document.getElementById('budgetStatusChip').className = `text-[9px] font-black uppercase px-2 py-1 rounded-md ${diff >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600 font-extrabold'}`;
-                const bs = Object.keys(buyerSums);
-                if(bs.length >= 1) { document.getElementById('statKName').innerText = bs[0] + ": " + (buyerSums[bs[0]] || 0).toLocaleString() + " kr"; document.getElementById('battleK').style.width = (buyerSums[bs[0]] / (total||1) * 100) + "%"; }
-                if(bs.length >= 2) { document.getElementById('statHName').innerText = bs[1] + ": " + (buyerSums[bs[1]] || 0).toLocaleString() + " kr"; }
-                updateChart(catSums); updateHistory(all);
+                
+                updateDuellen(buyerSums);
+                updateHistory(all);
+                updateChart(catSums);
             });
 
             onSnapshot(query(collection(db, "households", currentHid, "categories"), orderBy("name")), (snap) => {
@@ -279,23 +333,88 @@
             });
         }
 
-        window.editCategoryPrompt = async (id, current) => { const n = prompt("Endre kategorinavn:", current); if(n && n !== current) await updateDoc(doc(db, "households", currentHid, "categories", id), { name: n.trim() }); };
-        function renderSwitcher() {
-            const container = document.getElementById('buyerSwitcher'); if(!container) return; container.innerHTML = '';
-            const sorted = [...householdMembers].sort((a, b) => (a.name === currentUserData.name ? -1 : 1));
-            sorted.forEach(m => {
-                const btn = document.createElement('button'); btn.id = 'btnBuyer_' + m.name.replace(/\s+/g, ''); btn.className = "flex-1 py-3 rounded-xl text-xs font-black transition-all uppercase"; btn.innerText = m.name === currentUserData.name ? 'Deg' : m.name;
-                btn.onclick = (e) => { e.preventDefault(); window.setBuyer(m.name); }; container.appendChild(btn);
-            });
-            window.setBuyer(selectedBuyer || currentUserData.name);
-        }
-        window.setBuyer = (name) => { 
-            selectedBuyer = name; householdMembers.forEach(m => {
-                const btn = document.getElementById('btnBuyer_' + m.name.replace(/\s+/g, '')); if(!btn) return;
-                if(m.name === name) { btn.style.backgroundColor = m.color || '#4f46e5'; btn.style.color = 'white'; btn.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.1)'; }
-                else { btn.style.backgroundColor = 'transparent'; btn.style.color = '#94a3b8'; btn.style.boxShadow = 'none'; }
-            });
+        // --- SOLID SWITCHER LOGIC ---
+        window.setBuyer = (name) => {
+            selectedBuyer = name;
+            const btn1 = document.getElementById('btnBuyer1');
+            const btn2 = document.getElementById('btnBuyer2');
+            
+            // Henter partner sin info. Fallback til standard rød hvis ikke funnet.
+            const p = householdMembers.find(m => m.name !== currentUserData.name) || { name: 'Partner', color: '#f43f5e' };
+
+            // Nullstill
+            btn1.style.backgroundColor = 'transparent'; btn1.style.color = '#94a3b8'; btn1.style.boxShadow = 'none';
+            btn2.style.backgroundColor = 'transparent'; btn2.style.color = '#94a3b8'; btn2.style.boxShadow = 'none';
+
+            // Fargelegg aktiv knapp
+            if (name === currentUserData.name) {
+                btn1.style.backgroundColor = currentUserData.color || '#4f46e5';
+                btn1.style.color = 'white';
+                btn1.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.1)';
+            } else {
+                btn2.style.backgroundColor = p.color || '#f43f5e';
+                btn2.style.color = 'white';
+                btn2.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.1)';
+            }
         };
+
+        window.setPartnerBuyer = () => {
+            const p = householdMembers.find(m => m.name !== currentUserData.name);
+            window.setBuyer(p ? p.name : 'Partner');
+        };
+
+        function updateDuellen(buyerSums) {
+            let m1Name = "Deg", m1Color = "#4f46e5", m1Sum = 0;
+            let m2Name = "Partner", m2Color = "#f43f5e", m2Sum = 0;
+
+            if (householdMembers.length > 0) {
+                m1Name = householdMembers[0].name; m1Color = householdMembers[0].color || "#4f46e5"; m1Sum = buyerSums[m1Name] || 0;
+            }
+            if (householdMembers.length > 1) {
+                m2Name = householdMembers[1].name; m2Color = householdMembers[1].color || "#f43f5e"; m2Sum = buyerSums[m2Name] || 0;
+            }
+
+            document.getElementById('statKName').innerText = `${m1Name}: ${m1Sum.toLocaleString()} kr`;
+            document.getElementById('statHName').innerText = `${m2Name}: ${m2Sum.toLocaleString()} kr`;
+
+            let totalDuel = m1Sum + m2Sum;
+            if (totalDuel === 0) {
+                document.getElementById('battleK').style.width = "50%"; document.getElementById('battleK').style.backgroundColor = '#e2e8f0'; document.getElementById('battleH').style.backgroundColor = '#e2e8f0';
+            } else {
+                document.getElementById('battleK').style.width = `${(m1Sum / totalDuel) * 100}%`; document.getElementById('battleK').style.backgroundColor = m1Color; document.getElementById('battleH').style.backgroundColor = m2Color;
+            }
+        }
+
+        function updateHistory(purchases) { 
+            const list = document.getElementById('historyList'); list.innerHTML = ''; const m = {}; 
+            
+            purchases.forEach(p => { 
+                const d = new Date(p.createdAt);
+                const sortKey = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0');
+                const displayName = d.toLocaleString('no-NO', { month: 'long', year: 'numeric' }); 
+                if(!m[sortKey]) m[sortKey] = { label: displayName, total: 0 };
+                m[sortKey].total += p.price; 
+            }); 
+            
+            const sortedKeys = Object.keys(m).sort().reverse();
+            if(sortedKeys.length === 0) { list.innerHTML = '<p class="text-center text-xs font-bold text-slate-400 uppercase mt-10">Ingen historikk enda</p>'; return; }
+
+            sortedKeys.forEach(k => { 
+                list.innerHTML += `<div class="bg-white p-5 rounded-2xl flex justify-between border border-slate-50 mb-2 shadow-sm"><span class="font-black text-[10px] uppercase text-slate-400">${m[k].label}</span><span class="font-black">${m[k].total.toLocaleString()} kr</span></div>`; 
+            }); 
+        }
+
+        function updateChart(catSums) { 
+            const ctx = document.getElementById('categoryChart'); 
+            if(chart) chart.destroy(); 
+            if(Object.keys(catSums).length === 0) {
+                chart = new Chart(ctx, { type: 'doughnut', data: { labels: ['Ingen kjøp'], datasets: [{ data: [1], backgroundColor: ['#f8fafc'], borderWidth: 0 }] }, options: { cutout: '80%', maintainAspectRatio: false, plugins: { tooltip: {enabled: false}, legend: { display: false } } } });
+                return;
+            }
+            chart = new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(catSums), datasets: [{ data: Object.values(catSums), backgroundColor: profileColors, borderWidth: 0 }] }, options: { cutout: '80%', maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { family: 'Inter', weight: 'bold', size: 10 } } } } } }); 
+        }
+
+        window.editCategoryPrompt = async (id, current) => { const n = prompt("Endre kategorinavn:", current); if(n && n !== current) await updateDoc(doc(db, "households", currentHid, "categories", id), { name: n.trim() }); };
         
         window.openNewPurchase = () => { cancelEdit(); switchTab('add'); };
         window.switchTab = (t) => {
@@ -332,8 +451,23 @@
         window.updateHouseholdSettings = async () => { await updateDoc(doc(db, "households", currentHid), { name: document.getElementById('householdNameInput').value }); await setDoc(doc(db, "households", currentHid, "settings", "global"), { monthlyBudget: parseFloat(document.getElementById('budgetInput').value) }); alert("Lagret!"); };
         window.addCategoryPrompt = async () => { const n = prompt("Kategori:"); if(n) await addDoc(collection(db, "households", currentHid, "categories"), { name: n.trim() }); };
         window.deleteCategory = async (id) => { if(confirm("Slette?")) await deleteDoc(doc(db, "households", currentHid, "categories", id)); };
-        function updateChart(catSums) { const ctx = document.getElementById('categoryChart'); if(chart) chart.destroy(); chart = new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(catSums), datasets: [{ data: Object.values(catSums), backgroundColor: profileColors, borderWidth: 0 }] }, options: { cutout: '80%', maintainAspectRatio: false } }); }
-        function updateHistory(purchases) { const list = document.getElementById('historyList'); list.innerHTML = ''; const m = {}; purchases.forEach(p => { const d = new Date(p.createdAt).toLocaleString('no-NO', { month: 'long', year: 'numeric' }); m[d] = (m[d]||0) + p.price; }); Object.keys(m).sort().reverse().forEach(k => { list.innerHTML += `<div class="bg-white p-5 rounded-2xl flex justify-between border border-slate-50 mb-2 shadow-sm"><span class="font-black text-[10px] uppercase text-slate-400">${k}</span><span class="font-black">${m[k].toLocaleString()} kr</span></div>`; }); }
+        
+        // Husstand Logikk for Onboarding
+        window.createHousehold = async () => { 
+            const hid = "H-" + Math.random().toString(36).substr(2, 6).toUpperCase(); 
+            await setDoc(doc(db, "households", hid), { name: "Min husstand", migrated: true }); 
+            await setDoc(doc(db, "users", auth.currentUser.uid), { hid: hid }, { merge: true }); 
+            location.reload(); 
+        };
+        window.joinHousehold = async () => { 
+            const c = document.getElementById('joinCodeInput').value.trim(); 
+            if(c) { 
+                await setDoc(doc(db, "users", auth.currentUser.uid), { hid: c }, { merge: true }); 
+                location.reload(); 
+            } 
+        };
+        window.copyHid = () => { navigator.clipboard.writeText(currentHid); alert("Kode kopiert!"); };
+
         window.login = () => signInWithPopup(auth, provider); window.logout = () => signOut(auth).then(() => location.reload());
         
         lucide.createIcons(); switchTab('hjem');
