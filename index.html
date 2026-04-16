@@ -2,176 +2,268 @@
 <html lang="no">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Min App - Stabil Versjon</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Vårt Forbruk v16.3</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Grunnleggende farger for lys modus */
-        :root {
-            --bg: #ffffff;
-            --text: #222222;
-            --card: #f0f0f0;
-            --border: #cccccc;
-        }
-
-        /* Farger for mørk modus */
-        body.dark-mode {
-            --bg: #121212;
-            --text: #ffffff;
-            --card: #1e1e1e;
-            --border: #333333;
-        }
-
-        body {
-            font-family: sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            display: flex;
-            justify-content: center;
-            padding-top: 50px;
-            margin: 0;
-            transition: 0.2s;
-        }
-
-        .container {
-            width: 90%;
-            max-width: 400px;
-            background: var(--card);
-            padding: 25px;
-            border-radius: 15px;
-            border: 1px solid var(--border);
-            text-align: center;
-        }
-
-        /* Profil-sirkelen */
-        #avatar {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            margin: 0 auto 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 30px;
-            font-weight: bold;
-            color: white;
-        }
-
-        input {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            box-sizing: border-box;
-            background: var(--bg);
-            color: var(--text);
-        }
-
-        .color-picker {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin: 15px 0;
-        }
-
-        .dot {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 2px solid transparent;
-        }
-
-        .dot.active {
-            border-color: var(--text);
-            transform: scale(1.1);
-        }
-
-        .btn {
-            background: var(--text);
-            color: var(--bg);
-            border: none;
-            padding: 10px;
-            width: 100%;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            margin-top: 10px;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .animate-pop { animation: pop 0.25s ease-out; }
+        @keyframes pop { 0% { transform: scale(0.98); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .glass-nav { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); }
+        .nav-active { color: #4f46e5 !important; transform: scale(1.1); }
+        .nav-active span { font-weight: 900 !important; }
+        .nav-dot { width: 4px; height: 4px; background: #4f46e5; border-radius: 50%; margin-top: 2px; opacity: 0; }
+        .nav-active .nav-dot { opacity: 1; }
+        .star-rating { direction: rtl; display: inline-flex; }
+        .star-rating label { color: #e2e8f0; cursor: pointer; font-size: 1.5rem; padding: 0 0.1rem; }
+        .star-rating input:checked ~ label { color: #fbbf24; }
+        .brand-logo { font-style: italic; letter-spacing: -1px; }
     </style>
 </head>
-<body>
+<body class="bg-[#F8FAFC] min-h-screen text-slate-900">
 
-<div class="container">
-    <div id="avatar">?</div>
-    <h2 id="greeting">Hei!</h2>
-
-    <label for="nameInput">Ditt navn:</label>
-    <input type="text" id="nameInput" placeholder="Skriv inn navn..." oninput="updateName(this.value)">
-
-    <p>Velg din farge:</p>
-    <div class="color-picker" id="colorOptions">
+    <div id="loginScreen" class="fixed inset-0 z-[100] bg-indigo-600 flex items-center justify-center p-6 text-center">
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-10 shadow-2xl animate-pop">
+            <h1 class="text-3xl font-black mb-10 brand-logo text-indigo-600 uppercase">Vårt Forbruk</h1>
+            <button onclick="login()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold uppercase text-xs tracking-widest active:scale-95 transition-all">Logg inn med Google</button>
+            <p class="mt-6 text-[8px] text-slate-300 font-mono uppercase tracking-widest">Version 16.3</p>
         </div>
+    </div>
 
-    <button class="btn" onclick="toggleMode()">Bytt Lys/Mørk modus</button>
-</div>
+    <div id="onboardingScreen" class="hidden fixed inset-0 z-[90] bg-slate-50 flex items-center justify-center p-6">
+        <div class="max-w-sm w-full space-y-6 animate-pop text-center">
+            <h2 class="text-2xl font-black tracking-tighter italic">Velkommen!</h2>
+            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6">
+                <button onclick="createHousehold()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest">Opprett ny husstand</button>
+                <span class="text-slate-300 text-[9px] font-black uppercase tracking-widest">Eller</span>
+                <div class="space-y-3">
+                    <input type="text" id="joinCodeInput" placeholder="Kode fra partner" class="w-full p-4 bg-slate-50 rounded-2xl border border-slate-50 outline-none text-center font-bold text-lg">
+                    <button onclick="joinHousehold()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest">Bli med</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<script>
-    // 1. Definer fargene våre
-    const palette = ['#e74c3c', '#2ecc71', '#3498db', '#f1c40f', '#9b59b6', '#34495e'];
+    <div id="appContent" class="hidden">
+        <header class="bg-white sticky top-0 z-40 border-b border-slate-50">
+            <div class="bg-indigo-600 py-4 text-center shadow-md">
+                <span class="text-white font-black brand-logo uppercase tracking-tighter text-sm">Vårt Forbruk</span>
+            </div>
+            <div class="px-6 pt-5 pb-5">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 id="userNameDisplay" class="text-xl font-extrabold text-slate-900 italic tracking-tighter leading-none">Hei, ...</h2>
+                        <p id="householdNameDisplay" class="text-[8px] font-bold text-slate-400 uppercase mt-1">Laster husstand...</p>
+                    </div>
+                    <span id="pageTitleDisplay" class="text-[8px] font-black text-indigo-500 bg-indigo-50 px-2 py-1 rounded-md uppercase tracking-[0.2em]">Oversikt</span>
+                </div>
+                <div class="flex flex-col mb-6">
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Forbruk</span>
+                    <span id="totalMonth" class="text-4xl font-black tracking-tighter text-slate-900 leading-none">0 kr</span>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex justify-between items-end px-0.5">
+                        <div id="budgetStatusChip" class="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md">...</div>
+                        <div id="budgetLabel" class="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Budsjett: --</div>
+                    </div>
+                    <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                        <div id="budgetBar" class="h-full bg-indigo-600 w-0 transition-all duration-1000"></div>
+                    </div>
+                </div>
+            </div>
+        </header>
 
-    // 2. Hent lagrede data eller sett standardverdier
-    let currentName = localStorage.getItem('userName') || "";
-    let currentColor = localStorage.getItem('userColor') || palette[Math.floor(Math.random() * palette.length)];
-    let isDark = localStorage.getItem('darkMode') === 'true';
+        <main class="p-4 max-w-md mx-auto pb-32">
+            <div id="sectionOversikt" class="tab-content active animate-pop"><div id="purchasesList" class="space-y-3"></div></div>
+            
+            <div id="sectionInnsikt" class="tab-content animate-pop space-y-4">
+                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 text-center italic">Kategorifordeling</h3>
+                    <div class="h-64"><canvas id="categoryChart"></canvas></div>
+                </div>
+                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm text-center">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 italic">Duellen</h3>
+                    <div class="w-full h-5 bg-slate-100 rounded-full overflow-hidden flex mb-2"><div id="battleK" class="h-full bg-indigo-500 transition-all duration-700"></div><div id="battleH" class="h-full bg-rose-400 flex-1"></div></div>
+                    <div class="flex justify-between font-black text-[10px] uppercase px-1"><span id="statKName" class="text-indigo-600">--</span><span id="statHName" class="text-rose-500">--</span></div>
+                </div>
+            </div>
 
-    // 3. Funksjon for å oppdatere alt i grensesnittet
-    function render() {
-        // Oppdater tekst
-        document.getElementById('greeting').innerText = currentName ? `Hei, ${currentName}!` : "Hei!";
-        document.getElementById('avatar').innerText = currentName ? currentName.charAt(0).toUpperCase() : "?";
-        document.getElementById('nameInput').value = currentName;
+            <div id="sectionHistorikk" class="tab-content animate-pop space-y-4">
+                <div id="historyListView"><div id="historyList" class="space-y-2"></div></div>
+                <div id="historyDetailView" class="hidden space-y-4">
+                    <button onclick="closeHistoryDetail()" class="flex items-center gap-2 text-indigo-600 font-bold text-xs uppercase"><i data-lucide="chevron-left" class="w-4 h-4"></i> Tilbake</button>
+                    <h3 id="historyDetailTitle" class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">...</h3>
+                    <div id="historyDetailList" class="space-y-2"></div>
+                </div>
+            </div>
 
-        // Oppdater farger
-        document.getElementById('avatar').style.backgroundColor = currentColor;
-        
-        // Oppdater mørk modus
-        document.body.classList.toggle('dark-mode', isDark);
+            <div id="sectionInnstillinger" class="tab-content animate-pop space-y-6">
+                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                    <h4 class="text-[10px] font-black uppercase text-indigo-600 tracking-widest">Navn på husstand</h4>
+                    <div class="flex gap-2">
+                        <input type="text" id="householdNameInput" class="flex-1 p-3 bg-slate-50 rounded-xl outline-none font-bold text-sm border border-slate-50 focus:border-indigo-100">
+                        <button onclick="updateHouseholdName()" class="bg-indigo-600 text-white px-4 rounded-xl font-bold text-[10px] uppercase tracking-widest">Lagre</button>
+                    </div>
+                </div>
 
-        // Tegn fargevalgene på nytt
-        const picker = document.getElementById('colorOptions');
-        picker.innerHTML = '';
-        palette.forEach(color => {
-            const dot = document.createElement('div');
-            dot.className = 'dot' + (color === currentColor ? ' active' : '');
-            dot.style.backgroundColor = color;
-            dot.onclick = () => updateColor(color);
-            picker.appendChild(dot);
+                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                    <h4 class="text-[10px] font-black uppercase text-indigo-600 tracking-widest">Medlemmer</h4>
+                    <div id="memberList" class="space-y-3">
+                        </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-6">
+                    <div>
+                        <h4 class="text-[10px] font-black uppercase text-indigo-600 tracking-widest mb-3">Månedsbudsjett</h4>
+                        <input type="number" id="budgetInput" class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-black text-2xl text-center border border-slate-50 mb-2">
+                        <button onclick="updateBudget()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest">Oppdater Budsjett</button>
+                    </div>
+                    <div class="p-4 bg-slate-900 rounded-2xl space-y-1">
+                        <h4 class="text-[8px] font-black uppercase text-slate-500">Invitasjonskode</h4>
+                        <div class="flex justify-between items-center"><span id="displayHid" class="font-mono font-black text-white text-lg">...</span><button onclick="copyHid()" class="text-white"><i data-lucide="copy" class="w-5 h-5"></i></button></div>
+                    </div>
+                    <div class="pt-4 border-t border-slate-50 flex flex-col gap-3">
+                        <button onclick="leaveHousehold()" class="text-rose-500 font-bold text-[10px] uppercase tracking-widest py-2">Forlat husstand</button>
+                        <button onclick="logout()" class="text-slate-300 font-bold text-[9px] uppercase tracking-[0.3em] py-2">Logg ut</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="sectionAdd" class="tab-content animate-pop">
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl space-y-6">
+                    <div class="flex justify-between items-center border-b border-slate-50 pb-4"><h2 id="formTitle" class="text-xl font-black text-indigo-600 italic uppercase">Nytt kjøp</h2><button onclick="cancelEdit()" id="btnCancel" class="hidden text-slate-400 text-[10px] font-black uppercase">Avbryt</button></div>
+                    <input type="hidden" id="editId">
+                    <div class="space-y-5">
+                        <div class="flex gap-2 p-1 bg-slate-100 rounded-2xl"><button onclick="setBuyer(currentUserFirstName)" id="btnBuyer1" class="flex-1 py-3 rounded-xl text-xs font-black transition-all uppercase">Deg</button><button onclick="setPartnerBuyer()" id="btnBuyer2" class="flex-1 py-3 rounded-xl text-xs font-black text-slate-400 uppercase">Partner</button></div>
+                        <input type="text" id="desc" placeholder="Hva er kjøpt?" class="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold text-lg">
+                        <div class="grid grid-cols-2 gap-3"><input type="number" id="price" placeholder="Pris" class="w-full bg-slate-50 p-4 rounded-2xl font-black text-indigo-600 text-xl outline-none"><select id="category" class="w-full bg-slate-50 p-4 rounded-2xl font-bold text-xs appearance-none outline-none"></select></div>
+                        <div class="flex bg-slate-100 p-1.5 rounded-xl"><button onclick="setType('Behov')" id="btnBehov" class="flex-1 py-3 rounded-xl text-[10px] font-black bg-white shadow-sm uppercase">Behov</button><button onclick="setType('Lyst')" id="btnLyst" class="flex-1 py-3 rounded-xl text-[10px] font-black text-slate-400 uppercase">Lyst</button></div>
+                        <div class="text-center bg-slate-50 py-5 rounded-3xl"><div class="star-rating"><input type="radio" name="rating" id="star5" value="5"><label for="star5">★</label><input type="radio" name="rating" id="star4" value="4"><label for="star4">★</label><input type="radio" name="rating" id="star3" value="3"><label for="star3">★</label><input type="radio" name="rating" id="star2" value="2"><label for="star2">★</label><input type="radio" name="rating" id="star1" value="1"><label for="star1">★</label></div></div>
+                        <button onclick="savePurchase()" id="btnSave" class="w-full bg-slate-900 text-white py-5 rounded-[1.8rem] font-black text-lg shadow-lg uppercase tracking-widest active:scale-95 transition-all">Lagre Kjøpet</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <nav class="fixed bottom-0 left-0 right-0 glass-nav border-t border-slate-100 px-4 pt-2 pb-8 z-50">
+            <div class="flex justify-between items-center max-w-md mx-auto">
+                <button onclick="switchTab('oversikt')" id="nav-oversikt" class="flex flex-col items-center gap-0.5 text-slate-300 flex-1 transition-all"><i data-lucide="layout-grid" class="w-6 h-6"></i><span class="text-[7px] font-black uppercase">Oversikt</span><div class="nav-dot"></div></button>
+                <button onclick="switchTab('innsikt')" id="nav-innsikt" class="flex flex-col items-center gap-0.5 text-slate-300 flex-1 transition-all"><i data-lucide="bar-chart-3" class="w-6 h-6"></i><span class="text-[7px] font-black uppercase">Innsikt</span><div class="nav-dot"></div></button>
+                <button onclick="switchTab('historikk')" id="nav-historikk" class="flex flex-col items-center gap-0.5 text-slate-300 flex-1 transition-all"><i data-lucide="archive" class="w-6 h-6"></i><span class="text-[7px] font-black uppercase">Historikk</span><div class="nav-dot"></div></button>
+                <button onclick="switchTab('innstillinger')" id="nav-innstillinger" class="flex flex-col items-center gap-0.5 text-slate-300 flex-1 transition-all"><i data-lucide="settings-2" class="w-6 h-6"></i><span class="text-[7px] font-black uppercase">Instill.</span><div class="nav-dot"></div></button>
+                <button onclick="switchTab('add')" id="nav-add" class="bg-slate-900 text-white px-4 py-2 rounded-2xl flex items-center gap-2 shadow-xl active:scale-90 transition-all ml-2"><i data-lucide="plus" class="w-4 h-4"></i><span class="text-[8px] font-black uppercase tracking-tight">Nytt</span></button>
+            </div>
+        </nav>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, updateDoc, doc, setDoc, deleteDoc, getDoc, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyD8KhKw3-sMepEOJ2zaxEcH7Wnxvi0c580", authDomain: "mitt-forbruk-79b13.firebaseapp.com", projectId: "mitt-forbruk-79b13", storageBucket: "mitt-forbruk-79b13.firebasestorage.app", messagingSenderId: "383383948424", appId: "1:383383948424:web:dee99653e93b55d977a33d" };
+        const app = initializeApp(firebaseConfig); const db = getFirestore(app); const auth = getAuth(app); const provider = new GoogleAuthProvider();
+        let currentHid = null, currentUserFirstName = "", allPurchases = [], chart = null, currentBudget = 5000, selectedBuyer = "", selectedType = "Behov", partnerName = "Partner";
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUserFirstName = user.displayName.split(' ')[0];
+                const email = user.email.toLowerCase();
+                if (['bulutcollections@gmail.com', 'ayluh_18@hotmail.com', 'ertaselli@gmail.com'].includes(email)) {
+                    await setDoc(doc(db, "users", user.uid), { hid: "original_familie", name: currentUserFirstName, email: email }, { merge: true });
+                }
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (userDoc.exists() && userDoc.data().hid) { currentHid = userDoc.data().hid; startApp(); }
+                else { document.getElementById('loginScreen').classList.add('hidden'); document.getElementById('onboardingScreen').classList.remove('hidden'); }
+            }
         });
-    }
 
-    // 4. Handlinger
-    function updateName(val) {
-        currentName = val;
-        localStorage.setItem('userName', val);
-        render();
-    }
+        window.login = () => signInWithPopup(auth, provider);
+        window.logout = () => signOut(auth).then(() => location.reload());
+        window.createHousehold = async () => { const newHid = "H-" + Math.random().toString(36).substr(2, 6).toUpperCase(); await setDoc(doc(db, "users", auth.currentUser.uid), { hid: newHid, name: currentUserFirstName, email: auth.currentUser.email }); await setDoc(doc(db, "households", newHid), { name: "Vår husstand", owner: auth.currentUser.uid }); location.reload(); };
+        window.joinHousehold = async () => { const code = document.getElementById('joinCodeInput').value.trim().toUpperCase(); if(code) { await setDoc(doc(db, "users", auth.currentUser.uid), { hid: code, name: currentUserFirstName, email: auth.currentUser.email }); location.reload(); } };
 
-    function updateColor(color) {
-        currentColor = color;
-        localStorage.setItem('userColor', color);
-        render();
-    }
+        async function startApp() {
+            document.getElementById('loginScreen').classList.add('hidden'); document.getElementById('onboardingScreen').classList.add('hidden'); document.getElementById('appContent').classList.remove('hidden');
+            document.getElementById('displayHid').innerText = currentHid; document.getElementById('userNameDisplay').innerText = "Hei, " + currentUserFirstName + "!";
+            selectedBuyer = currentUserFirstName; const now = new Date(); const monthNames = ["Januar", "Februar", "Mars", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Desember"];
 
-    function toggleMode() {
-        isDark = !isDark;
-        localStorage.setItem('darkMode', isDark);
-        render();
-    }
+            // Husstandsnavn
+            onSnapshot(doc(db, "households", currentHid), (d) => {
+                if(d.exists()) { 
+                    const data = d.data();
+                    document.getElementById('householdNameDisplay').innerText = data.name || "Vår husstand";
+                    document.getElementById('householdNameInput').value = data.name || "Vår husstand";
+                }
+            });
 
-    // Kjør ved start
-    render();
-</script>
+            // Medlemmer
+            onSnapshot(query(collection(db, "users"), where("hid", "==", currentHid)), (snap) => {
+                const list = document.getElementById('memberList'); list.innerHTML = '';
+                snap.forEach(d => {
+                    const u = d.data(); const isMe = d.id === auth.currentUser.uid;
+                    const row = document.createElement('div');
+                    row.className = "flex justify-between items-center p-3 bg-slate-50 rounded-xl";
+                    row.innerHTML = `<div class="flex flex-col"><span class="font-bold text-xs">${u.name} ${isMe ? '(Deg)' : ''}</span><span class="text-[8px] text-slate-400 uppercase tracking-widest">${u.email}</span></div>` + 
+                    (isMe ? '' : `<button onclick="kickUser('${d.id}')" class="text-rose-400 font-black text-[8px] uppercase">Fjern</button>`);
+                    list.appendChild(row);
+                });
+            });
 
+            onSnapshot(doc(db, "households", currentHid, "settings", "global"), (d) => {
+                if(d.exists()) { currentBudget = d.data().monthlyBudget; document.getElementById('budgetInput').value = currentBudget; document.getElementById('budgetLabel').innerText = "Budsjett: " + currentBudget.toLocaleString() + " kr"; }
+            });
+
+            onSnapshot(query(collection(db, "households", currentHid, "purchases"), orderBy("createdAt", "desc")), (snap) => {
+                const list = document.getElementById('purchasesList'); list.innerHTML = ''; const histList = document.getElementById('historyList'); histList.innerHTML = '';
+                let total = 0, buyerSums = {}, catSums = {}, historyMap = {}; allPurchases = [];
+                snap.forEach(dDoc => {
+                    const p = dDoc.data(); const id = dDoc.id; const date = new Date(p.createdAt);
+                    const sortKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    allPurchases.push({ ...p, id, date }); if(!historyMap[sortKey]) historyMap[sortKey] = { label: `${monthNames[date.getMonth()]} ${date.getFullYear()}`, sum: 0 }; historyMap[sortKey].sum += p.price;
+                    if(date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
+                        total += p.price; buyerSums[p.buyer] = (buyerSums[p.buyer] || 0) + p.price; catSums[p.category] = (catSums[p.category] || 0) + p.price;
+                        const card = document.createElement('div'); card.className = "bg-white p-5 rounded-[1.8rem] border border-slate-50 flex flex-col gap-3 shadow-sm animate-pop cursor-pointer"; card.onclick = () => editMode(id, p.desc, p.price, p.category, p.type, p.myRating, p.buyer);
+                        const isPrimary = p.buyer === currentUserFirstName;
+                        card.innerHTML = `<div class="flex justify-between items-start"><h3 class="font-black text-slate-900 text-xs uppercase tracking-tight">${p.desc}</h3><p class="font-black text-lg text-slate-900">${p.price.toLocaleString()} kr</p></div><div class="flex flex-wrap gap-2"><span class="text-[7px] font-black px-2 py-1 rounded-lg ${p.type === 'Behov' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'} uppercase">${p.type}</span><span class="text-[7px] font-black px-2 py-1 rounded-lg bg-slate-100 text-slate-500 uppercase">${p.category}</span><span class="text-[7px] font-black px-2 py-1 rounded-lg ${isPrimary ? 'bg-indigo-50 text-indigo-600' : 'bg-rose-50 text-rose-500'} uppercase">${p.buyer}</span></div>`;
+                        list.appendChild(card);
+                    }
+                });
+                const buyers = Object.keys(buyerSums);
+                if(buyers.length >= 1) { document.getElementById('statKName').innerText = buyers[0] + ": " + buyerSums[buyers[0]].toLocaleString() + " kr"; document.getElementById('battleK').style.width = (buyerSums[buyers[0]] / (total||1) * 100) + "%"; }
+                if(buyers.length >= 2) { partnerName = buyers.find(b => b !== currentUserFirstName) || "Partner"; document.getElementById('btnBuyer2').innerText = partnerName; document.getElementById('statHName').innerText = partnerName + ": " + buyerSums[partnerName].toLocaleString() + " kr"; }
+                document.getElementById('totalMonth').innerText = total.toLocaleString() + " kr"; const pcent = Math.min((total / currentBudget) * 100, 100); document.getElementById('budgetBar').style.width = pcent + "%";
+                const diff = currentBudget - total; const chip = document.getElementById('budgetStatusChip'); chip.innerText = diff >= 0 ? `${diff.toLocaleString()} kr under` : `${Math.abs(diff).toLocaleString()} kr over`; chip.className = diff >= 0 ? "bg-emerald-50 text-emerald-600 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest" : "bg-rose-50 text-rose-600 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest";
+                updateChart(catSums); updateHistory(historyMap); lucide.createIcons();
+            });
+            onSnapshot(query(collection(db, "households", currentHid, "categories"), orderBy("name")), (snap) => {
+                const sel = document.getElementById('category'); sel.innerHTML = '<option value="Mat">Mat</option><option value="Transport">Transport</option><option value="Shopping">Shopping</option><option value="Bolig">Bolig</option><option value="Annet">Annet</option>';
+                snap.forEach(d => { sel.innerHTML += `<option value="${d.data().name}">${d.data().name}</option>`; });
+            });
+        }
+
+        window.updateHouseholdName = async () => { const n = document.getElementById('householdNameInput').value; if(n) await updateDoc(doc(db, "households", currentHid), { name: n }); alert("Navn oppdatert!"); };
+        window.kickUser = async (uid) => { if(confirm("Fjerne dette medlemmet?")) await updateDoc(doc(db, "users", uid), { hid: null }); };
+        window.leaveHousehold = async () => { if(confirm("Vil du forlate husstanden?")) { await updateDoc(doc(db, "users", auth.currentUser.uid), { hid: null }); location.reload(); } };
+        window.switchTab = (t) => { document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active')); document.querySelectorAll('nav button').forEach(b => b.classList.remove('nav-active')); document.getElementById('section' + t.charAt(0).toUpperCase() + t.slice(1)).classList.add('active'); document.getElementById('nav-' + t).classList.add('nav-active'); if(t !== 'add') document.getElementById('pageTitleDisplay').innerText = t.charAt(0).toUpperCase() + t.slice(1); if(t === 'historikk') closeHistoryDetail(); window.scrollTo(0,0); };
+        window.setBuyer = (b) => { selectedBuyer = b; document.getElementById('btnBuyer1').className = b === currentUserFirstName ? "flex-1 py-3 rounded-xl text-xs font-black bg-indigo-600 text-white shadow-lg uppercase" : "flex-1 py-3 rounded-xl text-xs font-black text-slate-400 uppercase"; document.getElementById('btnBuyer2').className = (b !== currentUserFirstName && b !== "") ? "flex-1 py-3 rounded-xl text-xs font-black bg-rose-400 text-white shadow-lg uppercase" : "flex-1 py-3 rounded-xl text-xs font-black text-slate-400 uppercase"; };
+        window.setPartnerBuyer = () => { setBuyer(partnerName); };
+        window.savePurchase = async () => { const id = document.getElementById('editId').value, d = document.getElementById('desc').value, p = parseFloat(document.getElementById('price').value), r = parseInt(document.querySelector('input[name="rating"]:checked')?.value || 0); if(!d || isNaN(p) || r === 0) return alert("Mangler data!"); const obj = { desc: d, price: p, category: document.getElementById('category').value, type: selectedType, myRating: r, buyer: selectedBuyer, createdAt: Date.now() }; if(id) await updateDoc(doc(db, "households", currentHid, "purchases", id), obj); else await addDoc(collection(db, "households", currentHid, "purchases"), obj); cancelEdit(); switchTab('oversikt'); };
+        window.updateBudget = async () => { const v = parseFloat(document.getElementById('budgetInput').value); await setDoc(doc(db, "households", currentHid, "settings", "global"), { monthlyBudget: v }); alert("Budsjett oppdatert!"); };
+        window.copyHid = () => { navigator.clipboard.writeText(currentHid); alert("Kode kopiert!"); };
+        function updateChart(catSums) { const ctx = document.getElementById('categoryChart'); if(chart) chart.destroy(); const labels = Object.keys(catSums), data = Object.values(catSums); if(labels.length === 0) return; chart = new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ data, backgroundColor: ['#6366f1', '#fbbf24', '#10b981', '#f43f5e', '#8b5cf6'], borderWidth: 0 }] }, options: { cutout: '80%', maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10, weight: 'bold' } } } } } }); }
+        function updateHistory(historyMap) { const histList = document.getElementById('historyList'); histList.innerHTML = ''; Object.keys(historyMap).sort().reverse().forEach(key => { const h = historyMap[key]; const row = document.createElement('div'); row.className = "bg-white p-5 rounded-2xl flex justify-between items-center border border-slate-50 shadow-sm cursor-pointer"; row.onclick = () => showHistoryDetail(h.label); row.innerHTML = `<div class="flex flex-col"><span class="font-black text-slate-900 uppercase text-[9px] tracking-widest">${h.label}</span><span class="text-[7px] font-bold text-indigo-400 uppercase">Se detaljer</span></div><span class="font-black text-slate-900 text-lg tracking-tighter">${h.sum.toLocaleString()} kr</span>`; histList.appendChild(row); }); }
+        window.showHistoryDetail = (monthLabel) => { const detailView = document.getElementById('historyDetailView'), listView = document.getElementById('historyListView'), detailList = document.getElementById('historyDetailList'); document.getElementById('historyDetailTitle').innerText = monthLabel; detailList.innerHTML = ''; allPurchases.filter(p => `${["Januar", "Februar", "Mars", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Desember"][new Date(p.createdAt).getMonth()]} ${new Date(p.createdAt).getFullYear()}` === monthLabel).forEach(p => { const card = document.createElement('div'); card.className = "bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center mb-2 shadow-sm"; card.innerHTML = `<div><h3 class="font-bold text-slate-800 text-xs uppercase">${p.desc}</h3><p class="text-[8px] font-bold text-slate-400 uppercase">${p.category} • ${p.buyer}</p></div><div class="text-right"><p class="font-black text-slate-900">${p.price.toLocaleString()} kr</p></div>`; detailList.appendChild(card); }); listView.classList.add('hidden'); detailView.classList.remove('hidden'); };
+        window.closeHistoryDetail = () => { document.getElementById('historyDetailView').classList.add('hidden'); document.getElementById('historyListView').classList.remove('hidden'); };
+        window.setType = (t) => { selectedType = t; document.getElementById('btnBehov').className = t === 'Behov' ? "flex-1 py-3 rounded-xl text-[10px] font-black bg-white shadow-sm uppercase" : "flex-1 py-3 rounded-xl text-[10px] font-black text-slate-400 uppercase"; document.getElementById('btnLyst').className = t === 'Lyst' ? "flex-1 py-3 rounded-xl text-[10px] font-black bg-white shadow-sm uppercase" : "flex-1 py-3 rounded-xl text-[10px] font-black text-slate-400 uppercase"; };
+        window.editMode = (id, desc, price, cat, type, rate, buyer) => { switchTab('add'); document.getElementById('editId').value = id; document.getElementById('desc').value = desc; document.getElementById('price').value = price; document.getElementById('category').value = cat; setType(type); setBuyer(buyer); document.getElementById(`star${rate}`).checked = true; document.getElementById('formTitle').innerText = "Endre kjøp"; document.getElementById('btnCancel').classList.remove('hidden'); };
+        window.cancelEdit = () => { document.getElementById('editId').value = ''; document.getElementById('desc').value = ''; document.getElementById('price').value = ''; document.getElementById('formTitle').innerText = "Nytt kjøp"; document.getElementById('btnCancel').classList.add('hidden'); document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false); };
+        lucide.createIcons(); switchTab('oversikt');
+    </script>
 </body>
 </html>
