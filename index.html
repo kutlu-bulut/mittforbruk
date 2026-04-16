@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vårt Forbruk v18.8</title>
+    <title>Vårt Forbruk v18.9</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -19,20 +19,20 @@
         .dark-mode .text-slate-900 { color: #f1f5f9; }
         .dark-mode .bg-slate-50 { background-color: #0f172a; }
 
-        .solid-nav { background-color: #ffffff; border-top: 1px solid #f1f5f9; height: 85px; }
+        .solid-nav { background-color: #ffffff; border-top: 1px solid #f1f5f9; height: 75px; }
 
         .animate-pop { animation: pop 0.2s ease-out; }
         @keyframes pop { 0% { transform: scale(0.98); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         
+        /* NY NAVIGASJONS-STYLING (Bakgrunns-pille i stedet for farget tekst og prikk) */
+        .nav-btn { color: #94a3b8; transition: all 0.2s ease; }
         .nav-active { color: #4f46e5 !important; }
-        .nav-active .nav-dot { opacity: 1; }
-        .nav-dot { width: 4px; height: 4px; background: #4f46e5; border-radius: 50%; margin-top: 2px; opacity: 0; }
-        
-        .home-btn-special { transform: translateY(-20px); background: #4f46e5; color: white !important; width: 60px; height: 60px; border-radius: 50%; box-shadow: 0 10px 20px -5px rgba(79, 70, 229, 0.5); display: flex; align-items: center; justify-content: center; border: 4px solid #F8FAFC; transition: 0.2s; }
-        .dark-mode .home-btn-special { border-color: #0f172a; }
-        .home-btn-special:active { transform: translateY(-15px) scale(0.95); }
+        .nav-active .nav-inner { background-color: #eef2ff; color: #4f46e5; }
+        .dark-mode .nav-btn { color: #64748b; }
+        .dark-mode .nav-active { color: #818cf8 !important; }
+        .dark-mode .nav-active .nav-inner { background-color: #312e81; color: #818cf8; }
         
         .brand-logo { font-style: italic; letter-spacing: -1px; }
         .star-rating { direction: rtl; display: inline-flex; }
@@ -50,7 +50,7 @@
         <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-10 shadow-2xl animate-pop">
             <h1 class="text-3xl font-black mb-10 brand-logo text-indigo-600 uppercase">Vårt Forbruk</h1>
             <button onclick="login()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold uppercase text-xs tracking-widest">Start med Google</button>
-            <p class="mt-6 text-[8px] text-slate-300 font-mono uppercase tracking-widest">v18.8 Stable</p>
+            <p class="mt-6 text-[8px] text-slate-300 font-mono uppercase tracking-widest">v18.9 Stable</p>
         </div>
     </div>
 
@@ -74,7 +74,7 @@
         <header class="bg-white sticky top-0 z-40 border-b border-slate-50">
             <div class="bg-indigo-600 py-3 text-center shadow-md flex justify-center items-center gap-2">
                 <span class="text-white font-black brand-logo uppercase tracking-tighter text-sm">Vårt Forbruk</span>
-                <span class="bg-indigo-500 text-indigo-100 text-[8px] px-1.5 py-0.5 rounded font-mono font-bold tracking-widest">v18.8</span>
+                <span class="bg-indigo-500 text-indigo-100 text-[8px] px-1.5 py-0.5 rounded font-mono font-bold tracking-widest">v18.9</span>
             </div>
             <div class="px-6 pt-5 pb-5">
                 <div class="flex justify-between items-start mb-6">
@@ -85,7 +85,7 @@
                     <span id="pageTitleDisplay" class="text-[8px] font-black text-indigo-500 bg-indigo-50 px-2 py-1 rounded-md uppercase tracking-[0.2em]">Hjem</span>
                 </div>
                 <div class="flex flex-col mb-6">
-                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Forbruk</span>
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Forbruk denne måneden</span>
                     <span id="totalMonth" class="text-4xl font-black tracking-tighter leading-none text-slate-900">0 kr</span>
                 </div>
                 <div class="space-y-2">
@@ -182,15 +182,13 @@
 
         <button onclick="openNewPurchase()" id="fabAdd" class="fixed bottom-32 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full flex items-center justify-center fab-shadow z-50 active:scale-90 transition-all"><i data-lucide="plus" class="w-8 h-8"></i></button>
 
-        <nav class="fixed bottom-0 left-0 right-0 solid-nav px-2 pt-3 pb-8 z-50">
+        <nav class="fixed bottom-0 left-0 right-0 solid-nav px-2 pt-2 pb-6 z-50">
             <div class="flex justify-between items-center max-w-md mx-auto">
-                <button onclick="switchTab('innsikt')" id="nav-innsikt" class="flex flex-col items-center gap-1 text-slate-300 flex-1"><i data-lucide="pie-chart" class="w-5 h-5"></i><span class="text-[6px] font-black uppercase">Innsikt</span><div class="nav-dot"></div></button>
-                <button onclick="switchTab('historikk')" id="nav-historikk" class="flex flex-col items-center gap-1 text-slate-300 flex-1"><i data-lucide="history" class="w-5 h-5"></i><span class="text-[6px] font-black uppercase">Historikk</span><div class="nav-dot"></div></button>
-                
-                <button onclick="switchTab('hjem')" id="nav-hjem" class="home-btn-special"><i data-lucide="home" class="w-7 h-7"></i></button>
-                
-                <button onclick="switchTab('innstillinger')" id="nav-innstillinger" class="flex flex-col items-center gap-1 text-slate-300 flex-1"><i data-lucide="users" class="w-5 h-5"></i><span class="text-[6px] font-black uppercase">Husstand</span><div class="nav-dot"></div></button>
-                <button onclick="switchTab('profil')" id="nav-profil" class="flex flex-col items-center gap-1 text-slate-300 flex-1"><i data-lucide="user" class="w-5 h-5"></i><span class="text-[6px] font-black uppercase">Profil</span><div class="nav-dot"></div></button>
+                <button onclick="switchTab('hjem')" id="nav-hjem" class="nav-btn flex-1 flex justify-center"><div class="nav-inner flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl transition-all"><i data-lucide="home" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase tracking-widest">Hjem</span></div></button>
+                <button onclick="switchTab('innsikt')" id="nav-innsikt" class="nav-btn flex-1 flex justify-center"><div class="nav-inner flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl transition-all"><i data-lucide="pie-chart" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase tracking-widest">Innsikt</span></div></button>
+                <button onclick="switchTab('historikk')" id="nav-historikk" class="nav-btn flex-1 flex justify-center"><div class="nav-inner flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl transition-all"><i data-lucide="history" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase tracking-widest">Historikk</span></div></button>
+                <button onclick="switchTab('innstillinger')" id="nav-innstillinger" class="nav-btn flex-1 flex justify-center"><div class="nav-inner flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl transition-all"><i data-lucide="users" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase tracking-widest">Husstand</span></div></button>
+                <button onclick="switchTab('profil')" id="nav-profil" class="nav-btn flex-1 flex justify-center"><div class="nav-inner flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl transition-all"><i data-lucide="user" class="w-5 h-5"></i><span class="text-[7px] font-black uppercase tracking-widest">Profil</span></div></button>
             </div>
         </nav>
     </div>
@@ -249,6 +247,23 @@
             document.documentElement.style.setProperty('--user-color', currentUserData.color);
         }
 
+        // --- BOMBESIKKER FARGE-LOGIKK ---
+        function getBuyerColor(buyerName) {
+            // Er det meg?
+            if (buyerName === currentUserData.name) return currentUserData.color || '#4f46e5';
+            
+            // Hvis ikke, let etter personen i databasen
+            const member = householdMembers.find(m => m.name === buyerName);
+            if (member) return member.color || '#f43f5e';
+            
+            // Hvis navnet ikke matcher nøyaktig (f.eks navnebytte "Partner" -> "Hulya"), 
+            // men vi vet det IKKE er deg, finn den andre personen i husstanden og bruk dens farge.
+            const otherMember = householdMembers.find(m => m.name !== currentUserData.name);
+            if (otherMember) return otherMember.color || '#f43f5e';
+            
+            return '#f43f5e'; // Fallback
+        }
+
         async function startApp() {
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('onboardingScreen').classList.add('hidden');
@@ -293,12 +308,30 @@
                         const card = document.createElement('div'); card.className = "bg-white p-5 rounded-[1.8rem] border border-slate-50 shadow-sm active:scale-95 cursor-pointer transition-all";
                         card.onclick = () => editMode(id, p.store, p.desc, p.price, p.category, p.type, p.buyer, p.rating, p.createdAt);
                         
-                        let bColor = '#94a3b8';
-                        const buyerMember = householdMembers.find(m => m.name === p.buyer);
-                        if (buyerMember) bColor = buyerMember.color || '#4f46e5';
-
+                        // Bruker vår bombesikre farge-logikk
+                        let bColor = getBuyerColor(p.buyer);
+                        
+                        // Formaterer dato (eks: 17.04)
+                        const dateStr = date.toLocaleDateString('no-NO', { day: '2-digit', month: '2-digit' });
                         const emoji = categoryEmojis[p.category] || "🏷️";
-                        card.innerHTML = `<div class="flex justify-between items-start"><div class="flex flex-col"><h3 class="font-black text-xs uppercase text-slate-900">${p.store || 'Butikk'}</h3><p class="text-[10px] text-slate-400 font-bold">${p.desc}</p></div><p class="font-black text-lg text-slate-900">${p.price.toLocaleString()} kr</p></div><div class="flex gap-2 mt-2"><span class="text-[7px] font-black px-2 py-1 rounded-lg ${ (p.type||'Behov') ==='Behov'?'bg-emerald-50 text-emerald-600':'bg-amber-50 text-amber-600'} uppercase">${p.type||'Behov'}</span><span class="text-[7px] font-black px-2 py-1 rounded-lg bg-slate-100 text-slate-500 uppercase">${emoji} ${p.category}</span><span class="text-[7px] font-black px-2 py-1 rounded-lg uppercase text-white" style="background:${bColor}">${p.buyer}</span></div>`;
+                        
+                        card.innerHTML = `
+                            <div class="flex justify-between items-start">
+                                <div class="flex flex-col">
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="font-black text-xs uppercase text-slate-900">${p.store || 'Butikk'}</h3>
+                                        <span class="text-[9px] font-black text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">${dateStr}</span>
+                                    </div>
+                                    <p class="text-[10px] text-slate-400 font-bold mt-0.5">${p.desc}</p>
+                                </div>
+                                <p class="font-black text-lg text-slate-900">${p.price.toLocaleString()} kr</p>
+                            </div>
+                            <div class="flex gap-2 mt-3">
+                                <span class="text-[7px] font-black px-2 py-1 rounded-lg ${ (p.type||'Behov') ==='Behov'?'bg-emerald-50 text-emerald-600':'bg-amber-50 text-amber-600'} uppercase">${p.type||'Behov'}</span>
+                                <span class="text-[7px] font-black px-2 py-1 rounded-lg bg-slate-100 text-slate-500 uppercase">${emoji} ${p.category}</span>
+                                <span class="text-[7px] font-black px-2 py-1 rounded-lg uppercase text-white" style="background:${bColor}">${p.buyer}</span>
+                            </div>
+                        `;
                         list.appendChild(card);
                     }
                 });
@@ -331,22 +364,16 @@
             });
         }
 
-        // --- IDIOTSIKKER SWITCHER (Sant/Usant) ---
         window.setBuyerToggle = (isMe) => {
             const btn1 = document.getElementById('btnBuyer1');
             const btn2 = document.getElementById('btnBuyer2');
             
-            // Henter partner generisk.
             const p = householdMembers.find(m => m.name !== currentUserData.name) || { name: 'Partner', color: '#f43f5e' };
-            
-            // Setter den virkelige stringen som skal lagres i databasen
             selectedBuyer = isMe ? currentUserData.name : p.name;
 
-            // Nullstill farger
             btn1.style.backgroundColor = 'transparent'; btn1.style.color = '#94a3b8'; btn1.style.boxShadow = 'none';
             btn2.style.backgroundColor = 'transparent'; btn2.style.color = '#94a3b8'; btn2.style.boxShadow = 'none';
 
-            // Fargelegg basert på valget
             if (isMe) {
                 btn1.style.backgroundColor = currentUserData.color || '#4f46e5';
                 btn1.style.color = 'white';
@@ -358,7 +385,6 @@
             }
         };
 
-        // Brukes når vi redigerer et kjøp for å oversette databasenavnet tilbake til Sant/Usant
         window.syncBuyerUI = (dbName) => {
             window.setBuyerToggle(dbName === currentUserData.name);
         };
@@ -371,7 +397,12 @@
             let p = householdMembers.find(m => m.name !== currentUserData.name) || { name: 'Partner', color: '#f43f5e' };
             let m2Name = p.name;
             let m2Color = p.color || '#f43f5e';
-            let m2Sum = buyerSums[m2Name] || 0;
+            
+            // Alle kjøp som IKKE er dine, tilhører partneren (fanger opp gamle navn)
+            let m2Sum = 0;
+            Object.keys(buyerSums).forEach(name => {
+                if(name !== currentUserData.name) m2Sum += buyerSums[name];
+            });
 
             document.getElementById('statKName').innerText = `${m1Name}: ${m1Sum.toLocaleString()} kr`;
             document.getElementById('statHName').innerText = `${m2Name}: ${m2Sum.toLocaleString()} kr`;
