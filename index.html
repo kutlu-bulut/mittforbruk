@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vårt Forbruk v15.9</title>
+    <title>Vårt Forbruk v15.10</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -32,33 +32,36 @@
         <div class="bg-white w-full max-w-sm rounded-3xl p-10 shadow-2xl animate-pop">
             <h1 class="text-3xl font-black mb-10 brand-logo text-indigo-600 uppercase">Vårt Forbruk</h1>
             <button onclick="login()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold uppercase text-xs tracking-widest active:scale-95 transition-all">Logg inn med Google</button>
-            <p class="mt-6 text-[8px] text-slate-300 font-mono uppercase tracking-widest">Version 15.9</p>
+            <p class="mt-6 text-[8px] text-slate-300 font-mono uppercase tracking-widest">Version 15.10</p>
         </div>
     </div>
 
     <div id="appContent" class="hidden">
         <header class="bg-white sticky top-0 z-40 border-b border-slate-100 shadow-sm">
-            <div class="px-6 pt-10 pb-4 flex justify-between items-center">
-                <span class="text-[10px] font-black text-indigo-600 brand-logo uppercase tracking-tighter">Vårt Forbruk</span>
-                <h2 id="userNameDisplay" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Hei, ...</h2>
+            <div class="bg-indigo-600 py-3 text-center">
+                <span class="text-white font-black brand-logo uppercase tracking-tighter text-sm">Vårt Forbruk</span>
             </div>
 
-            <div id="statusBanner" class="w-full py-8 px-6 text-center transition-colors duration-500 bg-indigo-600 text-white">
-                <div class="flex flex-col items-center gap-1">
-                    <span id="totalMonth" class="text-5xl font-black tracking-tighter leading-none">0 kr</span>
-                    <div id="budgetStatusChip" class="mt-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] bg-white/20">
-                        Henter data...
+            <div class="px-6 pt-6 pb-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 id="userNameDisplay" class="text-xs font-bold text-slate-400 uppercase tracking-wider">Hei, ...</h2>
+                    <h1 id="pageTitleDisplay" class="text-[10px] font-black text-slate-900 uppercase tracking-widest">Oversikt</h1>
+                </div>
+
+                <div class="flex flex-col items-center gap-1 mb-8 text-center">
+                    <span id="totalMonth" class="text-5xl font-black tracking-tighter text-slate-900 leading-none">0 kr</span>
+                    <div id="budgetStatusChip" class="mt-3 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm">...</div>
+                    <span class="text-[9px] text-slate-400 font-bold uppercase mt-1">Brukt denne måneden</span>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="flex justify-between items-end">
+                        <span class="text-[9px] text-slate-400 font-black uppercase tracking-widest">Status</span>
+                        <span id="budgetLabel" class="text-[10px] text-slate-600 font-black uppercase">Budsjett: --</span>
                     </div>
-                </div>
-            </div>
-            
-            <div class="px-6 py-6 space-y-2">
-                <div class="flex justify-between items-center">
-                    <h1 id="pageTitleDisplay" class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Oversikt</h1>
-                    <span id="budgetLabel" class="text-[10px] text-slate-600 font-black uppercase">Budsjett: --</span>
-                </div>
-                <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-50 shadow-inner">
-                    <div id="budgetBar" class="h-full bg-indigo-600 w-0 transition-all duration-1000"></div>
+                    <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-50 shadow-inner">
+                        <div id="budgetBar" class="h-full bg-indigo-600 w-0 transition-all duration-1000"></div>
+                    </div>
                 </div>
             </div>
         </header>
@@ -101,7 +104,7 @@
                         <button onclick="updateBudget()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest">Lagre Budsjett</button>
                     </div>
                     <div class="pt-6 border-t">
-                        <h4 class="text-[10px] font-black uppercase text-indigo-600 mb-4 tracking-widest">Kategorier</h4>
+                        <h4 class="text-[10px] font-black uppercase text-indigo-600 mb-4 tracking-widest">Dine Kategorier</h4>
                         <div id="customCatsList" class="flex flex-wrap gap-2 mb-4"></div>
                         <button onclick="addCategoryPrompt()" class="w-full p-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-[10px] font-bold uppercase">+ Ny kategori</button>
                     </div>
@@ -278,17 +281,14 @@
                     histList.appendChild(row);
                 });
 
-                // Oppdater Banner og Farger
                 const diff = currentBudget - total;
-                const banner = document.getElementById('statusBanner');
                 const chip = document.getElementById('budgetStatusChip');
-                
                 if(diff >= 0) {
                     chip.innerText = `${diff.toLocaleString()} kr under budsjett`;
-                    banner.className = "w-full py-10 px-6 text-center transition-colors duration-500 bg-emerald-500 text-white";
+                    chip.className = "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm bg-emerald-100 text-emerald-700";
                 } else {
                     chip.innerText = `${Math.abs(diff).toLocaleString()} kr over budsjett`;
-                    banner.className = "w-full py-10 px-6 text-center transition-colors duration-500 bg-rose-500 text-white font-black";
+                    chip.className = "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm bg-rose-100 text-rose-700 font-black";
                 }
 
                 document.getElementById('totalMonth').innerText = total.toLocaleString() + " kr";
