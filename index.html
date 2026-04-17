@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vårt Forbruk v18.10</title>
+    <title>Vårt Forbruk v18.11</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -49,7 +49,7 @@
         <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-10 shadow-2xl animate-pop">
             <h1 class="text-3xl font-black mb-10 brand-logo text-indigo-600 uppercase">Vårt Forbruk</h1>
             <button onclick="login()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold uppercase text-xs tracking-widest">Start med Google</button>
-            <p class="mt-6 text-[8px] text-slate-300 font-mono uppercase tracking-widest">v18.10 Stable</p>
+            <p class="mt-6 text-[8px] text-slate-300 font-mono uppercase tracking-widest">v18.11 Stable</p>
         </div>
     </div>
 
@@ -73,7 +73,7 @@
         <header class="bg-white sticky top-0 z-40 border-b border-slate-50">
             <div class="bg-indigo-600 py-3 text-center shadow-md flex justify-center items-center gap-2">
                 <span class="text-white font-black brand-logo uppercase tracking-tighter text-sm">Vårt Forbruk</span>
-                <span class="bg-indigo-500 text-indigo-100 text-[8px] px-1.5 py-0.5 rounded font-mono font-bold tracking-widest">v18.10</span>
+                <span class="bg-indigo-500 text-indigo-100 text-[8px] px-1.5 py-0.5 rounded font-mono font-bold tracking-widest">v18.11</span>
             </div>
             <div class="px-6 pt-5 pb-5">
                 <div class="flex justify-between items-start mb-6">
@@ -88,9 +88,9 @@
                     <span id="totalMonth" class="text-4xl font-black tracking-tighter leading-none text-slate-900">0 kr</span>
                 </div>
                 <div class="space-y-2">
-                    <div class="flex justify-between items-end px-0.5">
-                        <div id="budgetStatusChip" class="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md">...</div>
+                    <div class="flex justify-between items-end px-0.5 mb-1">
                         <div id="budgetLabel" class="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Budsjett: --</div>
+                        <div id="budgetStatusChip" class="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md">...</div>
                     </div>
                     <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden shadow-inner">
                         <div id="budgetBar" class="h-full bg-indigo-600 w-0 transition-all duration-1000"></div>
@@ -159,12 +159,10 @@
                     <div class="flex justify-between items-center border-b border-slate-50 pb-4"><h2 id="formTitle" class="text-xl font-black text-indigo-600 italic uppercase">Nytt kjøp</h2><button onclick="switchTab('hjem')"><i data-lucide="x" class="w-6 h-6"></i></button></div>
                     <input type="hidden" id="editId">
                     <div class="space-y-5">
-                        
                         <div class="flex gap-2 p-1 bg-slate-100 rounded-2xl">
                             <button onclick="setBuyerToggle(true)" id="btnBuyer1" class="flex-1 py-3 rounded-xl text-xs font-black transition-all uppercase active:scale-95">Deg</button>
                             <button onclick="setBuyerToggle(false)" id="btnBuyer2" class="flex-1 py-3 rounded-xl text-xs font-black transition-all uppercase active:scale-95">Partner</button>
                         </div>
-                        
                         <div class="space-y-1"><label class="text-[9px] font-black uppercase text-slate-400 ml-2">Dato</label><input type="date" id="dateInput" class="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold text-lg border border-slate-50"></div>
                         <input type="text" id="store" placeholder="Butikk (f.eks Meny)" class="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold text-lg border border-slate-50">
                         <input type="text" id="desc" placeholder="Vare/Beskrivelse" class="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold text-lg border border-slate-50">
@@ -300,9 +298,9 @@
                         card.onclick = () => editMode(id, p.store, p.desc, p.price, p.category, p.type, p.buyer, p.rating, p.createdAt);
                         
                         let bColor = getBuyerColor(p.buyer);
-                        
                         const dateStr = date.toLocaleDateString('no-NO', { day: '2-digit', month: '2-digit' });
                         const emojiStr = categoryEmojis[p.category] ? categoryEmojis[p.category] + " " : "";
+                        const ratingStr = p.rating ? `<span class="text-[9px] font-black text-amber-500 bg-amber-50 px-1.5 py-0.5 rounded flex items-center gap-0.5">★ ${p.rating}</span>` : "";
                         
                         card.innerHTML = `
                             <div class="flex justify-between items-start">
@@ -310,6 +308,7 @@
                                     <div class="flex items-center gap-2">
                                         <h3 class="font-black text-xs uppercase text-slate-900">${p.store || 'Butikk'}</h3>
                                         <span class="text-[9px] font-black text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">${dateStr}</span>
+                                        ${ratingStr}
                                     </div>
                                     <p class="text-[10px] text-slate-400 font-bold mt-0.5">${p.desc}</p>
                                 </div>
@@ -328,7 +327,7 @@
                 document.getElementById('totalMonth').innerText = total.toLocaleString() + " kr";
                 document.getElementById('budgetBar').style.width = Math.min((total / (currentBudget||1)) * 100, 100) + "%";
                 const diff = currentBudget - total; document.getElementById('budgetStatusChip').innerText = diff >= 0 ? `${diff.toLocaleString()} kr under` : `${Math.abs(diff).toLocaleString()} kr over`;
-                document.getElementById('budgetStatusChip').className = `text-[9px] font-black uppercase px-2 py-1 rounded-md ${diff >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600 font-extrabold'}`;
+                document.getElementById('budgetStatusChip').className = `text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md ${diff >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600 font-extrabold'}`;
                 
                 updateDuellen(buyerSums);
                 updateHistory(all);
@@ -404,23 +403,85 @@
             }
         }
 
+        // --- INTERAKTIV TREKKSPILL HISTORIKK ---
         function updateHistory(purchases) { 
-            const list = document.getElementById('historyList'); list.innerHTML = ''; const m = {}; 
+            const list = document.getElementById('historyList'); 
+            list.innerHTML = ''; 
+            const m = {}; 
             
             purchases.forEach(p => { 
                 const d = new Date(p.createdAt);
                 const sortKey = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0');
                 const displayName = d.toLocaleString('no-NO', { month: 'long', year: 'numeric' }); 
-                if(!m[sortKey]) m[sortKey] = { label: displayName, total: 0 };
+                if(!m[sortKey]) m[sortKey] = { label: displayName, total: 0, items: [] };
                 m[sortKey].total += p.price; 
+                m[sortKey].items.push(p);
             }); 
             
             const sortedKeys = Object.keys(m).sort().reverse();
             if(sortedKeys.length === 0) { list.innerHTML = '<p class="text-center text-xs font-bold text-slate-400 uppercase mt-10">Ingen historikk enda</p>'; return; }
 
-            sortedKeys.forEach(k => { 
-                list.innerHTML += `<div class="bg-white p-5 rounded-2xl flex justify-between border border-slate-50 mb-2 shadow-sm"><span class="font-black text-[10px] uppercase text-slate-400">${m[k].label}</span><span class="font-black">${m[k].total.toLocaleString()} kr</span></div>`; 
+            sortedKeys.forEach((k, index) => { 
+                const monthDiv = document.createElement('div');
+                monthDiv.className = 'mb-4';
+
+                // Overskrift for måneden (Klikkbar)
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'bg-slate-900 p-5 rounded-2xl flex justify-between items-center mb-2 shadow-sm cursor-pointer active:scale-95 transition-all';
+                headerDiv.innerHTML = `
+                    <span class="font-black text-[10px] uppercase text-white tracking-widest">${m[k].label}</span>
+                    <div class="flex items-center gap-3">
+                        <span class="font-black text-white">${m[k].total.toLocaleString()} kr</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
+                    </div>
+                `;
+
+                // Beholder for kortene (Skjult som standard)
+                const cardsContainer = document.createElement('div');
+                cardsContainer.className = 'hidden pl-2 border-l-2 border-slate-200 ml-2 space-y-2 mt-3 mb-6';
+
+                // Åpne/lukke logikk
+                headerDiv.onclick = () => {
+                    cardsContainer.classList.toggle('hidden');
+                };
+
+                // Bygger kortene for denne måneden
+                m[k].items.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = "bg-white p-4 rounded-2xl border border-slate-100 shadow-sm cursor-pointer active:scale-95 transition-all";
+                    card.onclick = () => editMode(p.id, p.store, p.desc, p.price, p.category, p.type, p.buyer, p.rating, p.createdAt);
+
+                    let bColor = getBuyerColor(p.buyer);
+                    const dateStr = new Date(p.createdAt).toLocaleDateString('no-NO', { day: '2-digit', month: '2-digit' });
+                    const emojiStr = categoryEmojis[p.category] ? categoryEmojis[p.category] + " " : "";
+                    const ratingStr = p.rating ? `<span class="text-[9px] font-black text-amber-500 bg-amber-50 px-1.5 py-0.5 rounded flex items-center gap-0.5">★ ${p.rating}</span>` : "";
+
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div class="flex flex-col">
+                                <div class="flex items-center gap-2">
+                                    <h3 class="font-black text-xs uppercase text-slate-900">${p.store || 'Butikk'}</h3>
+                                    <span class="text-[9px] font-black text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">${dateStr}</span>
+                                    ${ratingStr}
+                                </div>
+                                <p class="text-[10px] text-slate-400 font-bold mt-0.5">${p.desc}</p>
+                            </div>
+                            <p class="font-black text-sm text-slate-900">${p.price.toLocaleString()} kr</p>
+                        </div>
+                        <div class="flex gap-2 mt-3">
+                            <span class="text-[7px] font-black px-2 py-1 rounded-lg ${ (p.type||'Behov') ==='Behov'?'bg-emerald-50 text-emerald-600':'bg-amber-50 text-amber-600'} uppercase">${p.type||'Behov'}</span>
+                            <span class="text-[7px] font-black px-2 py-1 rounded-lg bg-slate-100 text-slate-500 uppercase">${emojiStr}${p.category}</span>
+                            <span class="text-[7px] font-black px-2 py-1 rounded-lg uppercase text-white" style="background:${bColor}">${p.buyer}</span>
+                        </div>
+                    `;
+                    cardsContainer.appendChild(card);
+                });
+
+                monthDiv.appendChild(headerDiv);
+                monthDiv.appendChild(cardsContainer);
+                list.appendChild(monthDiv);
             }); 
+            lucide.createIcons();
         }
 
         function updateChart(catSums) { 
@@ -438,13 +499,21 @@
         window.openNewPurchase = () => { cancelEdit(); switchTab('add'); };
         window.switchTab = (t) => {
             document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('nav button').forEach(b => b.classList.remove('nav-active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('nav-active'));
+            
             document.getElementById('section' + t.charAt(0).toUpperCase() + t.slice(1)).classList.add('active');
-            const navBtn = document.getElementById('nav-' + t); if(navBtn) navBtn.classList.add('nav-active');
-            document.getElementById('pageTitleDisplay').innerText = t.charAt(0).toUpperCase() + t.slice(1);
+            
+            const navBtn = document.getElementById('nav-' + t); 
+            if(navBtn) navBtn.classList.add('nav-active');
+            
+            // Endrer tittelen til 'Husstand' for innstillinger, ellers stor forbokstav.
+            const displayTitle = t === 'innstillinger' ? 'Husstand' : t.charAt(0).toUpperCase() + t.slice(1);
+            document.getElementById('pageTitleDisplay').innerText = displayTitle;
+            
             document.getElementById('fabAdd').classList.toggle('hidden', t === 'add');
             window.scrollTo(0,0);
         };
+        
         window.editMode = (id, store, desc, price, cat, type, buyer, rating, time) => { 
             switchTab('add'); document.getElementById('editId').value = id; document.getElementById('dateInput').value = new Date(time).toISOString().split('T')[0];
             document.getElementById('store').value = store || ''; document.getElementById('desc').value = desc || ''; document.getElementById('price').value = price; document.getElementById('category').value = cat; 
@@ -452,7 +521,7 @@
         };
         window.savePurchase = async () => { 
             const id = document.getElementById('editId').value, dInput = document.getElementById('dateInput').value, s = document.getElementById('store').value, d = document.getElementById('desc').value, p = parseFloat(document.getElementById('price').value); 
-            const rate = document.querySelector('input[name="rating"]:checked')?.value || 5;
+            const rate = document.querySelector('input[name="rating"]:checked')?.value || 0;
             if(!d || isNaN(p) || !dInput) return alert("Mangler data!"); 
             const obj = { store: s, desc: d, price: p, category: document.getElementById('category').value, buyer: selectedBuyer, createdAt: new Date(dInput).getTime(), type: selectedType, rating: parseInt(rate) }; 
             if(id) await updateDoc(doc(db, "households", currentHid, "purchases", id), obj); else await addDoc(collection(db, "households", currentHid, "purchases"), obj); cancelEdit(); switchTab('hjem'); 
