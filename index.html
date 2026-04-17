@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vårt Forbruk v18.17</title>
+    <title>Vårt Forbruk v18.18</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -14,7 +14,11 @@
         
         body.dark-mode { background-color: #0f172a; color: #f8fafc; }
         .dark-mode .bg-white { background-color: #1e293b; border-color: #334155; }
-        .dark-mode header { background-color: #1e293b; border-color: #334155; }
+        
+        /* Dark mode overrides for header */
+        .dark-mode header { background-color: #1e293b !important; border-color: #0f172a !important; }
+        .dark-mode header .top-brand-bar { background-color: #0f172a !important; }
+        
         .dark-mode .solid-nav { background-color: #1e293b; border-color: #334155; }
         .dark-mode .text-slate-900 { color: #f1f5f9; }
         .dark-mode .text-slate-500 { color: #94a3b8; }
@@ -51,7 +55,7 @@
             <div class="bg-white w-full rounded-[2.5rem] p-10 shadow-2xl">
                 <h1 class="text-3xl font-black mb-10 brand-logo text-indigo-600 uppercase">Vårt Forbruk</h1>
                 <button id="loginBtn" onclick="login()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold uppercase text-xs tracking-widest active:scale-95 transition-all">Start med Google</button>
-                <p class="mt-6 text-[8px] text-slate-400 font-mono uppercase tracking-widest">v18.17 Stable</p>
+                <p class="mt-6 text-[8px] text-slate-400 font-mono uppercase tracking-widest">v18.18 Stable</p>
             </div>
         </div>
     </div>
@@ -75,30 +79,32 @@
     </div>
 
     <div id="appContent" class="hidden">
-        <header class="bg-white sticky top-0 z-40 border-b border-slate-200 shadow-sm">
-            <div class="bg-indigo-600 py-3 text-center flex justify-center items-center gap-2 shadow-inner">
+        <header class="bg-indigo-600 sticky top-0 z-40 border-b border-indigo-700 shadow-lg transition-colors duration-300">
+            <div class="top-brand-bar bg-indigo-700 py-3 text-center flex justify-center items-center gap-2 shadow-inner">
                 <span class="text-white font-black brand-logo uppercase tracking-tighter text-sm">Vårt Forbruk</span>
-                <span class="bg-indigo-500 text-indigo-100 text-[8px] px-1.5 py-0.5 rounded font-mono font-bold tracking-widest">v18.17</span>
+                <span class="bg-indigo-500 text-indigo-100 text-[8px] px-1.5 py-0.5 rounded font-mono font-bold tracking-widest">v18.18</span>
             </div>
-            <div class="px-6 pt-5 pb-5">
+            <div class="px-6 pt-5 pb-6">
                 <div class="flex justify-between items-start mb-6">
                     <div>
-                        <h2 id="userNameDisplay" class="text-xl font-black italic tracking-tighter leading-none text-slate-900">Hei, ...</h2>
-                        <p id="hhNameDisplay" class="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest italic">Laster...</p>
+                        <h2 id="userNameDisplay" class="text-xl font-black italic tracking-tighter leading-none text-white">Hei, ...</h2>
+                        <p id="hhNameDisplay" class="text-[9px] font-bold text-indigo-200 uppercase mt-1 tracking-widest italic">Laster...</p>
                     </div>
-                    <span id="pageTitleDisplay" class="text-[8px] font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md uppercase tracking-[0.2em] border border-indigo-100">Hjem</span>
+                    <span id="pageTitleDisplay" class="text-[8px] font-black text-indigo-100 bg-indigo-500/50 px-2 py-1 rounded-md uppercase tracking-[0.2em] border border-indigo-400">Hjem</span>
                 </div>
                 <div class="flex flex-col mb-6">
-                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Forbruk denne måneden</span>
-                    <span id="totalMonth" class="text-4xl font-black tracking-tighter leading-none text-slate-900">0 kr</span>
+                    <span class="text-[9px] font-black text-indigo-200 uppercase tracking-widest mb-0.5">Forbruk denne måneden</span>
+                    <span id="totalMonth" class="text-4xl font-black tracking-tighter leading-none text-white">0 kr</span>
                 </div>
                 <div class="space-y-2">
                     <div class="flex justify-between items-end px-0.5 mb-1">
-                        <div id="budgetLabel" class="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Budsjett: --</div>
+                        <div id="budgetLabel" class="text-[10px] font-bold text-indigo-200 uppercase tracking-tight">Budsjett: --</div>
                         <div id="budgetStatusChip" class="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md">...</div>
                     </div>
-                    <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-200">
-                        <div id="budgetBar" class="h-full bg-indigo-600 w-0 transition-all duration-1000"></div>
+                    <div class="w-full h-2.5 bg-indigo-900/40 rounded-full overflow-hidden shadow-inner border border-indigo-800/50">
+                        <div id="budgetBar" class="h-full bg-white w-0 transition-all duration-1000 relative">
+                            <div class="absolute inset-0 bg-gradient-to-r from-transparent to-white/30"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -477,7 +483,6 @@
                 const list = document.getElementById('purchasesList'); list.innerHTML = ''; 
                 let total = 0, buyerSums = {}, catSums = {}, all = [];
                 
-                // Variabler for Profil DNA
                 let myTotalLifetimePurchases = 0;
                 let myLyst = 0;
                 let myBehov = 0;
@@ -534,7 +539,6 @@
                     }
                 });
                 
-                // OPPDATER PROFIL DNA
                 document.getElementById('profileTotalPurchases').innerText = myTotalLifetimePurchases;
                 
                 let favCat = "Ingen"; let maxCatCount = 0;
@@ -554,7 +558,7 @@
                 document.getElementById('budgetBar').style.width = Math.min((total / safeBudget) * 100, 100) + "%";
                 const diff = currentBudget - total; 
                 document.getElementById('budgetStatusChip').innerText = diff >= 0 ? `${diff.toLocaleString()} kr under` : `${Math.abs(diff).toLocaleString()} kr over`;
-                document.getElementById('budgetStatusChip').className = `text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md border ${diff >= 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100 font-extrabold'}`;
+                document.getElementById('budgetStatusChip').className = `text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md border ${diff >= 0 ? 'bg-emerald-500/20 text-emerald-100 border-emerald-500/30' : 'bg-rose-500/20 text-rose-100 border-rose-500/30 font-extrabold shadow-[0_0_10px_rgba(244,63,94,0.3)]'}`;
                 
                 updateDuellen(buyerSums);
                 updateDailyInsights(total);
