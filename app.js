@@ -192,23 +192,23 @@ async function startApp() {
                 let bColor = getBuyerColor(bName);
                 const dateStr = date.toLocaleDateString('no-NO', { day: '2-digit', month: '2-digit' });
                 const emojiStr = categoryEmojis[cName] ? categoryEmojis[cName] + " " : "";
-                const ratingStr = p.rating ? `<span class="text-[7px] font-black text-amber-500 bg-amber-50 px-2 py-1 rounded-lg uppercase flex items-center gap-0.5 border border-amber-100">★ ${p.rating}</span>` : "";
+                const ratingStr = p.rating ? `<span class="text-[10px] font-black text-amber-500 bg-amber-50 px-2 py-1 rounded-lg uppercase flex items-center gap-0.5 border border-amber-100">★ ${p.rating}</span>` : "";
 
                 card.innerHTML = `
                     <div class="flex justify-between items-start">
                         <div class="flex flex-col">
                             <div class="flex items-center gap-2">
-                                <h3 class="font-black text-xs uppercase text-slate-900">${p.store || 'Butikk'}</h3>
-                                <span class="text-[9px] font-black text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">${dateStr}</span>
+                                <h3 class="font-black text-sm uppercase text-slate-900">${p.store || 'Butikk'}</h3>
+                                <span class="text-[10px] font-black text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">${dateStr}</span>
                             </div>
-                            <p class="text-[10px] text-slate-400 font-bold mt-0.5">${p.desc || ''}</p>
+                            <p class="text-xs text-slate-400 font-bold mt-0.5">${p.desc || ''}</p>
                         </div>
                         <p class="font-black text-lg text-slate-900">${(p.price || 0).toLocaleString()} kr</p>
                     </div>
                     <div class="flex flex-wrap gap-2 mt-3">
-                        <span class="text-[7px] font-black px-2 py-1 rounded-lg border ${(p.type || 'Behov') === 'Behov' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'} uppercase">${p.type || 'Behov'}</span>
-                        <span class="text-[7px] font-black px-2 py-1 rounded-lg bg-slate-50 text-slate-500 border border-slate-200 uppercase">${emojiStr}${cName}</span>
-                        <span class="text-[7px] font-black px-2 py-1 rounded-lg uppercase text-white shadow-sm" style="background:${bColor}">${bName}</span>
+                        <span class="text-[10px] font-black px-2 py-1 rounded-lg border ${(p.type || 'Behov') === 'Behov' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'} uppercase">${p.type || 'Behov'}</span>
+                        <span class="text-[10px] font-black px-2 py-1 rounded-lg bg-slate-50 text-slate-500 border border-slate-200 uppercase">${emojiStr}${cName}</span>
+                        <span class="text-[10px] font-black px-2 py-1 rounded-lg uppercase text-white shadow-sm" style="background:${bColor}">${bName}</span>
                         ${ratingStr}
                     </div>
                 `;
@@ -234,7 +234,7 @@ async function startApp() {
         document.getElementById('budgetBar').style.width = Math.min((total / safeBudget) * 100, 100) + "%";
         const diff = currentBudget - total;
         document.getElementById('budgetStatusChip').innerText = diff >= 0 ? `${diff.toLocaleString()} kr under` : `${Math.abs(diff).toLocaleString()} kr over`;
-        document.getElementById('budgetStatusChip').className = `text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md border ${diff >= 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100 font-extrabold shadow-sm'}`;
+        document.getElementById('budgetStatusChip').className = `text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md border ${diff >= 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100 font-extrabold shadow-sm'}`;
 
         updateDuellen(buyerSums);
         updateDailyInsights(total);
@@ -251,7 +251,7 @@ async function startApp() {
             const name = d.data().name || 'Kategori';
             const emojiStr = categoryEmojis[name] ? categoryEmojis[name] + " " : "";
             sel.innerHTML += `<option value="${name}">${emojiStr}${name}</option>`;
-            adminList.innerHTML += `<span onclick="editCategoryPrompt('${d.id}', '${name}')" class="bg-white text-slate-700 px-3 py-2 rounded-xl text-[10px] font-black uppercase flex items-center gap-2 border border-slate-200 cursor-pointer transition-all active:scale-95 shadow-sm hover:border-indigo-300">${emojiStr}${name} <i onclick="event.stopPropagation(); deleteCategory('${d.id}')" data-lucide="x" class="w-4 h-4 text-rose-500 bg-rose-50 rounded-full p-0.5 ml-1 border border-rose-100"></i></span>`;
+            adminList.innerHTML += `<span onclick="editCategoryPrompt('${d.id}', '${name}')" class="bg-white text-slate-700 px-3 py-2 rounded-xl text-xs font-black uppercase flex items-center gap-2 border border-slate-200 cursor-pointer transition-all active:scale-95 shadow-sm hover:border-indigo-300">${emojiStr}${name} <i onclick="event.stopPropagation(); deleteCategory('${d.id}')" data-lucide="x" class="w-4 h-4 text-rose-500 bg-rose-50 rounded-full p-0.5 ml-1 border border-rose-100"></i></span>`;
         });
         lucide.createIcons();
     });
@@ -375,7 +375,7 @@ function updateHistory(purchases) {
 
     const sortedKeys = Object.keys(groupedHistory).sort().reverse();
     if (sortedKeys.length === 0) {
-        list.innerHTML = '<p class="text-center text-xs font-bold text-slate-400 uppercase mt-10">Ingen historikk enda</p>';
+        list.innerHTML = '<p class="text-center text-sm font-bold text-slate-400 uppercase mt-10">Ingen historikk enda</p>';
         if (activeTab === 'historikkDetaljer') window.switchTab('historikk');
         return;
     }
@@ -387,7 +387,7 @@ function updateHistory(purchases) {
             <span class="font-black text-sm uppercase text-slate-900 tracking-widest">${m.label}</span>
             <div class="flex items-center gap-3">
                 <span class="font-black text-lg text-indigo-600">${m.total.toLocaleString()} kr</span>
-                <div class="bg-indigo-50 p-1 rounded-full"><i data-lucide="chevron-right" class="w-4 h-4 text-indigo-400"></i></div>
+                <div class="bg-indigo-50 p-1 rounded-full"><i data-lucide="chevron-right" class="w-5 h-5 text-indigo-400"></i></div>
             </div>
         </div>`;
     });
@@ -434,21 +434,21 @@ window.openMonth = (key, preventScroll = false) => {
         <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm mb-4">
             <div class="flex justify-between items-end mb-4 border-b border-slate-100 pb-4">
                 <div>
-                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Totalt forbruk</p>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Totalt forbruk</p>
                     <p class="text-3xl font-black text-slate-900 leading-none">${m.total.toLocaleString()} kr</p>
                 </div>
-                <span class="text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md border ${statusClass}">${statusText}</span>
+                <span class="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md border ${statusClass}">${statusText}</span>
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Duellen</p>
-                    <p class="text-xs font-black" style="color: ${myColor}">${safeUserName}: ${sumMe.toLocaleString()} kr</p>
-                    <p class="text-xs font-black mt-0.5" style="color: ${pColor}">${pName}: ${sumPartner.toLocaleString()} kr</p>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Duellen</p>
+                    <p class="text-sm font-black" style="color: ${myColor}">${safeUserName}: ${sumMe.toLocaleString()} kr</p>
+                    <p class="text-sm font-black mt-0.5" style="color: ${pColor}">${pName}: ${sumPartner.toLocaleString()} kr</p>
                 </div>
                 <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Største Kategori</p>
-                    <p class="text-xs font-black text-slate-900 truncate">${topCat[0]}</p>
-                    <p class="text-[10px] font-bold text-slate-400 mt-0.5">${topCat[1].toLocaleString()} kr</p>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Største Kategori</p>
+                    <p class="text-sm font-black text-slate-900 truncate">${topCat[0]}</p>
+                    <p class="text-xs font-bold text-slate-400 mt-0.5">${topCat[1].toLocaleString()} kr</p>
                 </div>
             </div>
         </div>
@@ -466,23 +466,23 @@ window.openMonth = (key, preventScroll = false) => {
         const dateStr = new Date(p.createdAt).toLocaleDateString('no-NO', { day: '2-digit', month: '2-digit' });
         const cName = p.category || 'Annet';
         const emojiStr = categoryEmojis[cName] ? categoryEmojis[cName] + " " : "";
-        const ratingStr = p.rating ? `<span class="text-[7px] font-black text-amber-500 bg-amber-50 px-2 py-1 rounded-lg uppercase flex items-center gap-0.5 border border-amber-100">★ ${p.rating}</span>` : "";
+        const ratingStr = p.rating ? `<span class="text-[10px] font-black text-amber-500 bg-amber-50 px-2 py-1 rounded-lg uppercase flex items-center gap-0.5 border border-amber-100">★ ${p.rating}</span>` : "";
 
         card.innerHTML = `
             <div class="flex justify-between items-start">
                 <div class="flex flex-col">
                     <div class="flex items-center gap-2">
-                        <h3 class="font-black text-xs uppercase text-slate-900">${p.store || 'Butikk'}</h3>
-                        <span class="text-[9px] font-black text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">${dateStr}</span>
+                        <h3 class="font-black text-sm uppercase text-slate-900">${p.store || 'Butikk'}</h3>
+                        <span class="text-[10px] font-black text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">${dateStr}</span>
                     </div>
-                    <p class="text-[10px] text-slate-400 font-bold mt-0.5">${p.desc || ''}</p>
+                    <p class="text-xs text-slate-400 font-bold mt-0.5">${p.desc || ''}</p>
                 </div>
                 <p class="font-black text-lg text-slate-900">${(p.price || 0).toLocaleString()} kr</p>
             </div>
             <div class="flex flex-wrap gap-2 mt-3">
-                <span class="text-[7px] font-black px-2 py-1 rounded-lg border ${(p.type || 'Behov') === 'Behov' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'} uppercase">${p.type || 'Behov'}</span>
-                <span class="text-[7px] font-black px-2 py-1 rounded-lg bg-slate-50 text-slate-500 border border-slate-200 uppercase">${emojiStr}${cName}</span>
-                <span class="text-[7px] font-black px-2 py-1 rounded-lg uppercase text-white shadow-sm" style="background:${bColor}">${p.buyer || 'Ukjent'}</span>
+                <span class="text-[10px] font-black px-2 py-1 rounded-lg border ${(p.type || 'Behov') === 'Behov' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'} uppercase">${p.type || 'Behov'}</span>
+                <span class="text-[10px] font-black px-2 py-1 rounded-lg bg-slate-50 text-slate-500 border border-slate-200 uppercase">${emojiStr}${cName}</span>
+                <span class="text-[10px] font-black px-2 py-1 rounded-lg uppercase text-white shadow-sm" style="background:${bColor}">${p.buyer || 'Ukjent'}</span>
                 ${ratingStr}
             </div>
         `;
@@ -499,7 +499,7 @@ function updateChart(catSums) {
         chart = new Chart(ctx, { type: 'doughnut', data: { labels: ['Ingen kjøp'], datasets: [{ data: [1], backgroundColor: ['#f8fafc'], borderWidth: 0 }] }, options: { cutout: '80%', maintainAspectRatio: false, plugins: { tooltip: { enabled: false }, legend: { display: false } } } });
         return;
     }
-    chart = new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(catSums), datasets: [{ data: Object.values(catSums), backgroundColor: profileColors, borderWidth: 0 }] }, options: { cutout: '75%', maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { family: 'Inter', weight: 'bold', size: 10 } } } } } });
+    chart = new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(catSums), datasets: [{ data: Object.values(catSums), backgroundColor: profileColors, borderWidth: 0 }] }, options: { cutout: '75%', maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { family: 'Inter', weight: 'bold', size: 12 } } } } } });
 }
 
 // --- APP ACTIONS ---
@@ -599,8 +599,8 @@ window.cancelEdit = () => {
 
 window.setType = (t) => {
     selectedType = t;
-    document.getElementById('btnBehov').className = t === 'Behov' ? "flex-1 py-3 rounded-xl text-[10px] font-black bg-white shadow-sm uppercase text-slate-900 border border-slate-200" : "flex-1 py-3 rounded-xl text-[10px] font-black text-slate-400 uppercase border border-transparent";
-    document.getElementById('btnLyst').className = t === 'Lyst' ? "flex-1 py-3 rounded-xl text-[10px] font-black bg-white shadow-sm uppercase text-slate-900 border border-slate-200" : "flex-1 py-3 rounded-xl text-[10px] font-black text-slate-400 uppercase border border-transparent";
+    document.getElementById('btnBehov').className = t === 'Behov' ? "flex-1 py-3 rounded-xl text-xs font-black bg-white shadow-sm uppercase text-slate-900 border border-slate-200" : "flex-1 py-3 rounded-xl text-xs font-black text-slate-400 uppercase border border-transparent";
+    document.getElementById('btnLyst').className = t === 'Lyst' ? "flex-1 py-3 rounded-xl text-xs font-black bg-white shadow-sm uppercase text-slate-900 border border-slate-200" : "flex-1 py-3 rounded-xl text-xs font-black text-slate-400 uppercase border border-transparent";
 };
 
 // --- SETTINGS & PROFILE ---
@@ -623,6 +623,13 @@ window.deleteCategory = async (id) => { if (confirm("Er du sikker på at du vil 
 window.createHousehold = async () => { const hid = "H-" + Math.random().toString(36).substr(2, 6).toUpperCase(); await setDoc(doc(db, "households", hid), { name: "Min husstand", migrated: true }); await setDoc(doc(db, "users", auth.currentUser.uid), { hid: hid }, { merge: true }); location.reload(); };
 window.joinHousehold = async () => { const c = document.getElementById('joinCodeInput').value.trim(); if (c) { await setDoc(doc(db, "users", auth.currentUser.uid), { hid: c }, { merge: true }); location.reload(); } };
 window.copyHid = () => { navigator.clipboard.writeText(currentHid); alert("Invitasjonskode kopiert!"); };
+
+// Registrer Service Worker for PWA (hvis tilgjengelig)
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+        .then(() => console.log("Service Worker registrert!"))
+        .catch(err => console.log("Service Worker feilet:", err));
+}
 
 // Initier ikoner på start
 lucide.createIcons();

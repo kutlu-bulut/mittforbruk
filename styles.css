@@ -12,7 +12,7 @@ body {
     background-color: #f1f5f9;
 }
 
-/* Dark Mode Regler */
+/* --- Dark Mode Regler (Forbedret Kontrast) --- */
 body.dark-mode {
     background-color: #0f172a;
     color: #f8fafc;
@@ -37,16 +37,29 @@ body.dark-mode {
     color: #f1f5f9;
 }
 
-.dark-mode .text-slate-500 {
-    color: #94a3b8;
-}
-
 .dark-mode .bg-slate-50 {
     background-color: #0f172a;
     border-color: #334155;
 }
 
-/* Navigasjon */
+/* Tvinger grå tekst til å bli mye lysere i mørk modus for lesbarhet */
+.dark-mode .text-slate-600 {
+    color: #e2e8f0 !important;
+}
+
+.dark-mode .text-slate-500 {
+    color: #cbd5e1 !important;
+}
+
+.dark-mode .text-slate-400 {
+    color: #f8fafc !important;
+}
+
+.dark-mode .text-slate-300 {
+    color: #ffffff !important;
+}
+
+/* --- Navigasjon --- */
 .solid-nav {
     background-color: #ffffff;
     border-top: 1px solid #e2e8f0;
@@ -68,7 +81,7 @@ body.dark-mode {
 }
 
 .dark-mode .nav-btn {
-    color: #64748b;
+    color: #94a3b8;
 }
 
 .dark-mode .nav-active {
@@ -80,7 +93,7 @@ body.dark-mode {
     color: #818cf8;
 }
 
-/* Tabs og Animasjoner */
+/* --- Tabs og Animasjoner --- */
 .tab-content {
     display: none;
 }
@@ -105,13 +118,13 @@ body.dark-mode {
     }
 }
 
-/* Typografi og Ikoner */
+/* --- Typografi og Ikoner --- */
 .brand-logo {
     font-style: italic;
     letter-spacing: -1px;
 }
 
-/* Stjernerangering */
+/* --- Stjernerangering --- */
 .star-rating {
     direction: rtl;
     display: inline-flex;
@@ -132,7 +145,7 @@ body.dark-mode {
     color: #fbbf24;
 }
 
-/* Fargevelger */
+/* --- Fargevelger --- */
 .color-dot {
     width: 28px;
     height: 28px;
@@ -147,7 +160,7 @@ body.dark-mode {
     transform: scale(1.1);
 }
 
-/* 3D Effekt på målere */
+/* --- 3D Effekt på målere --- */
 .progress-3d {
     box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.15), inset 0 2px 4px rgba(255, 255, 255, 0.25);
 }
