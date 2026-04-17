@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vårt Forbruk v18.19</title>
+    <title>Hvor går pengene? v18.20</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -51,12 +51,24 @@
 </head>
 <body class="min-h-screen text-slate-900">
 
-    <div id="loginScreen" class="fixed inset-0 z-[100] bg-indigo-600 overflow-y-auto">
-        <div class="min-h-[100dvh] flex flex-col items-center justify-center p-6 text-center max-w-sm mx-auto animate-pop">
-            <div class="bg-white w-full rounded-[2.5rem] p-10 shadow-2xl">
-                <h1 class="text-3xl font-black mb-10 brand-logo text-indigo-600 uppercase bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">Vårt Forbruk</h1>
-                <button id="loginBtn" onclick="login()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold uppercase text-xs tracking-widest active:scale-95 transition-all">Start med Google</button>
-                <p class="mt-6 text-[8px] text-slate-400 font-mono uppercase tracking-widest">v18.19 Stable</p>
+    <div id="loginScreen" class="fixed inset-0 z-[100] bg-gradient-to-br from-slate-900 via-indigo-900 to-indigo-800 flex items-center justify-center p-6 text-center overflow-y-auto">
+        <div class="w-full max-w-sm mx-auto flex flex-col items-center justify-center min-h-[100dvh] animate-pop">
+            <div class="bg-white w-full rounded-[3rem] p-8 pb-10 shadow-2xl relative overflow-hidden">
+                <div class="mb-8 mt-4">
+                    <div class="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+                        <i data-lucide="wallet" class="w-8 h-8 text-indigo-600"></i>
+                    </div>
+                    <h1 class="text-3xl font-black mb-4 brand-logo text-slate-900 leading-tight">
+                        Hvor går <br><span class="text-indigo-600">pengene?</span>
+                    </h1>
+                    <p class="text-[11px] text-slate-500 font-semibold leading-relaxed px-2">
+                        Få full kontroll over fellesøkonomien. Spor utgifter, hold budsjettet, og se hvem som har betalt hva – helt sømløst.
+                    </p>
+                </div>
+                <button id="loginBtn" onclick="login()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
+                    <i data-lucide="log-in" class="w-4 h-4"></i> Start med Google
+                </button>
+                <p class="mt-8 text-[8px] text-slate-300 font-mono uppercase tracking-widest">v18.20 Stable</p>
             </div>
         </div>
     </div>
@@ -82,8 +94,8 @@
     <div id="appContent" class="hidden">
         <header class="bg-white sticky top-0 z-40 border-b border-slate-200 shadow-sm">
             <div class="bg-gradient-to-r from-indigo-600 to-violet-600 py-3 text-center flex justify-center items-center gap-2 shadow-inner">
-                <span class="text-white font-black brand-logo uppercase tracking-tighter text-sm">Vårt Forbruk</span>
-                <span class="bg-white/20 text-white text-[8px] px-1.5 py-0.5 rounded font-mono font-bold tracking-widest backdrop-blur-sm">v18.19</span>
+                <span class="text-white font-black brand-logo uppercase tracking-tighter text-xs">Hvor går pengene?</span>
+                <span class="bg-white/20 text-white text-[8px] px-1.5 py-0.5 rounded font-mono font-bold tracking-widest backdrop-blur-sm">v18.20</span>
             </div>
             <div class="px-6 pt-5 pb-5">
                 <div class="flex justify-between items-start mb-6">
