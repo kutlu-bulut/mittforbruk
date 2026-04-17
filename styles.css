@@ -1,0 +1,153 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+
+:root {
+    --user-color: #4f46e5;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.2s;
+    padding-bottom: env(safe-area-inset-bottom);
+    background-color: #f1f5f9;
+}
+
+/* Dark Mode Regler */
+body.dark-mode {
+    background-color: #0f172a;
+    color: #f8fafc;
+}
+
+.dark-mode .bg-white {
+    background-color: #1e293b;
+    border-color: #334155;
+}
+
+.dark-mode header {
+    background-color: #1e293b;
+    border-color: #334155;
+}
+
+.dark-mode .solid-nav {
+    background-color: #1e293b;
+    border-color: #334155;
+}
+
+.dark-mode .text-slate-900 {
+    color: #f1f5f9;
+}
+
+.dark-mode .text-slate-500 {
+    color: #94a3b8;
+}
+
+.dark-mode .bg-slate-50 {
+    background-color: #0f172a;
+    border-color: #334155;
+}
+
+/* Navigasjon */
+.solid-nav {
+    background-color: #ffffff;
+    border-top: 1px solid #e2e8f0;
+    height: 75px;
+}
+
+.nav-btn {
+    color: #94a3b8;
+    transition: all 0.2s ease;
+}
+
+.nav-active {
+    color: #4f46e5 !important;
+}
+
+.nav-active .nav-inner {
+    background-color: #eef2ff;
+    color: #4f46e5;
+}
+
+.dark-mode .nav-btn {
+    color: #64748b;
+}
+
+.dark-mode .nav-active {
+    color: #818cf8 !important;
+}
+
+.dark-mode .nav-active .nav-inner {
+    background-color: #312e81;
+    color: #818cf8;
+}
+
+/* Tabs og Animasjoner */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.animate-pop {
+    animation: pop 0.2s ease-out;
+}
+
+@keyframes pop {
+    0% {
+        transform: scale(0.98);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Typografi og Ikoner */
+.brand-logo {
+    font-style: italic;
+    letter-spacing: -1px;
+}
+
+/* Stjernerangering */
+.star-rating {
+    direction: rtl;
+    display: inline-flex;
+}
+
+.star-rating label {
+    color: #e2e8f0;
+    cursor: pointer;
+    font-size: 1.8rem;
+    padding: 0 0.1rem;
+}
+
+.star-rating input {
+    display: none;
+}
+
+.star-rating input:checked~label {
+    color: #fbbf24;
+}
+
+/* Fargevelger */
+.color-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: 0.2s;
+}
+
+.color-dot.active {
+    border-color: #94a3b8;
+    transform: scale(1.1);
+}
+
+/* 3D Effekt på målere */
+.progress-3d {
+    box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.15), inset 0 2px 4px rgba(255, 255, 255, 0.25);
+}
