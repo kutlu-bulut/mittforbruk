@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fredoka:wght@600&display=swap');
 
 :root {
     --user-color: #4f46e5;
@@ -10,6 +10,14 @@ body {
     transition: background 0.2s;
     padding-bottom: env(safe-area-inset-bottom);
     background-color: #f1f5f9;
+}
+
+/* --- Brand Text --- */
+.brand-text {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
 }
 
 /* --- Section Titles (erstatter font-black uppercase tracking-widest overalt) --- */

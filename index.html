@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hvor går pengene? v19.1</title>
+    <title>Hvor går pengene? v19.2</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -78,8 +78,8 @@
 
         <!-- COMPACT HEADER -->
         <header class="bg-white sticky top-0 z-40 border-b border-slate-200 shadow-sm">
-            <div class="flex items-center justify-center py-1 bg-indigo-600">
-                <img src="logo.png" alt="Hvor går pengene?" class="h-7 object-contain">
+            <div class="flex items-center justify-center py-1.5 bg-indigo-600">
+                <span class="brand-text text-white">Hvor går pengene?</span>
             </div>
             <div class="px-5 pt-3 pb-3.5">
                 <div class="flex justify-between items-center mb-3">
@@ -124,39 +124,8 @@
 
             <!-- TAB: INNSIKT -->
             <div id="sectionInnsikt" class="tab-content animate-pop space-y-6 mt-2">
-                <div>
-                    <div class="px-2 mb-3">
-                        <h3 class="section-title">Månedens duell</h3>
-                    </div>
-                    <div class="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm">
-                        <div class="flex justify-between items-center mb-3 px-1">
-                            <div class="flex items-center gap-2">
-                                <div id="duelAvatar1" class="w-10 h-10 rounded-full text-white flex items-center justify-center text-lg font-black shadow-md border-2 border-white">?</div>
-                                <div>
-                                    <span id="statKName" class="font-bold text-sm text-slate-700 block leading-tight">Deg</span>
-                                    <span id="duelWinBadge1" class="hidden text-xs">👑</span>
-                                </div>
-                            </div>
-                            <div class="vs-badge">VS</div>
-                            <div class="flex items-center gap-2">
-                                <div class="text-right">
-                                    <span id="statHName" class="font-bold text-sm text-slate-700 block leading-tight">Partner</span>
-                                    <span id="duelWinBadge2" class="hidden text-xs">👑</span>
-                                </div>
-                                <div id="duelAvatar2" class="w-10 h-10 rounded-full text-white flex items-center justify-center text-lg font-black shadow-md border-2 border-white">?</div>
-                            </div>
-                        </div>
-                        <div class="w-full h-10 bg-slate-100 rounded-xl overflow-hidden flex shadow-inner relative border border-slate-200 p-0.5 gap-0.5">
-                            <div id="battleK" class="h-full bg-indigo-500 transition-all duration-1000 flex items-center relative progress-3d rounded-l-lg">
-                                <span id="battleKAmount" class="absolute left-3 text-xs text-white font-black truncate drop-shadow-md">0 kr</span>
-                            </div>
-                            <div id="battleH" class="h-full bg-rose-500 transition-all duration-1000 flex items-center justify-end flex-1 relative progress-3d rounded-r-lg">
-                                <span id="battleHAmount" class="absolute right-3 text-xs text-white font-black truncate drop-shadow-md">0 kr</span>
-                            </div>
-                        </div>
-                        <p id="duelVerdict" class="text-center text-xs font-bold text-slate-400 mt-3 hidden"></p>
-                    </div>
-                </div>
+                <!-- Duell / Ranking — dynamisk basert på antall medlemmer -->
+                <div id="duelSection"></div>
                 <div>
                     <div class="px-2 mb-3">
                         <h3 class="section-title">Daglig oversikt</h3>
@@ -341,7 +310,7 @@
                 </div>
                 <div class="text-center pt-2 pb-4">
                     <button id="btnLogout" onclick="logout()" class="text-rose-500 font-bold text-xs uppercase active:opacity-50 transition-opacity">Logg ut</button>
-                    <p class="text-[10px] text-slate-300 font-mono mt-3">v19.1</p>
+                    <p class="text-[10px] text-slate-300 font-mono mt-3">v19.2</p>
                 </div>
             </div>
 
@@ -354,9 +323,8 @@
                     </div>
                     <input type="hidden" id="editId">
                     <div class="space-y-4">
-                        <div class="flex gap-2 p-1.5 bg-slate-50 rounded-xl border border-slate-200">
-                            <button id="btnBuyer1" onclick="setBuyerToggle(true)" class="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all active:scale-95">Deg</button>
-                            <button id="btnBuyer2" onclick="setBuyerToggle(false)" class="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all active:scale-95">Partner</button>
+                        <div id="buyerSelector" class="flex gap-2 p-1.5 bg-slate-50 rounded-xl border border-slate-200">
+                            <!-- Dynamisk — fylles av JS basert på antall medlemmer -->
                         </div>
                         <div class="space-y-1">
                             <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Dato</label>

@@ -142,9 +142,7 @@ export function startApp() {
             list.appendChild(row);
         });
 
-        const p = state.householdMembers.find(m => m.name !== (state.currentUserData.name || 'Meg'));
-        if (p) document.getElementById('btnBuyer2').innerText = p.name || 'Partner';
-        if (!state.selectedBuyer) window.setBuyerToggle(true);
+        window.renderBuyerSelector();
     });
 
     // --- PURCHASES LISTENER ---
