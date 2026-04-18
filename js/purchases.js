@@ -88,39 +88,75 @@ window.cancelEdit = () => {
     document.getElementById('btnDeleteForm').classList.add('hidden');
     document.getElementById('formTitle').innerText = "Nytt kjøp";
     document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
-    window.setBuyerToggle(true);
+    window.renderBuyerSelector();
     window.setType('Behov');
 };
 
 window.setType = (t) => {
     state.selectedType = t;
-    document.getElementById('btnBehov').className = t === 'Behov' ? "flex-1 py-3 rounded-xl text-xs font-black bg-white shadow-sm uppercase text-slate-900 border border-slate-200" : "flex-1 py-3 rounded-xl text-xs font-black text-slate-400 uppercase border border-transparent";
-    document.getElementById('btnLyst').className = t === 'Lyst' ? "flex-1 py-3 rounded-xl text-xs font-black bg-white shadow-sm uppercase text-slate-900 border border-slate-200" : "flex-1 py-3 rounded-xl text-xs font-black text-slate-400 uppercase border border-transparent";
+    document.getElementById('btnBehov').className = t === 'Behov' ? "flex-1 py-2.5 rounded-lg text-xs font-bold bg-white shadow-sm text-slate-900 border border-slate-100" : "flex-1 py-2.5 rounded-lg text-xs font-bold text-slate-400";
+    document.getElementById('btnLyst').className = t === 'Lyst' ? "flex-1 py-2.5 rounded-lg text-xs font-bold bg-white shadow-sm text-slate-900 border border-slate-100" : "flex-1 py-2.5 rounded-lg text-xs font-bold text-slate-400";
 };
 
-window.setBuyerToggle = (isMe) => {
-    const btn1 = document.getElementById('btnBuyer1');
-    const btn2 = document.getElementById('btnBuyer2');
+// Dynamisk buyer selector — tilpasser seg antall medlemmer
+window.renderBuyerSelector = () => {
+    const container = document.getElementById('buyerSelector');
+    if (!container) return;
+    container.innerHTML = '';
 
+    const members = state.householdMembers;
     const safeUserName = state.currentUserData.name || 'Meg';
-    const p = state.householdMembers.find(m => m.name !== safeUserName) || { name: 'Partner', color: '#f43f5e' };
-    state.selectedBuyer = isMe ? safeUserName : p.name;
 
-    btn1.style.backgroundColor = '#f8fafc'; btn1.style.color = '#94a3b8'; btn1.style.boxShadow = 'none'; btn1.style.borderColor = 'transparent';
-    btn2.style.backgroundColor = '#f8fafc'; btn2.style.color = '#94a3b8'; btn2.style.boxShadow = 'none'; btn2.style.borderColor = 'transparent';
-
-    if (isMe) {
-        btn1.style.backgroundColor = state.currentUserData.color || '#4f46e5';
-        btn1.style.color = 'white';
-        btn1.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.1)';
-    } else {
-        btn2.style.backgroundColor = p.color || '#f43f5e';
-        btn2.style.color = 'white';
-        btn2.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.1)';
+    if (members.length <= 1) {
+        // Solo — skjul velgeren, sett automatisk
+        container.style.display = 'none';
+        state.selectedBuyer = safeUserName;
+        return;
     }
+
+    container.style.display = 'flex';
+
+    members.forEach(m => {
+        const btn = document.createElement('button');
+        btn.className = "flex-1 py-2.5 rounded-lg text-sm font-bold transition-all active:scale-95";
+        btn.textContent = m.name || 'Ukjent';
+        btn.dataset.buyerName = m.name;
+        btn.onclick = () => window.selectBuyer(m.name);
+        container.appendChild(btn);
+    });
+
+    // Sett default
+    if (!state.selectedBuyer) state.selectedBuyer = safeUserName;
+    window.highlightBuyer();
+};
+
+window.selectBuyer = (name) => {
+    state.selectedBuyer = name;
+    window.highlightBuyer();
+};
+
+window.highlightBuyer = () => {
+    const container = document.getElementById('buyerSelector');
+    if (!container) return;
+
+    container.querySelectorAll('button').forEach(btn => {
+        const name = btn.dataset.buyerName;
+        const member = state.householdMembers.find(m => m.name === name);
+        const isSelected = name === state.selectedBuyer;
+
+        if (isSelected) {
+            btn.style.backgroundColor = member?.color || '#4f46e5';
+            btn.style.color = 'white';
+            btn.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.1)';
+        } else {
+            btn.style.backgroundColor = '#f8fafc';
+            btn.style.color = '#94a3b8';
+            btn.style.boxShadow = 'none';
+        }
+    });
 };
 
 window.syncBuyerUI = (dbName) => {
-    const safeUserName = state.currentUserData.name || 'Meg';
-    window.setBuyerToggle(dbName === safeUserName);
+    state.selectedBuyer = dbName;
+    window.highlightBuyer();
 };

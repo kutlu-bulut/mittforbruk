@@ -1,79 +1,145 @@
 // ============================================================
-// Innsikt — duellen med VS, daglig oversikt, kategori-barer
+// Innsikt — adaptiv duell, daglig oversikt, kategori/butikk-barer
 // ============================================================
 
 import { state, profileColors, categoryEmojis } from './state.js';
+import { escapeHtml } from './ui.js';
 
+// ============================================================
+// Duell / Ranking — tilpasser seg antall medlemmer
+// ============================================================
 export function updateDuellen(buyerSums) {
-    let m1Name = state.currentUserData.name || "Meg";
-    let m1Color = state.currentUserData.color || "#4f46e5";
-    let m1Sum = buyerSums[m1Name] || 0;
+    const container = document.getElementById('duelSection');
+    if (!container) return;
 
-    let p = state.householdMembers.find(m => m.name !== m1Name) || { name: 'Partner', color: '#f43f5e' };
-    let m2Name = p.name || "Partner";
-    let m2Color = p.color || '#f43f5e';
+    const memberCount = state.householdMembers.length;
 
-    let m2Sum = 0;
-    Object.keys(buyerSums).forEach(name => {
-        if (name !== m1Name) m2Sum += buyerSums[name];
-    });
-
-    // Avatars
-    const emoji1 = state.currentUserData.avatar || m1Name.charAt(0).toUpperCase();
-    const otherMember = state.householdMembers.find(m => m.name !== m1Name);
-    const emoji2 = otherMember?.avatar || m2Name.charAt(0).toUpperCase();
-
-    document.getElementById('duelAvatar1').innerText = emoji1;
-    document.getElementById('duelAvatar1').style.backgroundColor = m1Color;
-    document.getElementById('statKName').innerText = m1Name;
-
-    document.getElementById('duelAvatar2').innerText = emoji2;
-    document.getElementById('duelAvatar2').style.backgroundColor = m2Color;
-    document.getElementById('statHName').innerText = m2Name;
-
-    // Winner badges
-    const badge1 = document.getElementById('duelWinBadge1');
-    const badge2 = document.getElementById('duelWinBadge2');
-    const verdict = document.getElementById('duelVerdict');
-
-    badge1.classList.add('hidden');
-    badge2.classList.add('hidden');
-    verdict.classList.add('hidden');
-
-    let totalDuel = m1Sum + m2Sum;
-
-    if (totalDuel === 0) {
-        document.getElementById('battleK').style.width = "50%";
-        document.getElementById('battleK').style.backgroundColor = '#f1f5f9';
-        document.getElementById('battleH').style.backgroundColor = '#f1f5f9';
-        document.getElementById('battleKAmount').innerText = "";
-        document.getElementById('battleHAmount').innerText = "";
-    } else {
-        let kPct = (m1Sum / totalDuel) * 100;
-        kPct = Math.max(15, Math.min(85, kPct));
-
-        document.getElementById('battleK').style.width = `${kPct}%`;
-        document.getElementById('battleK').style.backgroundColor = m1Color;
-        document.getElementById('battleH').style.backgroundColor = m2Color;
-
-        document.getElementById('battleKAmount').innerText = `${m1Sum.toLocaleString()} kr`;
-        document.getElementById('battleHAmount').innerText = `${m2Sum.toLocaleString()} kr`;
-
-        // Show winner (lowest spender wins)
-        const diff = Math.abs(m1Sum - m2Sum);
-        if (m1Sum < m2Sum) {
-            badge1.classList.remove('hidden');
-            verdict.textContent = `${m1Name} leder med ${diff.toLocaleString()} kr`;
-        } else if (m2Sum < m1Sum) {
-            badge2.classList.remove('hidden');
-            verdict.textContent = `${m2Name} leder med ${diff.toLocaleString()} kr`;
-        } else {
-            verdict.textContent = "Helt likt! 🤝";
-        }
-        verdict.classList.remove('hidden');
+    if (memberCount <= 1) {
+        // Solo — vis personlig oversikt i stedet for duell
+        const myName = state.currentUserData.name || 'Meg';
+        const mySum = buyerSums[myName] || 0;
+        container.innerHTML = `
+            <div class="px-2 mb-3"><h3 class="section-title">Din måned</h3></div>
+            <div class="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm text-center">
+                <div class="w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-md border-2 border-white mx-auto mb-3" style="background: ${escapeHtml(state.currentUserData.color || '#4f46e5')}">${escapeHtml(state.currentUserData.avatar || myName.charAt(0).toUpperCase())}</div>
+                <p class="text-2xl font-black text-slate-900">${mySum.toLocaleString()} kr</p>
+                <p class="text-xs font-semibold text-slate-400 mt-1">brukt denne måneden</p>
+            </div>
+        `;
+        return;
     }
+
+    if (memberCount === 2) {
+        // Classic 1v1 duell
+        renderDuel2(buyerSums);
+        return;
+    }
+
+    // 3+ — rangert liste
+    renderDuelMulti(buyerSums);
 }
 
+function renderDuel2(buyerSums) {
+    const container = document.getElementById('duelSection');
+    const me = state.currentUserData;
+    const myName = me.name || 'Meg';
+    const other = state.householdMembers.find(m => m.name !== myName) || {};
+    const otherName = other.name || 'Partner';
+
+    const mySum = buyerSums[myName] || 0;
+    const otherSum = buyerSums[otherName] || 0;
+    const total = mySum + otherSum;
+
+    const myAvatar = me.avatar || myName.charAt(0).toUpperCase();
+    const otherAvatar = other.avatar || otherName.charAt(0).toUpperCase();
+    const myColor = me.color || '#4f46e5';
+    const otherColor = other.color || '#f43f5e';
+
+    let myWin = '', otherWin = '', verdict = '';
+    if (total > 0) {
+        const diff = Math.abs(mySum - otherSum);
+        if (mySum < otherSum) {
+            myWin = '👑';
+            verdict = `${escapeHtml(myName)} leder med ${diff.toLocaleString()} kr`;
+        } else if (otherSum < mySum) {
+            otherWin = '👑';
+            verdict = `${escapeHtml(otherName)} leder med ${diff.toLocaleString()} kr`;
+        } else {
+            verdict = 'Helt likt! 🤝';
+        }
+    }
+
+    let kPct = total > 0 ? Math.max(15, Math.min(85, (mySum / total) * 100)) : 50;
+    const barMyBg = total > 0 ? myColor : '#f1f5f9';
+    const barOtherBg = total > 0 ? otherColor : '#f1f5f9';
+
+    container.innerHTML = `
+        <div class="px-2 mb-3"><h3 class="section-title">Månedens duell</h3></div>
+        <div class="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm">
+            <div class="flex justify-between items-center mb-3 px-1">
+                <div class="flex items-center gap-2">
+                    <div class="w-10 h-10 rounded-full text-white flex items-center justify-center text-lg font-black shadow-md border-2 border-white" style="background:${escapeHtml(myColor)}">${escapeHtml(myAvatar)}</div>
+                    <div>
+                        <span class="font-bold text-sm text-slate-700 block leading-tight">${escapeHtml(myName)}</span>
+                        <span class="text-xs">${myWin}</span>
+                    </div>
+                </div>
+                <div class="vs-badge">VS</div>
+                <div class="flex items-center gap-2">
+                    <div class="text-right">
+                        <span class="font-bold text-sm text-slate-700 block leading-tight">${escapeHtml(otherName)}</span>
+                        <span class="text-xs">${otherWin}</span>
+                    </div>
+                    <div class="w-10 h-10 rounded-full text-white flex items-center justify-center text-lg font-black shadow-md border-2 border-white" style="background:${escapeHtml(otherColor)}">${escapeHtml(otherAvatar)}</div>
+                </div>
+            </div>
+            <div class="w-full h-10 bg-slate-100 rounded-xl overflow-hidden flex shadow-inner relative border border-slate-200 p-0.5 gap-0.5">
+                <div class="h-full transition-all duration-1000 flex items-center relative progress-3d rounded-l-lg" style="width:${kPct}%; background:${barMyBg}">
+                    <span class="absolute left-3 text-xs text-white font-black truncate drop-shadow-md">${total > 0 ? mySum.toLocaleString() + ' kr' : ''}</span>
+                </div>
+                <div class="h-full transition-all duration-1000 flex items-center justify-end flex-1 relative progress-3d rounded-r-lg" style="background:${barOtherBg}">
+                    <span class="absolute right-3 text-xs text-white font-black truncate drop-shadow-md">${total > 0 ? otherSum.toLocaleString() + ' kr' : ''}</span>
+                </div>
+            </div>
+            ${verdict ? `<p class="text-center text-xs font-bold text-slate-400 mt-3">${verdict}</p>` : ''}
+        </div>
+    `;
+}
+
+function renderDuelMulti(buyerSums) {
+    const container = document.getElementById('duelSection');
+
+    // Bygg rangert liste over alle medlemmer
+    const rankings = state.householdMembers.map(m => ({
+        name: m.name || 'Ukjent',
+        avatar: m.avatar || (m.name || 'U').charAt(0).toUpperCase(),
+        color: m.color || '#64748b',
+        amount: buyerSums[m.name] || 0
+    })).sort((a, b) => a.amount - b.amount); // Lavest først = vinner
+
+    const rows = rankings.map((r, i) => {
+        const medal = i === 0 && rankings.length > 1 ? '👑 ' : '';
+        return `
+            <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <span class="text-sm font-black text-slate-300 w-5 text-center">${i + 1}</span>
+                <div class="w-9 h-9 rounded-full text-white flex items-center justify-center text-base font-black shadow-sm border-2 border-white" style="background:${escapeHtml(r.color)}">${escapeHtml(r.avatar)}</div>
+                <span class="flex-1 text-sm font-bold text-slate-700">${medal}${escapeHtml(r.name)}</span>
+                <span class="text-sm font-black text-slate-900">${r.amount.toLocaleString()} kr</span>
+            </div>
+        `;
+    }).join('');
+
+    container.innerHTML = `
+        <div class="px-2 mb-3"><h3 class="section-title">Månedens ranking</h3></div>
+        <div class="bg-white p-4 rounded-[2rem] border border-slate-200 shadow-sm space-y-2">
+            ${rows || '<p class="text-sm text-slate-400 text-center py-4">Ingen kjøp ennå</p>'}
+        </div>
+    `;
+}
+
+// ============================================================
+// Daglig oversikt
+// ============================================================
 export function updateDailyInsights(currentTotal) {
     const now = new Date();
     const currentDay = now.getDate() || 1;
@@ -95,8 +161,12 @@ export function updateDailyInsights(currentTotal) {
     }
 }
 
+// ============================================================
+// Kategori-barer
+// ============================================================
 export function updateCategoryBars(catSums) {
     const container = document.getElementById('categoryBars');
+    if (!container) return;
     container.innerHTML = '';
 
     const entries = Object.entries(catSums).sort((a, b) => b[1] - a[1]);
@@ -142,14 +212,15 @@ export function updateCategoryBars(catSums) {
         row.appendChild(track);
         container.appendChild(row);
 
-        // Animate in
         requestAnimationFrame(() => {
             setTimeout(() => { fill.style.width = pct + '%'; }, i * 80);
         });
     });
 }
 
-// Shared bar renderer — brukes av både butikk og profil-barer
+// ============================================================
+// Shared bar renderer
+// ============================================================
 function renderBars(container, entries, colors) {
     container.innerHTML = '';
 
@@ -200,22 +271,18 @@ function renderBars(container, entries, colors) {
     });
 }
 
-// Butikkfordeling — alle brukere, denne måneden
 export function updateStoreBars(storeSums) {
     const container = document.getElementById('storeBars');
     if (!container) return;
-
-    const storeColors = ["#f97316", "#06b6d4", "#8b5cf6", "#f43f5e", "#10b981", "#f59e0b", "#6366f1", "#ec4899", "#64748b", "#84cc16"];
+    const storeColors = ["#f97316", "#06b6d4", "#8b5cf6", "#f43f5e", "#10b981", "#f59e0b", "#6366f1", "#ec4899"];
     const entries = Object.entries(storeSums).sort((a, b) => b[1] - a[1]);
     renderBars(container, entries, storeColors);
 }
 
-// Personlig butikkfordeling — kun mine kjøp, alle måneder
 export function updateProfileStoreBars(myStoreSums) {
     const container = document.getElementById('profileStoreBars');
     if (!container) return;
-
     const storeColors = ["#f97316", "#06b6d4", "#8b5cf6", "#f43f5e", "#10b981", "#f59e0b", "#6366f1", "#ec4899"];
-    const entries = Object.entries(myStoreSums).sort((a, b) => b[1] - a[1]).slice(0, 5); // Topp 5
+    const entries = Object.entries(myStoreSums).sort((a, b) => b[1] - a[1]).slice(0, 5);
     renderBars(container, entries, storeColors);
 }
