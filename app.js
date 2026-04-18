@@ -4,21 +4,62 @@
 
 import { collection, addDoc, query, orderBy, onSnapshot, setDoc, doc, getDoc, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from './js/firebase.js';
-import { state } from './js/state.js';
+import { state, achievementDefs } from './js/state.js';
 import { renderPurchaseCard } from './js/cards.js';
-import { updateDuellen, updateDailyInsights, updateChart } from './js/insights.js';
+import { updateDuellen, updateDailyInsights, updateCategoryBars } from './js/insights.js';
 import { updateHistory } from './js/history.js';
 import { renderCategories } from './js/household.js';
 
-// Importer moduler som registrerer window-funksjoner (side-effects)
+// Side-effect imports (registrerer window-funksjoner)
 import './js/navigation.js';
 import './js/purchases.js';
 import './js/preferences.js';
 import './js/household.js';
-import './js/auth.js';
 
-// Importer initAuth for å starte auth-flyten
 import { initAuth } from './js/auth.js';
+
+// ============================================================
+// Achievements renderer
+// ============================================================
+function renderAchievements(stats) {
+    const container = document.getElementById('achievementsList');
+    if (!container) return;
+    container.innerHTML = '';
+
+    achievementDefs.forEach(ach => {
+        const unlocked = ach.check(stats);
+        const card = document.createElement('div');
+        card.className = `achievement-card ${unlocked ? '' : 'locked'}`;
+
+        const icon = document.createElement('span');
+        icon.className = 'ach-icon';
+        icon.textContent = ach.icon;
+
+        const name = document.createElement('span');
+        name.className = 'ach-name';
+        name.textContent = ach.name;
+
+        card.appendChild(icon);
+        card.appendChild(name);
+        container.appendChild(card);
+    });
+}
+
+// ============================================================
+// Budget bar color helper
+// ============================================================
+function updateBudgetBarColor(total) {
+    const bar = document.getElementById('budgetBar');
+    if (!bar) return;
+
+    const pct = state.currentBudget > 0 ? (total / state.currentBudget) * 100 : 0;
+    bar.style.width = Math.min(pct, 100) + '%';
+
+    bar.classList.remove('budget-bar-ok', 'budget-bar-warn', 'budget-bar-over');
+    if (pct >= 100) bar.classList.add('budget-bar-over');
+    else if (pct >= 75) bar.classList.add('budget-bar-warn');
+    else bar.classList.add('budget-bar-ok');
+}
 
 // ============================================================
 // startApp — kalles fra auth.js når brukeren er innlogget
@@ -35,7 +76,7 @@ export function startApp() {
     const safeUserName = state.currentUserData.name || 'Meg';
     document.getElementById('userNameDisplay').innerText = "Hei, " + safeUserName + "!";
 
-    // --- Migrer kategorier hvis nødvendig ---
+    // Migrate categories if needed
     getDoc(doc(db, "households", state.currentHid, "settings", "global")).then(async (d) => {
         try {
             if (!d.exists() || !d.data().categoriesMigrated) {
@@ -51,7 +92,7 @@ export function startApp() {
         } catch (e) { console.error("Migration error:", e); }
     });
 
-    // --- Husstand-navn listener ---
+    // Household name
     onSnapshot(doc(db, "households", state.currentHid), (d) => {
         if (d.exists()) {
             document.getElementById('hhNameDisplay').innerText = d.data().name || 'Min husstand';
@@ -59,7 +100,7 @@ export function startApp() {
         }
     });
 
-    // --- Budsjett listener ---
+    // Budget
     onSnapshot(doc(db, "households", state.currentHid, "settings", "global"), (d) => {
         if (d.exists()) {
             state.currentBudget = d.data().monthlyBudget || 5000;
@@ -68,7 +109,7 @@ export function startApp() {
         }
     });
 
-    // --- Medlemmer listener ---
+    // Members
     onSnapshot(query(collection(db, "users"), where("hid", "==", state.currentHid)), (snap) => {
         const list = document.getElementById('memberList');
         list.innerHTML = '';
@@ -79,17 +120,18 @@ export function startApp() {
             state.householdMembers.push(u);
 
             const row = document.createElement('div');
-            row.className = "flex items-center gap-3 p-3 bg-slate-50 rounded-2xl mb-2 border border-slate-200";
+            row.className = "flex items-center gap-3 p-3 bg-slate-50 rounded-xl mb-2 border border-slate-200";
 
-            const dot = document.createElement('div');
-            dot.className = "w-4 h-4 rounded-full shadow-sm";
-            dot.style.backgroundColor = u.color || '#ccc';
+            const avatarEl = document.createElement('div');
+            avatarEl.className = "w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-sm border-2 border-white";
+            avatarEl.style.backgroundColor = u.color || '#ccc';
+            avatarEl.textContent = u.avatar || (u.name || 'U').charAt(0).toUpperCase();
 
             const name = document.createElement('span');
             name.className = "text-sm font-bold text-slate-700";
             name.textContent = u.name || 'Ukjent';
 
-            row.appendChild(dot);
+            row.appendChild(avatarEl);
             row.appendChild(name);
             list.appendChild(row);
         });
@@ -99,13 +141,15 @@ export function startApp() {
         if (!state.selectedBuyer) window.setBuyerToggle(true);
     });
 
-    // --- Kjøp listener (hovedlogikk) ---
+    // --- PURCHASES LISTENER ---
     onSnapshot(query(collection(db, "households", state.currentHid, "purchases"), orderBy("createdAt", "desc")), (snap) => {
         const list = document.getElementById('purchasesList');
+        const emptyState = document.getElementById('emptyStateHjem');
         list.innerHTML = '';
         let total = 0, buyerSums = {}, catSums = {}, all = [];
+        let currentMonthCount = 0;
 
-        let myTotalLifetimePurchases = 0, myLyst = 0, myBehov = 0, myCatCounts = {};
+        let myTotalLifetimePurchases = 0, myLyst = 0, myBehov = 0, myCatCounts = {}, myRatedCount = 0;
         const now = new Date();
         const safeUserName = state.currentUserData.name || 'Meg';
 
@@ -120,9 +164,11 @@ export function startApp() {
                 if ((p.type || 'Behov') === 'Lyst') myLyst++; else myBehov++;
                 const c = p.category || 'Annet';
                 myCatCounts[c] = (myCatCounts[c] || 0) + 1;
+                if (p.rating && p.rating > 0) myRatedCount++;
             }
 
             if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
+                currentMonthCount++;
                 total += (p.price || 0);
                 const bName = p.buyer || 'Ukjent';
                 const cName = p.category || 'Annet';
@@ -137,7 +183,12 @@ export function startApp() {
             }
         });
 
-        // Profil-stats
+        // Empty state
+        if (emptyState) {
+            emptyState.classList.toggle('hidden', currentMonthCount > 0);
+        }
+
+        // Profile stats
         document.getElementById('profileTotalPurchases').innerText = myTotalLifetimePurchases;
 
         let favCat = "Ingen";
@@ -154,21 +205,29 @@ export function startApp() {
         document.getElementById('profileLystPct').innerText = `${lystPct}%`;
         document.getElementById('profileBehovBar').style.width = `${behovPct}%`;
 
-        // Budsjett-bar
+        // Budget
         document.getElementById('totalMonth').innerText = total.toLocaleString() + " kr";
-        const safeBudget = state.currentBudget || 1;
-        document.getElementById('budgetBar').style.width = Math.min((total / safeBudget) * 100, 100) + "%";
+        updateBudgetBarColor(total);
         const diff = state.currentBudget - total;
-        document.getElementById('budgetStatusChip').innerText = diff >= 0 ? `${diff.toLocaleString()} kr under` : `${Math.abs(diff).toLocaleString()} kr over`;
-        document.getElementById('budgetStatusChip').className = `text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md border ${diff >= 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100 font-extrabold shadow-sm'}`;
+        document.getElementById('budgetStatusChip').innerText = diff >= 0 ? `${diff.toLocaleString()} kr igjen` : `${Math.abs(diff).toLocaleString()} kr over`;
+        document.getElementById('budgetStatusChip').className = `text-[10px] font-bold px-2 py-0.5 rounded-md ${diff >= 0 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`;
+
+        // Achievements
+        renderAchievements({
+            totalPurchases: myTotalLifetimePurchases,
+            monthTotal: total,
+            budget: state.currentBudget,
+            behovPct: behovPct,
+            ratedCount: myRatedCount
+        });
 
         updateDuellen(buyerSums);
         updateDailyInsights(total);
         updateHistory(all);
-        updateChart(catSums);
+        updateCategoryBars(catSums);
     });
 
-    // --- Kategorier listener ---
+    // Categories
     onSnapshot(query(collection(db, "households", state.currentHid, "categories"), orderBy("name")), (snap) => {
         renderCategories(snap);
     });
@@ -184,5 +243,5 @@ if ('serviceWorker' in navigator) {
 }
 
 lucide.createIcons();
-initAuth();
+initAuth(startApp);
 window.switchTab('hjem');

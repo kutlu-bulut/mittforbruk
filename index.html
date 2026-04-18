@@ -15,12 +15,12 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@0.408.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 
 <body class="min-h-screen text-slate-900">
 
+    <!-- ===== LOGIN ===== -->
     <div id="loginScreen"
         class="fixed inset-0 z-[100] bg-gradient-to-br from-slate-900 via-indigo-900 to-indigo-800 flex items-center justify-center p-6 text-center overflow-y-auto">
         <div class="w-full max-w-sm mx-auto flex flex-col items-center justify-center min-h-[100dvh] animate-pop">
@@ -39,11 +39,12 @@
                     class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-sm tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
                     <i data-lucide="log-in" class="w-5 h-5"></i> Start med Google
                 </button>
-                <p class="mt-8 text-[10px] text-slate-300 font-mono uppercase tracking-widest">v18.24 Modular</p>
+                <p class="mt-8 text-[10px] text-slate-300 font-mono uppercase tracking-widest">v18.24</p>
             </div>
         </div>
     </div>
 
+    <!-- ===== ONBOARDING ===== -->
     <div id="onboardingScreen" class="hidden fixed inset-0 z-[95] bg-slate-100 overflow-y-auto">
         <div
             class="min-h-[100dvh] flex flex-col items-center justify-center p-6 text-center max-w-sm mx-auto animate-pop py-12">
@@ -68,385 +69,359 @@
         </div>
     </div>
 
+    <!-- ===== APP ===== -->
     <div id="appContent" class="hidden">
+
+        <!-- COMPACT HEADER -->
         <header class="bg-white sticky top-0 z-40 border-b border-slate-200 shadow-sm">
-            <div
-                class="bg-gradient-to-r from-indigo-600 to-violet-600 py-3 text-center flex justify-center items-center gap-2 shadow-inner">
-                <span class="text-white font-black brand-logo uppercase tracking-tighter text-sm">Hvor går
-                    pengene?</span>
-                <span
-                    class="bg-white/20 text-white text-[10px] px-1.5 py-0.5 rounded font-mono font-bold tracking-widest backdrop-blur-sm">v18.24</span>
-            </div>
-            <div class="px-6 pt-5 pb-5">
-                <div class="flex justify-between items-start mb-6">
-                    <div>
-                        <h2 id="userNameDisplay"
-                            class="text-xl font-black italic tracking-tighter leading-none text-slate-900">Hei, ...</h2>
-                        <p id="hhNameDisplay"
-                            class="text-xs font-bold text-slate-400 uppercase mt-1 tracking-widest italic">Laster...</p>
-                    </div>
-                    <span id="pageTitleDisplay"
-                        class="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md uppercase tracking-[0.2em] border border-indigo-100">Hjem</span>
-                </div>
-                <div class="flex flex-col mb-6">
-                    <span class="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">Forbruk denne
-                        måneden</span>
-                    <span id="totalMonth" class="text-4xl font-black tracking-tighter leading-none text-slate-900">0
-                        kr</span>
-                </div>
-                <div class="space-y-2">
-                    <div class="flex justify-between items-end px-0.5 mb-1">
-                        <div id="budgetLabel" class="text-xs font-bold text-slate-400 uppercase tracking-tight">
-                            Budsjett: --</div>
-                        <div id="budgetStatusChip"
-                            class="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md">...</div>
-                    </div>
-                    <div
-                        class="w-full h-3 bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-200">
-                        <div id="budgetBar"
-                            class="h-full bg-gradient-to-r from-indigo-500 to-violet-500 w-0 transition-all duration-1000 progress-3d rounded-full">
+            <div class="px-5 pt-4 pb-4">
+                <div class="flex justify-between items-center mb-3">
+                    <div class="flex items-center gap-3">
+                        <div id="headerAvatar" class="w-9 h-9 rounded-full flex items-center justify-center text-lg shadow-sm border-2 border-white" style="background: var(--user-color)">?</div>
+                        <div>
+                            <h2 id="userNameDisplay" class="text-base font-black tracking-tight leading-none text-slate-900">Hei, ...</h2>
+                            <p id="hhNameDisplay" class="text-[10px] font-semibold text-slate-400 mt-0.5">Laster...</p>
                         </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] font-bold text-slate-400 block">Denne måneden</span>
+                        <span id="totalMonth" class="text-2xl font-black tracking-tighter leading-none text-slate-900">0 kr</span>
+                    </div>
+                </div>
+                <div class="space-y-1.5">
+                    <div class="flex justify-between items-center px-0.5">
+                        <div id="budgetLabel" class="text-[10px] font-semibold text-slate-400">Budsjett: --</div>
+                        <div id="budgetStatusChip" class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md">...</div>
+                    </div>
+                    <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                        <div id="budgetBar" class="h-full w-0 transition-all duration-1000 rounded-full budget-bar-ok"></div>
                     </div>
                 </div>
             </div>
         </header>
 
-        <main class="p-4 max-w-md mx-auto pb-48 space-y-6">
+        <main class="p-4 max-w-md mx-auto pb-32 space-y-6">
 
+            <!-- TAB: HJEM -->
             <div id="sectionHjem" class="tab-content active animate-pop">
                 <div class="px-2 mb-3 mt-2">
-                    <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest">Siste Kjøp</h3>
+                    <h3 class="section-title">Siste kjøp</h3>
                 </div>
                 <div id="purchasesList" class="space-y-3"></div>
+                <div id="emptyStateHjem" class="hidden text-center py-12 px-6">
+                    <div class="text-5xl mb-4">🎉</div>
+                    <p class="text-base font-bold text-slate-500 mb-1">Ingen kjøp ennå denne måneden</p>
+                    <p class="text-sm text-slate-400">Trykk <span class="text-indigo-500 font-bold">+</span> for å registrere ditt første kjøp</p>
+                </div>
             </div>
 
+            <!-- TAB: INNSIKT -->
             <div id="sectionInnsikt" class="tab-content animate-pop space-y-6 mt-2">
+
+                <!-- Duellen med VS -->
                 <div>
                     <div class="px-2 mb-3">
-                        <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest">Månedens Duell</h3>
+                        <h3 class="section-title">Månedens duell</h3>
                     </div>
-                    <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-                        <div class="flex justify-between items-end mb-3 px-1">
-                            <div class="flex flex-col items-start gap-1">
-                                <div id="duelAvatar1"
-                                    class="w-8 h-8 rounded-full text-white flex items-center justify-center text-sm font-black shadow-md border-2 border-white">
-                                    ?</div>
-                                <span id="statKName"
-                                    class="font-black text-[10px] uppercase text-slate-500 tracking-widest">Deg</span>
+                    <div class="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm">
+                        <div class="flex justify-between items-center mb-3 px-1">
+                            <div class="flex items-center gap-2">
+                                <div id="duelAvatar1" class="w-10 h-10 rounded-full text-white flex items-center justify-center text-lg font-black shadow-md border-2 border-white">?</div>
+                                <div>
+                                    <span id="statKName" class="font-bold text-sm text-slate-700 block leading-tight">Deg</span>
+                                    <span id="duelWinBadge1" class="hidden text-xs">👑</span>
+                                </div>
                             </div>
-                            <div class="flex flex-col items-end gap-1">
-                                <div id="duelAvatar2"
-                                    class="w-8 h-8 rounded-full text-white flex items-center justify-center text-sm font-black shadow-md border-2 border-white">
-                                    ?</div>
-                                <span id="statHName"
-                                    class="font-black text-[10px] uppercase text-slate-500 tracking-widest">Partner</span>
+                            <div class="vs-badge">VS</div>
+                            <div class="flex items-center gap-2">
+                                <div class="text-right">
+                                    <span id="statHName" class="font-bold text-sm text-slate-700 block leading-tight">Partner</span>
+                                    <span id="duelWinBadge2" class="hidden text-xs">👑</span>
+                                </div>
+                                <div id="duelAvatar2" class="w-10 h-10 rounded-full text-white flex items-center justify-center text-lg font-black shadow-md border-2 border-white">?</div>
                             </div>
                         </div>
 
-                        <div
-                            class="w-full h-10 bg-slate-100 rounded-xl overflow-hidden flex shadow-inner relative border border-slate-200 p-0.5 gap-0.5">
-                            <div id="battleK"
-                                class="h-full bg-indigo-500 transition-all duration-1000 flex items-center relative progress-3d rounded-l-lg">
-                                <span id="battleKAmount"
-                                    class="absolute left-3 text-xs text-white font-black truncate drop-shadow-md">0
-                                    kr</span>
+                        <div class="w-full h-10 bg-slate-100 rounded-xl overflow-hidden flex shadow-inner relative border border-slate-200 p-0.5 gap-0.5">
+                            <div id="battleK" class="h-full bg-indigo-500 transition-all duration-1000 flex items-center relative progress-3d rounded-l-lg">
+                                <span id="battleKAmount" class="absolute left-3 text-xs text-white font-black truncate drop-shadow-md">0 kr</span>
                             </div>
-                            <div id="battleH"
-                                class="h-full bg-rose-500 transition-all duration-1000 flex items-center justify-end flex-1 relative progress-3d rounded-r-lg">
-                                <span id="battleHAmount"
-                                    class="absolute right-3 text-xs text-white font-black truncate drop-shadow-md">0
-                                    kr</span>
+                            <div id="battleH" class="h-full bg-rose-500 transition-all duration-1000 flex items-center justify-end flex-1 relative progress-3d rounded-r-lg">
+                                <span id="battleHAmount" class="absolute right-3 text-xs text-white font-black truncate drop-shadow-md">0 kr</span>
                             </div>
                         </div>
+                        <p id="duelVerdict" class="text-center text-xs font-bold text-slate-400 mt-3 hidden"></p>
                     </div>
                 </div>
 
+                <!-- Daglig oversikt -->
                 <div>
                     <div class="px-2 mb-3">
-                        <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest">Daglig Oversikt</h3>
+                        <h3 class="section-title">Daglig oversikt</h3>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
-                        <div
-                            class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center items-center text-center">
-                            <div class="bg-indigo-50 p-3 rounded-full mb-3 border border-indigo-100">
-                                <i data-lucide="trending-up" class="w-6 h-6 text-indigo-500"></i>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm text-center">
+                            <div class="bg-indigo-50 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2 border border-indigo-100">
+                                <i data-lucide="trending-up" class="w-5 h-5 text-indigo-500"></i>
                             </div>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Brukt per
-                                dag</p>
-                            <p id="avgPerDay" class="text-xl font-black text-slate-900">0 kr</p>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">Brukt per dag</p>
+                            <p id="avgPerDay" class="text-lg font-black text-slate-900">0 kr</p>
                         </div>
-                        <div
-                            class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col justify-center items-center text-center">
-                            <div class="bg-emerald-50 p-3 rounded-full mb-3 border border-emerald-100">
-                                <i data-lucide="calendar" class="w-6 h-6 text-emerald-500"></i>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm text-center">
+                            <div class="bg-emerald-50 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2 border border-emerald-100">
+                                <i data-lucide="calendar" class="w-5 h-5 text-emerald-500"></i>
                             </div>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Gjenstår per
-                                dag</p>
-                            <p id="leftPerDay" class="text-xl font-black text-slate-900">0 kr</p>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">Gjenstår per dag</p>
+                            <p id="leftPerDay" class="text-lg font-black text-slate-900">0 kr</p>
                         </div>
                     </div>
                 </div>
 
+                <!-- Kategorifordeling — barer i stedet for chart -->
                 <div>
                     <div class="px-2 mb-3">
-                        <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest">Kategorifordeling</h3>
+                        <h3 class="section-title">Kategorifordeling</h3>
                     </div>
-                    <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm text-center">
-                        <div class="h-48 relative"><canvas id="categoryChart"></canvas></div>
+                    <div id="categoryBars" class="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm space-y-3">
+                        <p class="text-sm text-slate-400 font-semibold text-center py-4">Ingen data ennå</p>
                     </div>
                 </div>
             </div>
 
+            <!-- TAB: HISTORIKK -->
             <div id="sectionHistorikk" class="tab-content animate-pop mt-2">
                 <div class="px-2 mb-3">
-                    <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest">Tidligere Måneder</h3>
+                    <h3 class="section-title">Tidligere måneder</h3>
                 </div>
                 <div id="historyList" class="space-y-3"></div>
             </div>
 
+            <!-- TAB: HISTORIKK DETALJER -->
             <div id="sectionHistorikkDetaljer" class="tab-content animate-pop mt-2">
                 <div class="flex items-center gap-3 mb-4 px-2">
                     <button onclick="backToHistorikk()"
                         class="bg-white p-2 rounded-full border border-slate-200 shadow-sm active:scale-95 transition-all text-slate-900"><i
                             data-lucide="arrow-left" class="w-6 h-6"></i></button>
-                    <h2 id="historikkDetaljerTitle"
-                        class="text-lg font-black uppercase text-indigo-600 tracking-widest">Måned</h2>
+                    <h2 id="historikkDetaljerTitle" class="text-lg font-black text-indigo-600">Måned</h2>
                 </div>
                 <div id="historikkDetaljerSummary"></div>
                 <div class="px-2 mt-6 mb-3">
-                    <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest">Alle Kjøp</h3>
+                    <h3 class="section-title">Alle kjøp</h3>
                 </div>
                 <div id="historikkDetaljerList" class="space-y-3"></div>
             </div>
 
+            <!-- TAB: INNSTILLINGER (merged husstand + profil) -->
             <div id="sectionInnstillinger" class="tab-content animate-pop space-y-6 mt-2">
-                <div>
-                    <div class="px-2 mb-3">
-                        <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest">Husstandens Detaljer
-                        </h3>
-                    </div>
-                    <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm space-y-5">
-                        <div class="space-y-1">
-                            <label class="text-[10px] font-black uppercase text-slate-500 ml-2">Navn på husstand</label>
-                            <input type="text" id="householdNameInput" placeholder="F.eks Familien Bulut"
-                                class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-lg border border-slate-200 focus:border-indigo-400 transition-colors">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="text-[10px] font-black uppercase text-slate-500 ml-2">Månedlig Budsjett
-                                (kr)</label>
-                            <input type="number" id="budgetInput" placeholder="F.eks 5000"
-                                class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-black text-indigo-600 text-xl border border-slate-200 focus:border-indigo-400 transition-colors">
-                        </div>
-                        <button onclick="updateHouseholdSettings()"
-                            class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-md active:scale-95 transition-all">Lagre
-                            Endringer</button>
-                    </div>
-                </div>
 
+                <!-- Profil -->
                 <div>
                     <div class="px-2 mb-3">
-                        <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest">Kategorier</h3>
+                        <h3 class="section-title">Min profil</h3>
                     </div>
-                    <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm space-y-4">
-                        <p class="text-xs text-slate-400 font-bold mb-2">Klikk på en kategori for å endre navn, eller X
-                            for å slette.</p>
-                        <div id="customCatsList" class="flex flex-wrap gap-2 mb-2"></div>
-                        <button onclick="addCategoryPrompt()"
-                            class="w-full p-4 border-2 border-dashed border-slate-200 bg-slate-50 rounded-2xl text-slate-400 text-sm font-black uppercase hover:bg-slate-100 transition-colors">+
-                            Opprett ny kategori</button>
-                    </div>
-                </div>
+                    <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col items-center">
+                        <div id="profileAvatar" class="w-20 h-20 rounded-full flex items-center justify-center text-4xl shadow-lg mb-2 border-4 border-white transition-colors" style="background: var(--user-color)">?</div>
+                        <button onclick="openEmojiPicker()" class="text-xs font-bold text-indigo-500 mb-4 active:opacity-50">Endre avatar</button>
 
-                <div>
-                    <div class="px-2 mb-3">
-                        <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest">Inviter Partner</h3>
-                    </div>
-                    <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-                        <div
-                            class="flex justify-between items-center bg-slate-900 p-4 rounded-2xl text-white shadow-inner mb-4">
-                            <span id="displayHid" class="font-mono font-black tracking-wider text-lg">...</span>
-                            <button onclick="copyHid()"
-                                class="bg-slate-800 p-2 rounded-xl active:scale-90 transition-transform"><i
-                                    data-lucide="copy" class="w-6 h-6 text-indigo-400"></i></button>
-                        </div>
-                        <p
-                            class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-100 pb-2">
-                            Medlemmer nå</p>
-                        <div id="memberList" class="text-left space-y-2"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="sectionProfil" class="tab-content animate-pop space-y-6 mt-2">
-                <div>
-                    <div class="px-2 mb-3">
-                        <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest">Min Info</h3>
-                    </div>
-                    <div
-                        class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col items-center">
-                        <div id="profileAvatar"
-                            class="w-24 h-24 rounded-[2rem] flex items-center justify-center text-4xl font-black text-white shadow-xl mb-6 transform rotate-3 transition-colors border-4 border-white progress-3d"
-                            style="background: var(--user-color)">?</div>
                         <div class="w-full space-y-1 text-left">
-                            <label class="text-[10px] font-black uppercase text-slate-500 ml-2">Ditt Navn</label>
+                            <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Ditt navn</label>
                             <input type="text" id="profileNameInput"
-                                class="w-full p-4 bg-slate-50 rounded-2xl outline-none font-black text-center text-xl border border-slate-200 focus:border-indigo-400 transition-colors">
+                                class="w-full p-3 bg-slate-50 rounded-xl outline-none font-bold text-center text-lg border border-slate-200 focus:border-indigo-400 transition-colors">
                         </div>
-                        <div class="w-full mt-6 space-y-3">
-                            <label class="text-[10px] font-black uppercase text-slate-500 ml-2">Velg din farge</label>
-                            <div id="colorPickerGrid"
-                                class="grid grid-cols-5 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                            </div>
+
+                        <div class="w-full mt-4 space-y-2">
+                            <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Din farge</label>
+                            <div id="colorPickerGrid" class="grid grid-cols-5 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200"></div>
                         </div>
-                        <div
-                            class="flex justify-between items-center p-4 bg-slate-50 border border-slate-200 rounded-2xl w-full mt-4">
-                            <span class="font-black text-sm uppercase text-slate-600 tracking-widest">Mørk Modus</span>
+
+                        <div class="flex justify-between items-center p-3 bg-slate-50 border border-slate-200 rounded-xl w-full mt-4">
+                            <span class="font-bold text-sm text-slate-600">Mørk modus</span>
                             <button onclick="toggleDarkMode()" id="darkModeBtn"
                                 class="w-14 h-7 bg-slate-300 rounded-full relative transition-all shadow-inner">
-                                <div id="darkModeDot"
-                                    class="w-5 h-5 bg-white rounded-full absolute top-1 left-1 transition-all shadow">
-                                </div>
+                                <div id="darkModeDot" class="w-5 h-5 bg-white rounded-full absolute top-1 left-1 transition-all shadow"></div>
                             </button>
                         </div>
+
                         <button onclick="updateProfile()"
-                            class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-all mt-6">Lagre
-                            Min Profil</button>
+                            class="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-bold text-sm uppercase tracking-wider shadow-md active:scale-95 transition-all mt-4">Lagre profil</button>
                     </div>
                 </div>
 
+                <!-- Emoji picker (hidden by default) -->
+                <div id="emojiPickerSection" class="hidden">
+                    <div class="px-2 mb-3">
+                        <h3 class="section-title">Velg avatar</h3>
+                    </div>
+                    <div class="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm">
+                        <div id="emojiGrid" class="grid grid-cols-6 gap-2 text-2xl text-center"></div>
+                    </div>
+                </div>
+
+                <!-- Kjøps-DNA / Achievements -->
                 <div>
                     <div class="px-2 mb-3">
-                        <h3 class="text-xs font-black uppercase text-slate-400 tracking-widest">Din Kjøps-DNA</h3>
+                        <h3 class="section-title">Kjøps-DNA</h3>
                     </div>
-                    <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm space-y-5">
-                        <div class="flex justify-between items-center border-b border-slate-100 pb-4">
-                            <span class="text-sm font-black text-slate-500 uppercase tracking-widest">Totalt antall
-                                kjøp</span>
-                            <span id="profileTotalPurchases"
-                                class="text-xl font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-xl">0</span>
+                    <div class="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-semibold text-slate-500">Totalt antall kjøp</span>
+                            <span id="profileTotalPurchases" class="text-lg font-black text-indigo-600 bg-indigo-50 px-3 py-0.5 rounded-lg">0</span>
                         </div>
-                        <div class="flex justify-between items-center border-b border-slate-100 pb-4">
-                            <span
-                                class="text-sm font-black text-slate-500 uppercase tracking-widest">Favorittkategori</span>
-                            <span id="profileFavCat"
-                                class="text-sm font-black text-slate-900 bg-slate-100 px-3 py-1 rounded-xl">Ingen</span>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-semibold text-slate-500">Favorittkategori</span>
+                            <span id="profileFavCat" class="text-sm font-bold text-slate-900 bg-slate-100 px-3 py-0.5 rounded-lg">Ingen</span>
                         </div>
                         <div>
-                            <span class="text-sm font-black text-slate-500 uppercase tracking-widest block mb-3">Ditt
-                                mønster: Behov vs Lyst</span>
-                            <div class="flex justify-between text-xs font-black mb-1 px-1">
-                                <span class="text-emerald-500">BEHOV: <span id="profileBehovPct">0%</span></span>
-                                <span class="text-amber-500"><span id="profileLystPct">0%</span> :LYST</span>
+                            <span class="text-sm font-semibold text-slate-500 block mb-2">Behov vs Lyst</span>
+                            <div class="flex justify-between text-xs font-bold mb-1 px-1">
+                                <span class="text-emerald-500">Behov: <span id="profileBehovPct">0%</span></span>
+                                <span class="text-amber-500"><span id="profileLystPct">0%</span> Lyst</span>
                             </div>
-                            <div class="w-full h-4 bg-amber-100 rounded-full overflow-hidden flex shadow-inner">
-                                <div id="profileBehovBar"
-                                    class="h-full bg-emerald-400 transition-all duration-1000 w-1/2 progress-3d"></div>
+                            <div class="w-full h-3 bg-amber-100 rounded-full overflow-hidden flex">
+                                <div id="profileBehovBar" class="h-full bg-emerald-400 transition-all duration-1000 w-1/2 rounded-full"></div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Achievements -->
+                <div>
+                    <div class="px-2 mb-3">
+                        <h3 class="section-title">Prestasjoner</h3>
+                    </div>
+                    <div id="achievementsList" class="grid grid-cols-3 gap-3"></div>
+                </div>
+
+                <!-- Husstand -->
+                <div>
+                    <div class="px-2 mb-3">
+                        <h3 class="section-title">Husstand</h3>
+                    </div>
+                    <div class="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm space-y-4">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Navn på husstand</label>
+                            <input type="text" id="householdNameInput" placeholder="F.eks Familien Bulut"
+                                class="w-full p-3 bg-slate-50 rounded-xl outline-none font-bold text-lg border border-slate-200 focus:border-indigo-400 transition-colors">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Månedlig budsjett (kr)</label>
+                            <input type="number" id="budgetInput" placeholder="F.eks 5000"
+                                class="w-full p-3 bg-slate-50 rounded-xl outline-none font-black text-indigo-600 text-xl border border-slate-200 focus:border-indigo-400 transition-colors">
+                        </div>
+                        <button onclick="updateHouseholdSettings()"
+                            class="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-bold text-sm uppercase tracking-wider shadow-md active:scale-95 transition-all">Lagre endringer</button>
+                    </div>
+                </div>
+
+                <!-- Kategorier -->
+                <div>
+                    <div class="px-2 mb-3">
+                        <h3 class="section-title">Kategorier</h3>
+                    </div>
+                    <div class="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm space-y-3">
+                        <p class="text-xs text-slate-400 font-semibold">Trykk på en kategori for å endre navn.</p>
+                        <div id="customCatsList" class="flex flex-wrap gap-2"></div>
+                        <button onclick="addCategoryPrompt()"
+                            class="w-full p-3 border-2 border-dashed border-slate-200 bg-slate-50 rounded-xl text-slate-400 text-sm font-bold hover:bg-slate-100 transition-colors">+ Ny kategori</button>
+                    </div>
+                </div>
+
+                <!-- Invitasjon -->
+                <div>
+                    <div class="px-2 mb-3">
+                        <h3 class="section-title">Inviter partner</h3>
+                    </div>
+                    <div class="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm">
+                        <div class="flex justify-between items-center bg-slate-900 p-3 rounded-xl text-white shadow-inner mb-3">
+                            <span id="displayHid" class="font-mono font-bold tracking-wider text-base">...</span>
+                            <button onclick="copyHid()" class="bg-slate-800 p-2 rounded-lg active:scale-90 transition-transform"><i data-lucide="copy" class="w-5 h-5 text-indigo-400"></i></button>
+                        </div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">Medlemmer</p>
+                        <div id="memberList" class="text-left space-y-2"></div>
                     </div>
                 </div>
 
                 <button onclick="logout()"
-                    class="w-full py-4 text-rose-500 font-black text-xs uppercase active:opacity-50 transition-opacity">Logg
-                    ut av appen</button>
+                    class="w-full py-4 text-rose-500 font-bold text-xs uppercase active:opacity-50 transition-opacity">Logg ut</button>
             </div>
 
+            <!-- ADD PURCHASE FORM -->
             <div id="sectionAdd" class="tab-content animate-pop mt-2">
-                <div class="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-200 space-y-6 relative">
-                    <div class="flex justify-between items-center border-b border-slate-100 pb-4">
-                        <h2 id="formTitle" class="text-xl font-black text-indigo-600 italic uppercase">Nytt kjøp</h2>
+                <div class="bg-white p-7 rounded-[2.5rem] shadow-xl border border-slate-200 space-y-5 relative">
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                        <h2 id="formTitle" class="text-lg font-black text-indigo-600">Nytt kjøp</h2>
                         <button onclick="closeAddForm()"
                             class="bg-slate-50 p-2 rounded-full active:scale-95 border border-slate-200"><i
-                                data-lucide="x" class="w-6 h-6 text-slate-600"></i></button>
+                                data-lucide="x" class="w-5 h-5 text-slate-500"></i></button>
                     </div>
                     <input type="hidden" id="editId">
-                    <div class="space-y-5">
-                        <div class="flex gap-2 p-1.5 bg-slate-50 rounded-2xl border border-slate-200">
+                    <div class="space-y-4">
+                        <div class="flex gap-2 p-1.5 bg-slate-50 rounded-xl border border-slate-200">
                             <button onclick="setBuyerToggle(true)" id="btnBuyer1"
-                                class="flex-1 py-3 rounded-xl text-sm font-black transition-all uppercase active:scale-95">Deg</button>
+                                class="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all active:scale-95">Deg</button>
                             <button onclick="setBuyerToggle(false)" id="btnBuyer2"
-                                class="flex-1 py-3 rounded-xl text-sm font-black transition-all uppercase active:scale-95">Partner</button>
+                                class="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all active:scale-95">Partner</button>
                         </div>
-                        <div class="space-y-1"><label
-                                class="text-[10px] font-black uppercase text-slate-400 ml-2">Dato</label><input
-                                type="date" id="dateInput"
-                                class="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold text-lg border border-slate-200">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Dato</label>
+                            <input type="date" id="dateInput" class="w-full bg-slate-50 p-3.5 rounded-xl outline-none font-bold text-base border border-slate-200">
                         </div>
                         <input type="text" id="store" placeholder="Butikk (f.eks Meny)"
-                            class="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold text-lg border border-slate-200">
+                            class="w-full bg-slate-50 p-3.5 rounded-xl outline-none font-bold text-base border border-slate-200">
                         <input type="text" id="desc" placeholder="Vare/Beskrivelse"
-                            class="w-full bg-slate-50 p-4 rounded-2xl outline-none font-bold text-lg border border-slate-200">
+                            class="w-full bg-slate-50 p-3.5 rounded-xl outline-none font-bold text-base border border-slate-200">
                         <input type="number" id="price" placeholder="Pris"
-                            class="w-full bg-slate-50 p-4 rounded-2xl font-black text-indigo-600 text-xl outline-none border border-slate-200">
-                        <div class="space-y-1"><label
-                                class="text-[10px] font-black uppercase text-slate-400 ml-2">Kategori</label><select
-                                id="category"
-                                class="w-full bg-slate-50 p-4 rounded-2xl font-bold text-base appearance-none outline-none border border-slate-200"></select>
+                            class="w-full bg-slate-50 p-3.5 rounded-xl font-black text-indigo-600 text-xl outline-none border border-slate-200">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Kategori</label>
+                            <select id="category" class="w-full bg-slate-50 p-3.5 rounded-xl font-bold text-base appearance-none outline-none border border-slate-200"></select>
                         </div>
-                        <div class="flex gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-200"><button
-                                onclick="setType('Behov')" id="btnBehov"
-                                class="flex-1 py-3 rounded-xl text-xs font-black bg-white shadow-sm uppercase text-slate-900 border border-slate-100">Behov</button><button
-                                onclick="setType('Lyst')" id="btnLyst"
-                                class="flex-1 py-3 rounded-xl text-xs font-black text-slate-400 uppercase">Lyst</button>
+                        <div class="flex gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+                            <button onclick="setType('Behov')" id="btnBehov"
+                                class="flex-1 py-2.5 rounded-lg text-xs font-bold bg-white shadow-sm text-slate-900 border border-slate-100">Behov</button>
+                            <button onclick="setType('Lyst')" id="btnLyst"
+                                class="flex-1 py-2.5 rounded-lg text-xs font-bold text-slate-400">Lyst</button>
                         </div>
 
-                        <div class="space-y-1 mt-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                            <label
-                                class="text-xs font-black uppercase text-slate-400 block text-center tracking-widest mb-2">Ranger
-                                kjøpet</label>
-                            <div class="text-center py-1">
-                                <div class="star-rating"><input type="radio" name="rating" id="star5" value="5"><label
-                                        for="star5">★</label><input type="radio" name="rating" id="star4"
-                                        value="4"><label for="star4">★</label><input type="radio" name="rating"
-                                        id="star3" value="3"><label for="star3">★</label><input type="radio"
-                                        name="rating" id="star2" value="2"><label for="star2">★</label><input
-                                        type="radio" name="rating" id="star1" value="1"><label for="star1">★</label>
-                                </div>
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                            <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1.5">Ranger kjøpet</label>
+                            <div class="star-rating">
+                                <input type="radio" name="rating" id="star5" value="5"><label for="star5">★</label>
+                                <input type="radio" name="rating" id="star4" value="4"><label for="star4">★</label>
+                                <input type="radio" name="rating" id="star3" value="3"><label for="star3">★</label>
+                                <input type="radio" name="rating" id="star2" value="2"><label for="star2">★</label>
+                                <input type="radio" name="rating" id="star1" value="1"><label for="star1">★</label>
                             </div>
                         </div>
 
                         <button onclick="savePurchase()" id="btnSave"
-                            class="w-full bg-gradient-to-r from-indigo-600 to-violet-600 text-white py-5 rounded-2xl font-black text-lg shadow-lg active:scale-95 transition-all uppercase tracking-widest mt-4">Lagre
-                            Kjøpet</button>
+                            class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold text-base shadow-lg active:scale-95 transition-all mt-2">Lagre kjøpet</button>
                         <button onclick="deleteCurrentEdit()" id="btnDeleteForm"
-                            class="hidden w-full text-rose-500 py-4 font-black text-xs uppercase border border-rose-100 bg-rose-50 rounded-[1.5rem]">Slett
-                            kjøp</button>
+                            class="hidden w-full text-rose-500 py-3 font-bold text-xs uppercase border border-rose-100 bg-rose-50 rounded-xl">Slett kjøp</button>
                     </div>
                 </div>
             </div>
         </main>
 
+        <!-- FAB -->
         <button onclick="openNewPurchase()" id="fabAdd"
-            class="fixed bottom-24 right-6 w-14 h-14 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/40 z-50 active:scale-90 transition-all border border-indigo-400"><i
+            class="fixed bottom-24 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/30 z-50 active:scale-90 transition-all"><i
                 data-lucide="plus" class="w-7 h-7"></i></button>
 
+        <!-- NAV — 4 tabs -->
         <nav class="fixed bottom-0 left-0 right-0 solid-nav px-2 pt-2 pb-6 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.03)]">
             <div class="flex justify-between items-center max-w-md mx-auto">
                 <button onclick="switchTab('hjem')" id="nav-hjem" class="nav-btn flex-1 flex justify-center">
-                    <div class="nav-inner flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl transition-all"><i
-                            data-lucide="home" class="w-6 h-6"></i><span
-                            class="text-[10px] font-black uppercase tracking-widest">Hjem</span></div>
+                    <div class="nav-inner flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl transition-all"><i data-lucide="home" class="w-5 h-5"></i><span class="text-[10px] font-bold">Hjem</span></div>
                 </button>
                 <button onclick="switchTab('innsikt')" id="nav-innsikt" class="nav-btn flex-1 flex justify-center">
-                    <div class="nav-inner flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl transition-all"><i
-                            data-lucide="pie-chart" class="w-6 h-6"></i><span
-                            class="text-[10px] font-black uppercase tracking-widest">Innsikt</span></div>
+                    <div class="nav-inner flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl transition-all"><i data-lucide="bar-chart-3" class="w-5 h-5"></i><span class="text-[10px] font-bold">Innsikt</span></div>
                 </button>
                 <button onclick="switchTab('historikk')" id="nav-historikk" class="nav-btn flex-1 flex justify-center">
-                    <div class="nav-inner flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl transition-all"><i
-                            data-lucide="history" class="w-6 h-6"></i><span
-                            class="text-[10px] font-black uppercase tracking-widest">Historikk</span></div>
+                    <div class="nav-inner flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl transition-all"><i data-lucide="history" class="w-5 h-5"></i><span class="text-[10px] font-bold">Historikk</span></div>
                 </button>
-                <button onclick="switchTab('innstillinger')" id="nav-innstillinger"
-                    class="nav-btn flex-1 flex justify-center">
-                    <div class="nav-inner flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl transition-all"><i
-                            data-lucide="users" class="w-6 h-6"></i><span
-                            class="text-[10px] font-black uppercase tracking-widest">Husstand</span></div>
-                </button>
-                <button onclick="switchTab('profil')" id="nav-profil" class="nav-btn flex-1 flex justify-center">
-                    <div class="nav-inner flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl transition-all"><i
-                            data-lucide="user" class="w-6 h-6"></i><span
-                            class="text-[10px] font-black uppercase tracking-widest">Profil</span></div>
+                <button onclick="switchTab('innstillinger')" id="nav-innstillinger" class="nav-btn flex-1 flex justify-center">
+                    <div class="nav-inner flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl transition-all"><i data-lucide="settings" class="w-5 h-5"></i><span class="text-[10px] font-bold">Mer</span></div>
                 </button>
             </div>
         </nav>

@@ -4,6 +4,14 @@
 
 import { state } from './state.js';
 
+const tabTitles = {
+    'hjem': 'Hjem',
+    'innsikt': 'Innsikt',
+    'historikk': 'Historikk',
+    'innstillinger': 'Innstillinger',
+    'add': 'Nytt kjøp'
+};
+
 window.switchTab = (t, preventScroll = false) => {
     if (t !== 'add') state.activeTab = t;
 
@@ -16,12 +24,6 @@ window.switchTab = (t, preventScroll = false) => {
     const navId = t === 'historikkDetaljer' ? 'historikk' : t;
     const navBtn = document.getElementById('nav-' + navId);
     if (navBtn) navBtn.classList.add('nav-active');
-
-    if (t !== 'historikkDetaljer') {
-        const displayTitle = t === 'innstillinger' ? 'Husstand' : t.charAt(0).toUpperCase() + t.slice(1);
-        const titleElement = document.getElementById('pageTitleDisplay');
-        if (titleElement) titleElement.innerText = displayTitle;
-    }
 
     const fab = document.getElementById('fabAdd');
     if (fab) fab.classList.toggle('hidden', t === 'add');

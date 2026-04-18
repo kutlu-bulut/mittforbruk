@@ -1,5 +1,6 @@
 // ============================================================
 // Authentication — login, logout, auth state listener
+// Bruker callback i stedet for direkte import av app.js (unngår sirkulær avhengighet)
 // ============================================================
 
 import { doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -8,9 +9,12 @@ import { db, auth, provider } from './firebase.js';
 import { state } from './state.js';
 import { showToast } from './ui.js';
 import { renderColorPicker, applyUserPreferences } from './preferences.js';
-import { startApp } from './app.js';
 
-export function initAuth() {
+let _onReady = null;
+
+export function initAuth(onReady) {
+    _onReady = onReady;
+
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             onSnapshot(doc(db, "users", user.uid), (d) => {
@@ -23,7 +27,7 @@ export function initAuth() {
                         applyUserPreferences();
 
                         if (state.currentHid) {
-                            startApp();
+                            if (_onReady) _onReady();
                         } else {
                             document.getElementById('loginScreen').classList.add('hidden');
                             document.getElementById('appContent').classList.add('hidden');

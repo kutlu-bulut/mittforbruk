@@ -1,8 +1,8 @@
 // ============================================================
-// Innsikt — duellen, daglig oversikt, kategori-chart
+// Innsikt — duellen med VS, daglig oversikt, kategori-barer
 // ============================================================
 
-import { state, profileColors } from './state.js';
+import { state, profileColors, categoryEmojis } from './state.js';
 
 export function updateDuellen(buyerSums) {
     let m1Name = state.currentUserData.name || "Meg";
@@ -18,13 +18,27 @@ export function updateDuellen(buyerSums) {
         if (name !== m1Name) m2Sum += buyerSums[name];
     });
 
-    document.getElementById('duelAvatar1').innerText = m1Name.charAt(0).toUpperCase();
+    // Avatars
+    const emoji1 = state.currentUserData.avatar || m1Name.charAt(0).toUpperCase();
+    const otherMember = state.householdMembers.find(m => m.name !== m1Name);
+    const emoji2 = otherMember?.avatar || m2Name.charAt(0).toUpperCase();
+
+    document.getElementById('duelAvatar1').innerText = emoji1;
     document.getElementById('duelAvatar1').style.backgroundColor = m1Color;
     document.getElementById('statKName').innerText = m1Name;
 
-    document.getElementById('duelAvatar2').innerText = m2Name.charAt(0).toUpperCase();
+    document.getElementById('duelAvatar2').innerText = emoji2;
     document.getElementById('duelAvatar2').style.backgroundColor = m2Color;
     document.getElementById('statHName').innerText = m2Name;
+
+    // Winner badges
+    const badge1 = document.getElementById('duelWinBadge1');
+    const badge2 = document.getElementById('duelWinBadge2');
+    const verdict = document.getElementById('duelVerdict');
+
+    badge1.classList.add('hidden');
+    badge2.classList.add('hidden');
+    verdict.classList.add('hidden');
 
     let totalDuel = m1Sum + m2Sum;
 
@@ -44,6 +58,19 @@ export function updateDuellen(buyerSums) {
 
         document.getElementById('battleKAmount').innerText = `${m1Sum.toLocaleString()} kr`;
         document.getElementById('battleHAmount').innerText = `${m2Sum.toLocaleString()} kr`;
+
+        // Show winner (lowest spender wins)
+        const diff = Math.abs(m1Sum - m2Sum);
+        if (m1Sum < m2Sum) {
+            badge1.classList.remove('hidden');
+            verdict.textContent = `${m1Name} leder med ${diff.toLocaleString()} kr`;
+        } else if (m2Sum < m1Sum) {
+            badge2.classList.remove('hidden');
+            verdict.textContent = `${m2Name} leder med ${diff.toLocaleString()} kr`;
+        } else {
+            verdict.textContent = "Helt likt! 🤝";
+        }
+        verdict.classList.remove('hidden');
     }
 }
 
@@ -61,29 +88,63 @@ export function updateDailyInsights(currentTotal) {
     if (diff > 0 && daysLeft > 0) {
         const leftAvg = Math.round(diff / daysLeft);
         document.getElementById('leftPerDay').innerText = `${leftAvg.toLocaleString()} kr`;
-        document.getElementById('leftPerDay').className = "text-xl font-black text-emerald-600";
+        document.getElementById('leftPerDay').className = "text-lg font-black text-emerald-600";
     } else {
         document.getElementById('leftPerDay').innerText = "0 kr";
-        document.getElementById('leftPerDay').className = "text-xl font-black text-rose-500";
+        document.getElementById('leftPerDay').className = "text-lg font-black text-rose-500";
     }
 }
 
-export function updateChart(catSums) {
-    const ctx = document.getElementById('categoryChart');
-    if (state.chart) state.chart.destroy();
+export function updateCategoryBars(catSums) {
+    const container = document.getElementById('categoryBars');
+    container.innerHTML = '';
 
-    if (Object.keys(catSums).length === 0) {
-        state.chart = new Chart(ctx, {
-            type: 'doughnut',
-            data: { labels: ['Ingen kjøp'], datasets: [{ data: [1], backgroundColor: ['#f8fafc'], borderWidth: 0 }] },
-            options: { cutout: '80%', maintainAspectRatio: false, plugins: { tooltip: { enabled: false }, legend: { display: false } } }
-        });
+    const entries = Object.entries(catSums).sort((a, b) => b[1] - a[1]);
+    if (entries.length === 0) {
+        container.innerHTML = '<p class="text-sm text-slate-400 font-semibold text-center py-4">Ingen data ennå</p>';
         return;
     }
 
-    state.chart = new Chart(ctx, {
-        type: 'doughnut',
-        data: { labels: Object.keys(catSums), datasets: [{ data: Object.values(catSums), backgroundColor: profileColors, borderWidth: 0 }] },
-        options: { cutout: '75%', maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { family: 'Inter', weight: 'bold', size: 12 } } } } }
+    const maxVal = entries[0][1];
+
+    entries.forEach(([name, amount], i) => {
+        const emojiStr = categoryEmojis[name] ? categoryEmojis[name] + " " : "";
+        const pct = maxVal > 0 ? (amount / maxVal) * 100 : 0;
+        const color = profileColors[i % profileColors.length];
+
+        const row = document.createElement('div');
+        row.className = "space-y-1";
+
+        const labelRow = document.createElement('div');
+        labelRow.className = "flex justify-between items-center";
+
+        const label = document.createElement('span');
+        label.className = "text-sm font-semibold text-slate-700";
+        label.textContent = emojiStr + name;
+
+        const value = document.createElement('span');
+        value.className = "text-sm font-bold text-slate-900";
+        value.textContent = amount.toLocaleString() + " kr";
+
+        labelRow.appendChild(label);
+        labelRow.appendChild(value);
+
+        const track = document.createElement('div');
+        track.className = "cat-bar-track";
+
+        const fill = document.createElement('div');
+        fill.className = "cat-bar-fill";
+        fill.style.backgroundColor = color;
+        fill.style.width = '0%';
+
+        track.appendChild(fill);
+        row.appendChild(labelRow);
+        row.appendChild(track);
+        container.appendChild(row);
+
+        // Animate in
+        requestAnimationFrame(() => {
+            setTimeout(() => { fill.style.width = pct + '%'; }, i * 80);
+        });
     });
 }
