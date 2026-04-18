@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hvor går pengene? v18.24</title>
+    <title>Hvor går pengene? v19.0</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -31,15 +31,18 @@
                     </div>
                     <h1 class="sr-only">Hvor går pengene?</h1>
                     <p class="text-sm text-slate-500 font-semibold leading-relaxed px-2 mt-4">
-                        Hold oversikt over hverdagens ekstrautgifter. Perfekt for å spore de uplanlagte felleskjøpene
-                        som kommer i tillegg til faste regninger og matbudsjett – helt sømløst.
+                        Spor hverdagens ekstrautgifter sammen — enkelt, visuelt, og helt gratis.
                     </p>
                 </div>
-                <button id="loginBtn" onclick="login()"
-                    class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-sm tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
-                    <i data-lucide="log-in" class="w-5 h-5"></i> Start med Google
+                <button id="loginBtn"
+                    class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold text-sm tracking-wide flex items-center justify-center gap-2.5 active:scale-95 transition-all shadow-lg">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                    Fortsett med Google
                 </button>
-                <p class="mt-8 text-[10px] text-slate-300 font-mono uppercase tracking-widest">v18.24</p>
+                <div class="mt-6 flex items-center justify-center gap-2">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    <span class="text-[10px] text-slate-400 font-medium">Ingen registrering nødvendig</span>
+                </div>
             </div>
         </div>
     </div>
@@ -50,7 +53,7 @@
             class="min-h-[100dvh] flex flex-col items-center justify-center p-6 text-center max-w-sm mx-auto animate-pop py-12">
             <h2 class="text-2xl font-black tracking-tighter italic text-slate-900 mb-6">Velkommen!</h2>
             <div class="bg-white p-8 w-full rounded-[2.5rem] shadow-sm border border-slate-200 space-y-6">
-                <button onclick="createHousehold()"
+                <button id="btnCreateHousehold"
                     class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest active:scale-95 transition-all">Opprett
                     ny husstand</button>
                 <div class="relative flex py-2 items-center">
@@ -61,7 +64,7 @@
                 <div class="space-y-3">
                     <input type="text" id="joinCodeInput" placeholder="Lim inn kode her"
                         class="w-full p-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none text-center font-bold text-lg text-slate-900">
-                    <button onclick="joinHousehold()"
+                    <button id="btnJoinHousehold"
                         class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest active:scale-95 transition-all">Bli
                         med i husstand</button>
                 </div>
@@ -74,7 +77,10 @@
 
         <!-- COMPACT HEADER -->
         <header class="bg-white sticky top-0 z-40 border-b border-slate-200 shadow-sm">
-            <div class="px-5 pt-4 pb-4">
+            <div class="flex items-center justify-center py-1.5 border-b border-slate-100">
+                <span class="text-[10px] font-black text-slate-400 tracking-widest uppercase">Hvor går pengene?</span>
+            </div>
+            <div class="px-5 pt-3 pb-3.5">
                 <div class="flex justify-between items-center mb-3">
                     <div class="flex items-center gap-3">
                         <div id="headerAvatar" class="w-9 h-9 rounded-full flex items-center justify-center text-lg shadow-sm border-2 border-white" style="background: var(--user-color)">?</div>
@@ -91,7 +97,7 @@
                 <div class="space-y-1.5">
                     <div class="flex justify-between items-center px-0.5">
                         <div id="budgetLabel" class="text-[10px] font-semibold text-slate-400">Budsjett: --</div>
-                        <div id="budgetStatusChip" class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md">...</div>
+                        <div id="budgetStatusChip" class="text-[10px] font-bold px-2 py-0.5 rounded-md">...</div>
                     </div>
                     <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
                         <div id="budgetBar" class="h-full w-0 transition-all duration-1000 rounded-full budget-bar-ok"></div>
@@ -117,8 +123,6 @@
 
             <!-- TAB: INNSIKT -->
             <div id="sectionInnsikt" class="tab-content animate-pop space-y-6 mt-2">
-
-                <!-- Duellen med VS -->
                 <div>
                     <div class="px-2 mb-3">
                         <h3 class="section-title">Månedens duell</h3>
@@ -141,7 +145,6 @@
                                 <div id="duelAvatar2" class="w-10 h-10 rounded-full text-white flex items-center justify-center text-lg font-black shadow-md border-2 border-white">?</div>
                             </div>
                         </div>
-
                         <div class="w-full h-10 bg-slate-100 rounded-xl overflow-hidden flex shadow-inner relative border border-slate-200 p-0.5 gap-0.5">
                             <div id="battleK" class="h-full bg-indigo-500 transition-all duration-1000 flex items-center relative progress-3d rounded-l-lg">
                                 <span id="battleKAmount" class="absolute left-3 text-xs text-white font-black truncate drop-shadow-md">0 kr</span>
@@ -153,8 +156,6 @@
                         <p id="duelVerdict" class="text-center text-xs font-bold text-slate-400 mt-3 hidden"></p>
                     </div>
                 </div>
-
-                <!-- Daglig oversikt -->
                 <div>
                     <div class="px-2 mb-3">
                         <h3 class="section-title">Daglig oversikt</h3>
@@ -176,8 +177,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Kategorifordeling — barer i stedet for chart -->
                 <div>
                     <div class="px-2 mb-3">
                         <h3 class="section-title">Kategorifordeling</h3>
@@ -199,7 +198,7 @@
             <!-- TAB: HISTORIKK DETALJER -->
             <div id="sectionHistorikkDetaljer" class="tab-content animate-pop mt-2">
                 <div class="flex items-center gap-3 mb-4 px-2">
-                    <button onclick="backToHistorikk()"
+                    <button id="btnBackToHistorikk"
                         class="bg-white p-2 rounded-full border border-slate-200 shadow-sm active:scale-95 transition-all text-slate-900"><i
                             data-lucide="arrow-left" class="w-6 h-6"></i></button>
                     <h2 id="historikkDetaljerTitle" class="text-lg font-black text-indigo-600">Måned</h2>
@@ -211,43 +210,35 @@
                 <div id="historikkDetaljerList" class="space-y-3"></div>
             </div>
 
-            <!-- TAB: INNSTILLINGER (merged husstand + profil) -->
+            <!-- TAB: INNSTILLINGER (merged) -->
             <div id="sectionInnstillinger" class="tab-content animate-pop space-y-6 mt-2">
-
-                <!-- Profil -->
                 <div>
                     <div class="px-2 mb-3">
                         <h3 class="section-title">Min profil</h3>
                     </div>
                     <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col items-center">
                         <div id="profileAvatar" class="w-20 h-20 rounded-full flex items-center justify-center text-4xl shadow-lg mb-2 border-4 border-white transition-colors" style="background: var(--user-color)">?</div>
-                        <button onclick="openEmojiPicker()" class="text-xs font-bold text-indigo-500 mb-4 active:opacity-50">Endre avatar</button>
-
+                        <button id="btnOpenEmojiPicker" class="text-xs font-bold text-indigo-500 mb-4 active:opacity-50">Endre avatar</button>
                         <div class="w-full space-y-1 text-left">
                             <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Ditt navn</label>
                             <input type="text" id="profileNameInput"
                                 class="w-full p-3 bg-slate-50 rounded-xl outline-none font-bold text-center text-lg border border-slate-200 focus:border-indigo-400 transition-colors">
                         </div>
-
                         <div class="w-full mt-4 space-y-2">
                             <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Din farge</label>
                             <div id="colorPickerGrid" class="grid grid-cols-5 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200"></div>
                         </div>
-
                         <div class="flex justify-between items-center p-3 bg-slate-50 border border-slate-200 rounded-xl w-full mt-4">
                             <span class="font-bold text-sm text-slate-600">Mørk modus</span>
-                            <button onclick="toggleDarkMode()" id="darkModeBtn"
+                            <button id="darkModeBtn"
                                 class="w-14 h-7 bg-slate-300 rounded-full relative transition-all shadow-inner">
                                 <div id="darkModeDot" class="w-5 h-5 bg-white rounded-full absolute top-1 left-1 transition-all shadow"></div>
                             </button>
                         </div>
-
-                        <button onclick="updateProfile()"
+                        <button id="btnSaveProfile"
                             class="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-bold text-sm uppercase tracking-wider shadow-md active:scale-95 transition-all mt-4">Lagre profil</button>
                     </div>
                 </div>
-
-                <!-- Emoji picker (hidden by default) -->
                 <div id="emojiPickerSection" class="hidden">
                     <div class="px-2 mb-3">
                         <h3 class="section-title">Velg avatar</h3>
@@ -256,8 +247,6 @@
                         <div id="emojiGrid" class="grid grid-cols-6 gap-2 text-2xl text-center"></div>
                     </div>
                 </div>
-
-                <!-- Kjøps-DNA / Achievements -->
                 <div>
                     <div class="px-2 mb-3">
                         <h3 class="section-title">Kjøps-DNA</h3>
@@ -283,16 +272,12 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Achievements -->
                 <div>
                     <div class="px-2 mb-3">
                         <h3 class="section-title">Prestasjoner</h3>
                     </div>
                     <div id="achievementsList" class="grid grid-cols-3 gap-3"></div>
                 </div>
-
-                <!-- Husstand -->
                 <div>
                     <div class="px-2 mb-3">
                         <h3 class="section-title">Husstand</h3>
@@ -308,12 +293,10 @@
                             <input type="number" id="budgetInput" placeholder="F.eks 5000"
                                 class="w-full p-3 bg-slate-50 rounded-xl outline-none font-black text-indigo-600 text-xl border border-slate-200 focus:border-indigo-400 transition-colors">
                         </div>
-                        <button onclick="updateHouseholdSettings()"
+                        <button id="btnSaveHousehold"
                             class="w-full bg-indigo-600 text-white py-3.5 rounded-xl font-bold text-sm uppercase tracking-wider shadow-md active:scale-95 transition-all">Lagre endringer</button>
                     </div>
                 </div>
-
-                <!-- Kategorier -->
                 <div>
                     <div class="px-2 mb-3">
                         <h3 class="section-title">Kategorier</h3>
@@ -321,12 +304,10 @@
                     <div class="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm space-y-3">
                         <p class="text-xs text-slate-400 font-semibold">Trykk på en kategori for å endre navn.</p>
                         <div id="customCatsList" class="flex flex-wrap gap-2"></div>
-                        <button onclick="addCategoryPrompt()"
+                        <button id="btnAddCategory"
                             class="w-full p-3 border-2 border-dashed border-slate-200 bg-slate-50 rounded-xl text-slate-400 text-sm font-bold hover:bg-slate-100 transition-colors">+ Ny kategori</button>
                     </div>
                 </div>
-
-                <!-- Invitasjon -->
                 <div>
                     <div class="px-2 mb-3">
                         <h3 class="section-title">Inviter partner</h3>
@@ -334,15 +315,16 @@
                     <div class="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm">
                         <div class="flex justify-between items-center bg-slate-900 p-3 rounded-xl text-white shadow-inner mb-3">
                             <span id="displayHid" class="font-mono font-bold tracking-wider text-base">...</span>
-                            <button onclick="copyHid()" class="bg-slate-800 p-2 rounded-lg active:scale-90 transition-transform"><i data-lucide="copy" class="w-5 h-5 text-indigo-400"></i></button>
+                            <button id="btnCopyHid" class="bg-slate-800 p-2 rounded-lg active:scale-90 transition-transform"><i data-lucide="copy" class="w-5 h-5 text-indigo-400"></i></button>
                         </div>
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-2">Medlemmer</p>
                         <div id="memberList" class="text-left space-y-2"></div>
                     </div>
                 </div>
-
-                <button onclick="logout()"
-                    class="w-full py-4 text-rose-500 font-bold text-xs uppercase active:opacity-50 transition-opacity">Logg ut</button>
+                <div class="text-center pt-2 pb-4">
+                    <button id="btnLogout" class="text-rose-500 font-bold text-xs uppercase active:opacity-50 transition-opacity">Logg ut</button>
+                    <p class="text-[10px] text-slate-300 font-mono mt-3">v19.0</p>
+                </div>
             </div>
 
             <!-- ADD PURCHASE FORM -->
@@ -350,39 +332,29 @@
                 <div class="bg-white p-7 rounded-[2.5rem] shadow-xl border border-slate-200 space-y-5 relative">
                     <div class="flex justify-between items-center border-b border-slate-100 pb-3">
                         <h2 id="formTitle" class="text-lg font-black text-indigo-600">Nytt kjøp</h2>
-                        <button onclick="closeAddForm()"
-                            class="bg-slate-50 p-2 rounded-full active:scale-95 border border-slate-200"><i
-                                data-lucide="x" class="w-5 h-5 text-slate-500"></i></button>
+                        <button id="btnCloseAdd" class="bg-slate-50 p-2 rounded-full active:scale-95 border border-slate-200"><i data-lucide="x" class="w-5 h-5 text-slate-500"></i></button>
                     </div>
                     <input type="hidden" id="editId">
                     <div class="space-y-4">
                         <div class="flex gap-2 p-1.5 bg-slate-50 rounded-xl border border-slate-200">
-                            <button onclick="setBuyerToggle(true)" id="btnBuyer1"
-                                class="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all active:scale-95">Deg</button>
-                            <button onclick="setBuyerToggle(false)" id="btnBuyer2"
-                                class="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all active:scale-95">Partner</button>
+                            <button id="btnBuyer1" class="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all active:scale-95">Deg</button>
+                            <button id="btnBuyer2" class="flex-1 py-2.5 rounded-lg text-sm font-bold transition-all active:scale-95">Partner</button>
                         </div>
                         <div class="space-y-1">
                             <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Dato</label>
                             <input type="date" id="dateInput" class="w-full bg-slate-50 p-3.5 rounded-xl outline-none font-bold text-base border border-slate-200">
                         </div>
-                        <input type="text" id="store" placeholder="Butikk (f.eks Meny)"
-                            class="w-full bg-slate-50 p-3.5 rounded-xl outline-none font-bold text-base border border-slate-200">
-                        <input type="text" id="desc" placeholder="Vare/Beskrivelse"
-                            class="w-full bg-slate-50 p-3.5 rounded-xl outline-none font-bold text-base border border-slate-200">
-                        <input type="number" id="price" placeholder="Pris"
-                            class="w-full bg-slate-50 p-3.5 rounded-xl font-black text-indigo-600 text-xl outline-none border border-slate-200">
+                        <input type="text" id="store" placeholder="Butikk (f.eks Meny)" class="w-full bg-slate-50 p-3.5 rounded-xl outline-none font-bold text-base border border-slate-200">
+                        <input type="text" id="desc" placeholder="Vare/Beskrivelse" class="w-full bg-slate-50 p-3.5 rounded-xl outline-none font-bold text-base border border-slate-200">
+                        <input type="number" id="price" placeholder="Pris" class="w-full bg-slate-50 p-3.5 rounded-xl font-black text-indigo-600 text-xl outline-none border border-slate-200">
                         <div class="space-y-1">
                             <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Kategori</label>
                             <select id="category" class="w-full bg-slate-50 p-3.5 rounded-xl font-bold text-base appearance-none outline-none border border-slate-200"></select>
                         </div>
                         <div class="flex gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
-                            <button onclick="setType('Behov')" id="btnBehov"
-                                class="flex-1 py-2.5 rounded-lg text-xs font-bold bg-white shadow-sm text-slate-900 border border-slate-100">Behov</button>
-                            <button onclick="setType('Lyst')" id="btnLyst"
-                                class="flex-1 py-2.5 rounded-lg text-xs font-bold text-slate-400">Lyst</button>
+                            <button id="btnBehov" class="flex-1 py-2.5 rounded-lg text-xs font-bold bg-white shadow-sm text-slate-900 border border-slate-100">Behov</button>
+                            <button id="btnLyst" class="flex-1 py-2.5 rounded-lg text-xs font-bold text-slate-400">Lyst</button>
                         </div>
-
                         <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
                             <label class="text-[10px] font-bold uppercase text-slate-400 block mb-1.5">Ranger kjøpet</label>
                             <div class="star-rating">
@@ -393,34 +365,29 @@
                                 <input type="radio" name="rating" id="star1" value="1"><label for="star1">★</label>
                             </div>
                         </div>
-
-                        <button onclick="savePurchase()" id="btnSave"
-                            class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold text-base shadow-lg active:scale-95 transition-all mt-2">Lagre kjøpet</button>
-                        <button onclick="deleteCurrentEdit()" id="btnDeleteForm"
-                            class="hidden w-full text-rose-500 py-3 font-bold text-xs uppercase border border-rose-100 bg-rose-50 rounded-xl">Slett kjøp</button>
+                        <button id="btnSave" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold text-base shadow-lg active:scale-95 transition-all mt-2">Lagre kjøpet</button>
+                        <button id="btnDeleteForm" class="hidden w-full text-rose-500 py-3 font-bold text-xs uppercase border border-rose-100 bg-rose-50 rounded-xl">Slett kjøp</button>
                     </div>
                 </div>
             </div>
         </main>
 
         <!-- FAB -->
-        <button onclick="openNewPurchase()" id="fabAdd"
-            class="fixed bottom-24 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/30 z-50 active:scale-90 transition-all"><i
-                data-lucide="plus" class="w-7 h-7"></i></button>
+        <button id="fabAdd" class="fixed bottom-24 right-6 w-14 h-14 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/30 z-50 active:scale-90 transition-all"><i data-lucide="plus" class="w-7 h-7"></i></button>
 
         <!-- NAV — 4 tabs -->
         <nav class="fixed bottom-0 left-0 right-0 solid-nav px-2 pt-2 pb-6 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.03)]">
             <div class="flex justify-between items-center max-w-md mx-auto">
-                <button onclick="switchTab('hjem')" id="nav-hjem" class="nav-btn flex-1 flex justify-center">
+                <button id="nav-hjem" class="nav-btn flex-1 flex justify-center">
                     <div class="nav-inner flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl transition-all"><i data-lucide="home" class="w-5 h-5"></i><span class="text-[10px] font-bold">Hjem</span></div>
                 </button>
-                <button onclick="switchTab('innsikt')" id="nav-innsikt" class="nav-btn flex-1 flex justify-center">
+                <button id="nav-innsikt" class="nav-btn flex-1 flex justify-center">
                     <div class="nav-inner flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl transition-all"><i data-lucide="bar-chart-3" class="w-5 h-5"></i><span class="text-[10px] font-bold">Innsikt</span></div>
                 </button>
-                <button onclick="switchTab('historikk')" id="nav-historikk" class="nav-btn flex-1 flex justify-center">
+                <button id="nav-historikk" class="nav-btn flex-1 flex justify-center">
                     <div class="nav-inner flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl transition-all"><i data-lucide="history" class="w-5 h-5"></i><span class="text-[10px] font-bold">Historikk</span></div>
                 </button>
-                <button onclick="switchTab('innstillinger')" id="nav-innstillinger" class="nav-btn flex-1 flex justify-center">
+                <button id="nav-innstillinger" class="nav-btn flex-1 flex justify-center">
                     <div class="nav-inner flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl transition-all"><i data-lucide="settings" class="w-5 h-5"></i><span class="text-[10px] font-bold">Mer</span></div>
                 </button>
             </div>

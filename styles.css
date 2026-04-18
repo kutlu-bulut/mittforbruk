@@ -359,3 +359,8 @@ body.dark-mode {
 .dark-mode .modal-card h3 { color: #f1f5f9; }
 .dark-mode .modal-card input { background-color: #0f172a; border-color: #334155; color: #f1f5f9; }
 .dark-mode .modal-card button#modalCancel { background-color: #334155; color: #e2e8f0; }
+
+/* --- Header brand bar --- */
+.dark-mode header .border-slate-100 {
+    border-color: #1e293b;
+}
