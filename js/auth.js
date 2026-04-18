@@ -17,11 +17,14 @@ export function initAuth(onReady) {
 
     onAuthStateChanged(auth, async (user) => {
         if (user) {
+            console.log("Auth: user logged in", user.uid);
             onSnapshot(doc(db, "users", user.uid), (d) => {
                 try {
+                    console.log("Auth: user doc exists?", d.exists());
                     if (d.exists()) {
                         state.currentUserData = d.data() || {};
                         state.currentHid = state.currentUserData.hid || null;
+                        console.log("Auth: hid =", state.currentHid);
 
                         renderColorPicker();
                         applyUserPreferences();
@@ -34,6 +37,7 @@ export function initAuth(onReady) {
                             document.getElementById('onboardingScreen').classList.remove('hidden');
                         }
                     } else {
+                        console.log("Auth: creating new user doc");
                         const safeName = user.displayName ? user.displayName.split(' ')[0] : 'Bruker';
                         setDoc(doc(db, "users", user.uid), {
                             name: safeName,
@@ -43,7 +47,9 @@ export function initAuth(onReady) {
                             hid: null
                         });
                     }
-                } catch (error) { console.error("Data error:", error); }
+                } catch (error) { console.error("Auth data error:", error); }
+            }, (error) => {
+                console.error("Auth: Firestore listener error:", error);
             });
         }
     });
