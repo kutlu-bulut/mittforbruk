@@ -1,0 +1,29 @@
+// ============================================================
+// Navigasjon — tab-switching og FAB
+// ============================================================
+
+import { state } from './state.js';
+
+window.switchTab = (t, preventScroll = false) => {
+    if (t !== 'add') state.activeTab = t;
+
+    document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('nav-active'));
+
+    const targetSection = document.getElementById('section' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (targetSection) targetSection.classList.add('active');
+
+    const navId = t === 'historikkDetaljer' ? 'historikk' : t;
+    const navBtn = document.getElementById('nav-' + navId);
+    if (navBtn) navBtn.classList.add('nav-active');
+
+    if (t !== 'historikkDetaljer') {
+        const displayTitle = t === 'innstillinger' ? 'Husstand' : t.charAt(0).toUpperCase() + t.slice(1);
+        const titleElement = document.getElementById('pageTitleDisplay');
+        if (titleElement) titleElement.innerText = displayTitle;
+    }
+
+    const fab = document.getElementById('fabAdd');
+    if (fab) fab.classList.toggle('hidden', t === 'add');
+    if (!preventScroll) window.scrollTo(0, 0);
+};
