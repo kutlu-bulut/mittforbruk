@@ -6,6 +6,7 @@ import { collection, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstat
 import { db } from './firebase.js';
 import { state } from './state.js';
 import { showToast, showModal } from './ui.js';
+import { ensureStoreExists } from './stores.js';
 
 window.openNewPurchase = () => { window.cancelEdit(); window.switchTab('add'); };
 window.closeAddForm = () => { window.cancelEdit(); window.switchTab(state.activeTab); };
@@ -52,6 +53,7 @@ window.savePurchase = async () => {
     try {
         if (id) await updateDoc(doc(db, "households", state.currentHid, "purchases", id), obj);
         else await addDoc(collection(db, "households", state.currentHid, "purchases"), obj);
+        await ensureStoreExists(s);
         showToast(id ? "Kjøp oppdatert!" : "Kjøp lagret!");
         window.closeAddForm();
     } catch (err) {
