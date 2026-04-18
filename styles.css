@@ -37,11 +37,6 @@ body.dark-mode {
     border-color: #334155;
 }
 
-.dark-mode .solid-nav {
-    background-color: #1e293b;
-    border-color: #334155;
-}
-
 .dark-mode .text-slate-900 {
     color: #f1f5f9;
 }
@@ -87,8 +82,9 @@ body.dark-mode {
 }
 
 .nav-bar {
-    background-color: #4f46e5;
+    background-color: #4f46e5 !important;
     height: 72px;
+    border-color: #4f46e5 !important;
 }
 
 .nav-btn {
@@ -106,7 +102,8 @@ body.dark-mode {
 }
 
 .dark-mode .nav-bar {
-    background-color: #3730a3;
+    background-color: #3730a3 !important;
+    border-color: #3730a3 !important;
 }
 
 .dark-mode .nav-btn {
