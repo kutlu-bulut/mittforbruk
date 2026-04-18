@@ -86,31 +86,40 @@ body.dark-mode {
     height: 72px;
 }
 
+.nav-bar {
+    background-color: #4f46e5;
+    height: 72px;
+}
+
 .nav-btn {
-    color: #94a3b8;
+    color: rgba(255, 255, 255, 0.5);
     transition: all 0.2s ease;
 }
 
 .nav-active {
-    color: #4f46e5 !important;
+    color: #ffffff !important;
 }
 
 .nav-active .nav-inner {
-    background-color: #eef2ff;
-    color: #4f46e5;
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+}
+
+.dark-mode .nav-bar {
+    background-color: #3730a3;
 }
 
 .dark-mode .nav-btn {
-    color: #64748b;
+    color: rgba(255, 255, 255, 0.4);
 }
 
 .dark-mode .nav-active {
-    color: #818cf8 !important;
+    color: #ffffff !important;
 }
 
 .dark-mode .nav-active .nav-inner {
-    background-color: #312e81;
-    color: #818cf8;
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
 }
 
 /* --- Tabs & Animation --- */
