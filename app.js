@@ -6,7 +6,7 @@ import { collection, addDoc, query, orderBy, onSnapshot, setDoc, doc, getDoc, wh
 import { db } from './js/firebase.js';
 import { state, achievementDefs } from './js/state.js';
 import { renderPurchaseCard } from './js/cards.js';
-import { updateDuellen, updateDailyInsights, updateCategoryBars } from './js/insights.js';
+import { updateDuellen, updateDailyInsights, updateCategoryBars, updateStoreBars, updateProfileStoreBars } from './js/insights.js';
 import { updateHistory } from './js/history.js';
 import { renderCategories } from './js/household.js';
 import { initStoresListener, initAutocomplete } from './js/stores.js';
@@ -152,10 +152,10 @@ export function startApp() {
         const list = document.getElementById('purchasesList');
         const emptyState = document.getElementById('emptyStateHjem');
         list.innerHTML = '';
-        let total = 0, buyerSums = {}, catSums = {}, all = [];
+        let total = 0, buyerSums = {}, catSums = {}, storeSums = {}, all = [];
         let currentMonthCount = 0;
 
-        let myTotalLifetimePurchases = 0, myLyst = 0, myBehov = 0, myCatCounts = {}, myRatedCount = 0;
+        let myTotalLifetimePurchases = 0, myLyst = 0, myBehov = 0, myCatCounts = {}, myStoreSums = {}, myRatedCount = 0;
         const now = new Date();
         const safeUserName = state.currentUserData.name || 'Meg';
 
@@ -171,6 +171,8 @@ export function startApp() {
                 const c = p.category || 'Annet';
                 myCatCounts[c] = (myCatCounts[c] || 0) + 1;
                 if (p.rating && p.rating > 0) myRatedCount++;
+                const sName = p.store || 'Ukjent';
+                myStoreSums[sName] = (myStoreSums[sName] || 0) + (p.price || 0);
             }
 
             if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
@@ -181,6 +183,8 @@ export function startApp() {
 
                 buyerSums[bName] = (buyerSums[bName] || 0) + (p.price || 0);
                 catSums[cName] = (catSums[cName] || 0) + (p.price || 0);
+                const sName = p.store || 'Ukjent';
+                storeSums[sName] = (storeSums[sName] || 0) + (p.price || 0);
 
                 const card = renderPurchaseCard({ ...p, id }, () => {
                     window.editMode(id, p.store, p.desc, p.price, p.category, p.type, p.buyer, p.rating, p.createdAt);
@@ -203,6 +207,14 @@ export function startApp() {
             if (myCatCounts[cat] > maxCatCount) { maxCatCount = myCatCounts[cat]; favCat = cat; }
         }
         document.getElementById('profileFavCat').innerText = favCat;
+
+        // Favorite store
+        let favStore = "Ingen";
+        let maxStoreAmount = 0;
+        for (let store in myStoreSums) {
+            if (myStoreSums[store] > maxStoreAmount) { maxStoreAmount = myStoreSums[store]; favStore = store; }
+        }
+        document.getElementById('profileFavStore').innerText = favStore;
 
         let totalBL = myLyst + myBehov;
         let behovPct = totalBL > 0 ? Math.round((myBehov / totalBL) * 100) : 0;
@@ -231,6 +243,8 @@ export function startApp() {
         updateDailyInsights(total);
         updateHistory(all);
         updateCategoryBars(catSums);
+        updateStoreBars(storeSums);
+        updateProfileStoreBars(myStoreSums);
     });
 
     // Categories

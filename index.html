@@ -186,6 +186,14 @@
                         <p class="text-sm text-slate-400 font-semibold text-center py-4">Ingen data ennå</p>
                     </div>
                 </div>
+                <div>
+                    <div class="px-2 mb-3">
+                        <h3 class="section-title">Butikkfordeling</h3>
+                    </div>
+                    <div id="storeBars" class="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm space-y-3">
+                        <p class="text-sm text-slate-400 font-semibold text-center py-4">Ingen data ennå</p>
+                    </div>
+                </div>
             </div>
 
             <!-- TAB: HISTORIKK -->
@@ -253,6 +261,10 @@
                             <span class="text-sm font-semibold text-slate-500">Favorittkategori</span>
                             <span id="profileFavCat" class="text-sm font-bold text-slate-900 bg-slate-100 px-3 py-0.5 rounded-lg">Ingen</span>
                         </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-semibold text-slate-500">Favorittbutikk</span>
+                            <span id="profileFavStore" class="text-sm font-bold text-slate-900 bg-slate-100 px-3 py-0.5 rounded-lg">Ingen</span>
+                        </div>
                         <div>
                             <span class="text-sm font-semibold text-slate-500 block mb-2">Behov vs Lyst</span>
                             <div class="flex justify-between text-xs font-bold mb-1 px-1">
@@ -262,6 +274,10 @@
                             <div class="w-full h-3 bg-amber-100 rounded-full overflow-hidden flex">
                                 <div id="profileBehovBar" class="h-full bg-emerald-400 transition-all duration-1000 w-1/2 rounded-full"></div>
                             </div>
+                        </div>
+                        <div>
+                            <span class="text-sm font-semibold text-slate-500 block mb-2">Mine butikker</span>
+                            <div id="profileStoreBars" class="space-y-2"></div>
                         </div>
                     </div>
                 </div>
