@@ -148,3 +148,74 @@ export function updateCategoryBars(catSums) {
         });
     });
 }
+
+// Shared bar renderer — brukes av både butikk og profil-barer
+function renderBars(container, entries, colors) {
+    container.innerHTML = '';
+
+    if (entries.length === 0) {
+        container.innerHTML = '<p class="text-sm text-slate-400 font-semibold text-center py-4">Ingen data ennå</p>';
+        return;
+    }
+
+    const maxVal = entries[0][1];
+
+    entries.forEach(([name, amount], i) => {
+        const pct = maxVal > 0 ? (amount / maxVal) * 100 : 0;
+        const color = colors[i % colors.length];
+
+        const row = document.createElement('div');
+        row.className = "space-y-1";
+
+        const labelRow = document.createElement('div');
+        labelRow.className = "flex justify-between items-center";
+
+        const label = document.createElement('span');
+        label.className = "text-sm font-semibold text-slate-700";
+        label.textContent = name;
+
+        const value = document.createElement('span');
+        value.className = "text-sm font-bold text-slate-900";
+        value.textContent = amount.toLocaleString() + " kr";
+
+        labelRow.appendChild(label);
+        labelRow.appendChild(value);
+
+        const track = document.createElement('div');
+        track.className = "cat-bar-track";
+
+        const fill = document.createElement('div');
+        fill.className = "cat-bar-fill";
+        fill.style.backgroundColor = color;
+        fill.style.width = '0%';
+
+        track.appendChild(fill);
+        row.appendChild(labelRow);
+        row.appendChild(track);
+        container.appendChild(row);
+
+        requestAnimationFrame(() => {
+            setTimeout(() => { fill.style.width = pct + '%'; }, i * 80);
+        });
+    });
+}
+
+// Butikkfordeling — alle brukere, denne måneden
+export function updateStoreBars(storeSums) {
+    const container = document.getElementById('storeBars');
+    if (!container) return;
+
+    const storeColors = ["#f97316", "#06b6d4", "#8b5cf6", "#f43f5e", "#10b981", "#f59e0b", "#6366f1", "#ec4899", "#64748b", "#84cc16"];
+    const entries = Object.entries(storeSums).sort((a, b) => b[1] - a[1]);
+    renderBars(container, entries, storeColors);
+}
+
+// Personlig butikkfordeling — kun mine kjøp, alle måneder
+export function updateProfileStoreBars(myStoreSums) {
+    const container = document.getElementById('profileStoreBars');
+    if (!container) return;
+
+    const storeColors = ["#f97316", "#06b6d4", "#8b5cf6", "#f43f5e", "#10b981", "#f59e0b", "#6366f1", "#ec4899"];
+    const entries = Object.entries(myStoreSums).sort((a, b) => b[1] - a[1]).slice(0, 5); // Topp 5
+    renderBars(container, entries, storeColors);
+}
