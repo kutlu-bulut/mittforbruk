@@ -2,7 +2,7 @@
 // Butikker — autocomplete, auto-lagring, administrering
 // ============================================================
 
-import { collection, addDoc, query, orderBy, onSnapshot, updateDoc, deleteDoc, doc, getDocs, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from './firebase.js';
 import { state } from './state.js';
 import { escapeHtml, showToast, showModal } from './ui.js';
@@ -15,11 +15,12 @@ let knownStores = []; // { id, name }
 export function initStoresListener() {
     if (!state.currentHid) return;
 
-    onSnapshot(query(collection(db, "households", state.currentHid, "stores"), orderBy("name")), (snap) => {
+    onSnapshot(collection(db, "households", state.currentHid, "stores"), (snap) => {
         knownStores = [];
         snap.forEach(d => {
             knownStores.push({ id: d.id, name: d.data().name || '' });
         });
+        knownStores.sort((a, b) => a.name.localeCompare(b.name));
     });
 }
 
