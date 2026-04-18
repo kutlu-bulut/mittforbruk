@@ -19,7 +19,6 @@ import './js/household.js';
 import './js/stores.js';
 
 import { initAuth } from './js/auth.js';
-import { bindAll } from './js/bindings.js';
 
 // ============================================================
 // Achievements renderer
@@ -250,6 +249,5 @@ if ('serviceWorker' in navigator) {
 }
 
 lucide.createIcons();
-bindAll();
 initAuth(startApp);
 window.switchTab('hjem');
