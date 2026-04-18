@@ -32,24 +32,6 @@ export function renderColorPicker() {
     });
 }
 
-export function renderEmojiPicker() {
-    const grid = document.getElementById('emojiGrid');
-    if (!grid) return;
-    grid.innerHTML = '';
-    const currentEmoji = state.currentUserData.avatar || '';
-
-    avatarEmojis.forEach(emoji => {
-        const btn = document.createElement('div');
-        btn.className = `emoji-option ${currentEmoji === emoji ? 'selected' : ''}`;
-        btn.textContent = emoji;
-        btn.onclick = async () => {
-            await updateDoc(doc(db, "users", auth.currentUser.uid), { avatar: emoji });
-            showToast("Avatar oppdatert!");
-        };
-        grid.appendChild(btn);
-    });
-}
-
 function getAvatarDisplay() {
     const avatar = state.currentUserData.avatar;
     if (avatar) return avatar;
@@ -83,9 +65,6 @@ export function applyUserPreferences() {
     // Header avatar
     const headerAvatar = document.getElementById('headerAvatar');
     if (headerAvatar) headerAvatar.innerText = avatarDisplay;
-
-    // Render emoji picker
-    renderEmojiPicker();
 }
 
 window.toggleDarkMode = async () => {
@@ -99,11 +78,48 @@ window.updateProfile = async () => {
 };
 
 window.openEmojiPicker = () => {
-    const section = document.getElementById('emojiPickerSection');
-    if (section) {
-        section.classList.toggle('hidden');
-        if (!section.classList.contains('hidden')) {
-            section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
+    const existing = document.getElementById('emojiModal');
+    if (existing) existing.remove();
+
+    const currentEmoji = state.currentUserData.avatar || '';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'emojiModal';
+    overlay.className = 'modal-overlay';
+
+    const grid = avatarEmojis.map(emoji => {
+        const selected = currentEmoji === emoji ? 'selected' : '';
+        return `<div class="emoji-option ${selected}" data-emoji="${emoji}">${emoji}</div>`;
+    }).join('');
+
+    overlay.innerHTML = `
+        <div class="modal-card animate-pop">
+            <h3 class="text-lg font-black text-slate-900 mb-4 text-center">Velg avatar</h3>
+            <div class="grid grid-cols-6 gap-2 mb-4">${grid}</div>
+            <button id="emojiModalClose" class="w-full py-3 rounded-2xl font-bold text-sm uppercase tracking-wider bg-slate-100 text-slate-600 active:scale-95 transition-all">Lukk</button>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('modal-visible'));
+
+    // Handle emoji clicks
+    overlay.querySelectorAll('.emoji-option').forEach(opt => {
+        opt.addEventListener('click', async () => {
+            const emoji = opt.dataset.emoji;
+            await updateDoc(doc(db, "users", auth.currentUser.uid), { avatar: emoji });
+            showToast("Avatar oppdatert!");
+            closeEmojiModal();
+        });
+    });
+
+    document.getElementById('emojiModalClose').onclick = closeEmojiModal;
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeEmojiModal();
+    });
+
+    function closeEmojiModal() {
+        overlay.classList.remove('modal-visible');
+        setTimeout(() => overlay.remove(), 200);
     }
 };
