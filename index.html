@@ -302,8 +302,17 @@
                 </div>
                 <div>
                     <div class="px-2 mb-3">
-                        <h3 class="section-title">Inviter partner</h3>
+                        <h3 class="section-title">Butikker</h3>
                     </div>
+                    <div class="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm">
+                        <p class="text-xs text-slate-400 font-semibold mb-3">Butikker lagres automatisk når du registrerer kjøp.</p>
+                        <button id="btnManageStores" onclick="openStoreManager()"
+                            class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 active:scale-95 transition-all flex items-center justify-center gap-2">
+                            <i data-lucide="store" class="w-4 h-4"></i> Administrer butikker
+                        </button>
+                    </div>
+                </div>
+                <div>
                     <div class="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm">
                         <div class="flex justify-between items-center bg-slate-900 p-3 rounded-xl text-white shadow-inner mb-3">
                             <span id="displayHid" class="font-mono font-bold tracking-wider text-base">...</span>
@@ -336,7 +345,10 @@
                             <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Dato</label>
                             <input type="date" id="dateInput" class="w-full bg-slate-50 p-3.5 rounded-xl outline-none font-bold text-base border border-slate-200">
                         </div>
-                        <input type="text" id="store" placeholder="Butikk (f.eks Meny)" class="w-full bg-slate-50 p-3.5 rounded-xl outline-none font-bold text-base border border-slate-200">
+                        <div class="relative">
+                            <input type="text" id="store" placeholder="Butikk (f.eks Meny)" autocomplete="off" class="w-full bg-slate-50 p-3.5 rounded-xl outline-none font-bold text-base border border-slate-200">
+                            <div id="storeAutocomplete" class="store-autocomplete hidden"></div>
+                        </div>
                         <input type="text" id="desc" placeholder="Vare/Beskrivelse" class="w-full bg-slate-50 p-3.5 rounded-xl outline-none font-bold text-base border border-slate-200">
                         <input type="number" id="price" placeholder="Pris" class="w-full bg-slate-50 p-3.5 rounded-xl font-black text-indigo-600 text-xl outline-none border border-slate-200">
                         <div class="space-y-1">

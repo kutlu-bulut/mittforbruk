@@ -9,14 +9,17 @@ import { renderPurchaseCard } from './js/cards.js';
 import { updateDuellen, updateDailyInsights, updateCategoryBars } from './js/insights.js';
 import { updateHistory } from './js/history.js';
 import { renderCategories } from './js/household.js';
+import { initStoresListener, initAutocomplete } from './js/stores.js';
 
 // Side-effect imports (registrerer window-funksjoner)
 import './js/navigation.js';
 import './js/purchases.js';
 import './js/preferences.js';
 import './js/household.js';
+import './js/stores.js';
 
 import { initAuth } from './js/auth.js';
+import { bindAll } from './js/bindings.js';
 
 // ============================================================
 // Achievements renderer
@@ -72,6 +75,10 @@ export function startApp() {
     document.getElementById('appContent').classList.remove('hidden');
 
     document.getElementById('displayHid').innerText = state.currentHid;
+
+    // Init stores
+    initStoresListener();
+    initAutocomplete();
 
     const safeUserName = state.currentUserData.name || 'Meg';
     document.getElementById('userNameDisplay').innerText = "Hei, " + safeUserName + "!";
@@ -243,5 +250,6 @@ if ('serviceWorker' in navigator) {
 }
 
 lucide.createIcons();
+bindAll();
 initAuth(startApp);
 window.switchTab('hjem');

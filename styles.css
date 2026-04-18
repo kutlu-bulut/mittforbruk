@@ -370,3 +370,41 @@ body.dark-mode {
 .dark-mode header .border-slate-100 {
     border-color: #1e293b;
 }
+
+/* --- Store Autocomplete --- */
+.store-autocomplete {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-top: none;
+    border-radius: 0 0 0.75rem 0.75rem;
+    max-height: 180px;
+    overflow-y: auto;
+    z-index: 20;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.store-autocomplete-item {
+    padding: 10px 14px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.store-autocomplete-item:hover,
+.store-autocomplete-item:active {
+    background: #f1f5f9;
+}
+
+.dark-mode .store-autocomplete {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.dark-mode .store-autocomplete-item:hover {
+    background: #0f172a;
+}
