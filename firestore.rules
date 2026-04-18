@@ -1,0 +1,79 @@
+rules_version = '2';
+
+// ============================================================
+// Firestore Security Rules for "Hvor går pengene?"
+// ============================================================
+// Deploy med: firebase deploy --only firestore:rules
+// Eller lim inn direkte i Firebase Console > Firestore > Rules
+// ============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Hjelpefunksjoner ---
+
+    // Sjekk at innlogget bruker tilhører en gitt husstand
+    function isHouseholdMember(hid) {
+      return request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.hid == hid;
+    }
+
+    // Sjekk at brukeren er innlogget
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // --- Bruker-dokument ---
+    // En bruker kan kun lese og skrive sitt eget dokument
+    match /users/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // --- Les andre brukere i samme husstand ---
+    // Nødvendig for å vise medlemslisten og "duellen"
+    match /users/{userId} {
+      allow read: if isSignedIn()
+        && resource.data.hid != null
+        && resource.data.hid != ""
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.hid == resource.data.hid;
+    }
+
+    // --- Husstand-dokument ---
+    match /households/{hid} {
+      // Kun medlemmer kan lese husstanden
+      allow read: if isHouseholdMember(hid);
+
+      // Opprettelse: hvem som helst som er innlogget kan opprette
+      // (de setter sin egen hid i users-dokumentet i samme operasjon)
+      allow create: if isSignedIn();
+
+      // Oppdatering: kun medlemmer
+      allow update: if isHouseholdMember(hid);
+
+      // Sletting er ikke tillatt fra klienten
+      allow delete: if false;
+
+      // --- Kjøp (purchases) ---
+      match /purchases/{purchaseId} {
+        allow read, create, update, delete: if isHouseholdMember(hid);
+      }
+
+      // --- Innstillinger (settings) ---
+      match /settings/{settingId} {
+        allow read, create, update: if isHouseholdMember(hid);
+        allow delete: if false;
+      }
+
+      // --- Kategorier (categories) ---
+      match /categories/{catId} {
+        allow read, create, update, delete: if isHouseholdMember(hid);
+      }
+    }
+
+    // --- Blokker alt annet ---
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
