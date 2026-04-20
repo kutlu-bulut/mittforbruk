@@ -2,7 +2,7 @@
 // Butikker — autocomplete, auto-lagring, administrering
 // ============================================================
 
-import { collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc, query, where, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from './firebase.js';
 import { state } from './state.js';
 import { escapeHtml, showToast, showModal } from './ui.js';
@@ -142,9 +142,18 @@ window.openStoreManager = () => {
                 const current = btn.dataset.name;
                 const newName = await showModal("Endre butikknavn", { inputValue: current, confirmText: 'Lagre' });
                 if (newName && newName.trim() && newName.trim() !== current) {
-                    await updateDoc(doc(db, "households", state.currentHid, "stores", id), { name: newName.trim() });
+                    const trimmed = newName.trim();
+                    await updateDoc(doc(db, "households", state.currentHid, "stores", id), { name: trimmed });
+                    const snap = await getDocs(query(
+                        collection(db, "households", state.currentHid, "purchases"),
+                        where("store", "==", current)
+                    ));
+                    if (!snap.empty) {
+                        const batch = writeBatch(db);
+                        snap.forEach(d => batch.update(d.ref, { store: trimmed }));
+                        await batch.commit();
+                    }
                     showToast("Butikk oppdatert!");
-                    // Re-render after knownStores updates via listener
                     setTimeout(() => render(), 300);
                 }
             });

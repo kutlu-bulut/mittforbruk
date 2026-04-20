@@ -2,7 +2,7 @@
 // Husstand — innstillinger, kategorier, medlemmer
 // ============================================================
 
-import { collection, addDoc, updateDoc, deleteDoc, setDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { collection, addDoc, updateDoc, deleteDoc, setDoc, doc, query, where, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db, auth } from './firebase.js';
 import { state, categoryEmojis } from './state.js';
 import { showToast, showModal } from './ui.js';
@@ -28,7 +28,17 @@ window.addCategoryPrompt = async () => {
 window.editCategoryPrompt = async (id, current) => {
     const n = await showModal("Endre kategorinavn", { inputValue: current, confirmText: 'Lagre' });
     if (n && n.trim() && n !== current) {
-        await updateDoc(doc(db, "households", state.currentHid, "categories", id), { name: n.trim() });
+        const trimmed = n.trim();
+        await updateDoc(doc(db, "households", state.currentHid, "categories", id), { name: trimmed });
+        const snap = await getDocs(query(
+            collection(db, "households", state.currentHid, "purchases"),
+            where("category", "==", current)
+        ));
+        if (!snap.empty) {
+            const batch = writeBatch(db);
+            snap.forEach(d => batch.update(d.ref, { category: trimmed }));
+            await batch.commit();
+        }
         showToast("Kategori oppdatert!");
     }
 };
