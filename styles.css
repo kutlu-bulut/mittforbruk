@@ -17,18 +17,16 @@ header .brand-bar {
     padding-top: env(safe-area-inset-top);
 }
 
-/* --- Date Input — normalize width --- */
+/* --- Date Input — normalize width across browsers/iOS --- */
 #dateInput {
     display: block;
-    width: 100%;
+    width: 100% !important;
+    min-width: 0;
     box-sizing: border-box;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
-/* --- Logo — handle white background --- */
-img[src="logo.png"] {
-    display: block;
-    mix-blend-mode: multiply;
-}
 
 /* --- Brand Text --- */
 .brand-text {
