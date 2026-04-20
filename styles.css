@@ -68,6 +68,11 @@ body.dark-mode {
     border-color: #334155;
 }
 
+.dark-mode .bg-indigo-600 {
+    background-color: #3730a3;
+    border-color: #312e81;
+}
+
 .dark-mode .text-slate-600 {
     color: #e2e8f0 !important;
 }

@@ -196,12 +196,12 @@
                         <div id="profileAvatar" class="w-20 h-20 rounded-full flex items-center justify-center text-4xl shadow-lg mb-2 border-4 border-white transition-colors" style="background: var(--user-color)">?</div>
                         <button id="btnOpenEmojiPicker" onclick="openEmojiPicker()" class="text-xs font-bold text-indigo-500 mb-4 active:opacity-50">Endre avatar</button>
                         <div class="w-full space-y-1 text-left">
-                            <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Ditt navn</label>
+                            <label class="text-[10px] font-bold uppercase text-indigo-100 ml-2">Ditt navn</label>
                             <input type="text" id="profileNameInput"
                                 class="w-full p-3 bg-slate-50 rounded-xl outline-none font-bold text-center text-lg border border-slate-200 focus:border-indigo-400 transition-colors">
                         </div>
                         <div class="w-full mt-4 space-y-2">
-                            <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Din farge</label>
+                            <label class="text-[10px] font-bold uppercase text-indigo-100 ml-2">Din farge</label>
                             <div id="colorPickerGrid" class="grid grid-cols-5 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200"></div>
                         </div>
                         <div class="flex justify-between items-center p-3 bg-slate-50 border border-slate-200 rounded-xl w-full mt-4">
@@ -260,12 +260,12 @@
                     </div>
                     <div class="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm space-y-4">
                         <div class="space-y-1">
-                            <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Navn på husstand</label>
+                            <label class="text-[10px] font-bold uppercase text-indigo-100 ml-2">Navn på husstand</label>
                             <input type="text" id="householdNameInput" placeholder="F.eks Familien Bulut"
                                 class="w-full p-3 bg-slate-50 rounded-xl outline-none font-bold text-lg border border-slate-200 focus:border-indigo-400 transition-colors">
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Månedlig budsjett (kr)</label>
+                            <label class="text-[10px] font-bold uppercase text-indigo-100 ml-2">Månedlig budsjett (kr)</label>
                             <input type="number" id="budgetInput" placeholder="F.eks 5000"
                                 class="w-full p-3 bg-slate-50 rounded-xl outline-none font-black text-indigo-600 text-xl border border-slate-200 focus:border-indigo-400 transition-colors">
                         </div>
@@ -314,9 +314,9 @@
 
             <!-- ADD PURCHASE FORM -->
             <div id="sectionAdd" class="tab-content animate-pop mt-2">
-                <div class="bg-indigo-50 p-7 rounded-[2.5rem] shadow-xl border border-slate-200 space-y-5 relative">
-                    <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-                        <h2 id="formTitle" class="text-lg font-black text-indigo-600">Nytt kjøp</h2>
+                <div class="bg-indigo-600 p-7 rounded-[2.5rem] shadow-xl border border-indigo-700 space-y-5 relative">
+                    <div class="flex justify-between items-center border-b border-indigo-500 pb-3">
+                        <h2 id="formTitle" class="text-lg font-black text-white">Nytt kjøp</h2>
                         <button id="btnCloseAdd" onclick="closeAddForm()" class="bg-slate-50 p-2 rounded-full active:scale-95 border border-slate-200"><i data-lucide="x" class="w-5 h-5 text-slate-500"></i></button>
                     </div>
                     <input type="hidden" id="editId">
@@ -325,26 +325,26 @@
                             <!-- Dynamisk — fylles av JS basert på antall medlemmer -->
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Dato</label>
-                            <input type="date" id="dateInput" class="max-w-xs bg-slate-50 p-3.5 rounded-xl outline-none font-bold text-base border border-slate-200">
+                            <label class="text-[10px] font-bold uppercase text-indigo-100 ml-2">Dato</label>
+                            <input type="date" id="dateInput" class="w-full bg-slate-50 p-3.5 rounded-xl outline-none font-bold text-base border border-slate-200">
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Butikk</label>
+                            <label class="text-[10px] font-bold uppercase text-indigo-100 ml-2">Butikk</label>
                             <div class="relative">
                                 <input type="text" id="store" placeholder="Butikk" autocomplete="off" class="w-full bg-slate-50 p-3.5 rounded-xl outline-none font-bold text-base border border-slate-200">
                                 <div id="storeAutocomplete" class="store-autocomplete hidden"></div>
                             </div>
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Vare</label>
+                            <label class="text-[10px] font-bold uppercase text-indigo-100 ml-2">Vare</label>
                             <input type="text" id="desc" placeholder="Vare" class="w-full bg-slate-50 p-3.5 rounded-xl outline-none font-bold text-base border border-slate-200">
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Pris</label>
+                            <label class="text-[10px] font-bold uppercase text-indigo-100 ml-2">Pris</label>
                             <input type="number" id="price" placeholder="Pris" class="w-full bg-slate-50 p-3.5 rounded-xl font-black text-indigo-600 outline-none border border-slate-200">
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Kategori</label>
+                            <label class="text-[10px] font-bold uppercase text-indigo-100 ml-2">Kategori</label>
                             <select id="category" class="w-full bg-slate-50 p-3.5 rounded-xl font-bold text-base appearance-none outline-none border border-slate-200"></select>
                         </div>
                         <div class="flex gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
