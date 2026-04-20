@@ -21,20 +21,10 @@ export function renderPurchaseCard(p, onClick) {
     const leftCol = document.createElement('div');
     leftCol.className = "flex flex-col";
 
-    const nameRow = document.createElement('div');
-    nameRow.className = "flex items-center gap-2";
-
     const storeName = document.createElement('h3');
     storeName.className = "font-black text-sm uppercase text-slate-900";
     storeName.textContent = p.store || 'Butikk';
-
-    const dateChip = document.createElement('span');
-    dateChip.className = "text-[10px] font-black text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100";
-    dateChip.textContent = dateStr;
-
-    nameRow.appendChild(storeName);
-    nameRow.appendChild(dateChip);
-    leftCol.appendChild(nameRow);
+    leftCol.appendChild(storeName);
 
     if (p.desc) {
         const descEl = document.createElement('p');
@@ -43,12 +33,22 @@ export function renderPurchaseCard(p, onClick) {
         leftCol.appendChild(descEl);
     }
 
+    const rightCol = document.createElement('div');
+    rightCol.className = "flex flex-col items-end gap-0.5 shrink-0 ml-3";
+
+    const dateChip = document.createElement('span');
+    dateChip.className = "text-[10px] font-black text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100";
+    dateChip.textContent = dateStr;
+
     const priceEl = document.createElement('p');
     priceEl.className = "font-black text-lg text-slate-900";
     priceEl.textContent = (p.price || 0).toLocaleString() + " kr";
 
+    rightCol.appendChild(dateChip);
+    rightCol.appendChild(priceEl);
+
     topRow.appendChild(leftCol);
-    topRow.appendChild(priceEl);
+    topRow.appendChild(rightCol);
     card.appendChild(topRow);
 
     const tagsRow = document.createElement('div');
