@@ -17,6 +17,19 @@ header .brand-bar {
     padding-top: env(safe-area-inset-top);
 }
 
+/* --- Date Input — normalize width --- */
+#dateInput {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* --- Logo — handle white background --- */
+img[src="logo.png"] {
+    display: block;
+    mix-blend-mode: multiply;
+}
+
 /* --- Brand Text --- */
 .brand-text {
     font-family: 'Fredoka', sans-serif;
