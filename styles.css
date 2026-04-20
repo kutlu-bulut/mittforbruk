@@ -12,6 +12,11 @@ body {
     background-color: #f1f5f9;
 }
 
+/* --- iOS safe area --- */
+header {
+    padding-top: env(safe-area-inset-top);
+}
+
 /* --- Brand Text --- */
 .brand-text {
     font-family: 'Fredoka', sans-serif;
@@ -91,8 +96,8 @@ body.dark-mode {
 
 .nav-bar {
     background-color: #4f46e5 !important;
-    height: 72px;
     border-color: #4f46e5 !important;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
 }
 
 .nav-btn {
