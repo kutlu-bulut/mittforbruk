@@ -11,6 +11,8 @@ import { ensureStoreExists } from './stores.js';
 window.openNewPurchase = () => { window.cancelEdit(); window.switchTab('add'); };
 window.closeAddForm = () => { window.cancelEdit(); window.switchTab(state.activeTab); };
 
+let saving = false;
+
 window.editMode = (id, store, desc, price, cat, type, buyer, rating, time) => {
     window.switchTab('add');
     document.getElementById('editId').value = id;
@@ -27,6 +29,7 @@ window.editMode = (id, store, desc, price, cat, type, buyer, rating, time) => {
 };
 
 window.savePurchase = async () => {
+    if (saving) return;
     const id = document.getElementById('editId').value;
     const dInput = document.getElementById('dateInput').value;
     const s = document.getElementById('store').value.trim();
@@ -36,6 +39,10 @@ window.savePurchase = async () => {
 
     if (!s || isNaN(p) || !dInput) {
         showToast("Fyll inn minst Butikk, Pris og Dato!", 'error');
+        return;
+    }
+    if (p < 0) {
+        showToast("Pris kan ikke være negativ!", 'error');
         return;
     }
 
@@ -50,6 +57,7 @@ window.savePurchase = async () => {
         rating: parseInt(rate)
     };
 
+    saving = true;
     try {
         if (id) await updateDoc(doc(db, "households", state.currentHid, "purchases", id), obj);
         else await addDoc(collection(db, "households", state.currentHid, "purchases"), obj);
@@ -58,6 +66,8 @@ window.savePurchase = async () => {
         window.closeAddForm();
     } catch (err) {
         showToast("Kunne ikke lagre: " + err.message, 'error');
+    } finally {
+        saving = false;
     }
 };
 

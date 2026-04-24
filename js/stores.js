@@ -21,6 +21,8 @@ export function initStoresListener() {
             knownStores.push({ id: d.id, name: d.data().name || '' });
         });
         knownStores.sort((a, b) => a.name.localeCompare(b.name));
+    }, (err) => {
+        console.error("Stores listener error:", err);
     });
 }
 

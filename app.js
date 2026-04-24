@@ -10,6 +10,7 @@ import { updateDuellen, updateDailyInsights, updateCategoryBars, updateStoreBars
 import { updateHistory } from './js/history.js';
 import { renderCategories } from './js/household.js';
 import { initStoresListener, initAutocomplete } from './js/stores.js';
+import { showToast } from './js/ui.js';
 
 // Side-effect imports (registrerer window-funksjoner)
 import './js/navigation.js';
@@ -104,6 +105,9 @@ export function startApp() {
             document.getElementById('hhNameDisplay').innerText = d.data().name || 'Min husstand';
             document.getElementById('householdNameInput').value = d.data().name || '';
         }
+    }, (err) => {
+        console.error("Household listener error:", err);
+        showToast("Kunne ikke laste husstand – prøv å laste på nytt", 'error');
     });
 
     // Budget
@@ -113,6 +117,9 @@ export function startApp() {
             document.getElementById('budgetInput').value = state.currentBudget;
             document.getElementById('budgetLabel').innerText = "Budsjett: " + state.currentBudget.toLocaleString() + " kr";
         }
+    }, (err) => {
+        console.error("Budget listener error:", err);
+        showToast("Kunne ikke laste budsjett – prøv å laste på nytt", 'error');
     });
 
     // Members
@@ -143,6 +150,9 @@ export function startApp() {
         });
 
         window.renderBuyerSelector();
+    }, (err) => {
+        console.error("Members listener error:", err);
+        showToast("Kunne ikke laste medlemmer – prøv å laste på nytt", 'error');
     });
 
     // --- PURCHASES LISTENER ---
@@ -243,11 +253,17 @@ export function startApp() {
         updateCategoryBars(catSums);
         updateStoreBars(storeSums);
         updateProfileStoreBars(myStoreSums);
+    }, (err) => {
+        console.error("Purchases listener error:", err);
+        showToast("Kunne ikke laste kjøp – prøv å laste på nytt", 'error');
     });
 
     // Categories
     onSnapshot(query(collection(db, "households", state.currentHid, "categories"), orderBy("name")), (snap) => {
         renderCategories(snap);
+    }, (err) => {
+        console.error("Categories listener error:", err);
+        showToast("Kunne ikke laste kategorier – prøv å laste på nytt", 'error');
     });
 }
 
