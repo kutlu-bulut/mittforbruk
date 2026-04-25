@@ -28,6 +28,15 @@ header .brand-bar {
 }
 
 
+/* --- Handleliste --- */
+.handleliste-item-checked {
+    opacity: 0.45;
+}
+
+.dark-mode .handleliste-item-checked {
+    opacity: 0.3;
+}
+
 /* --- Brand Text --- */
 .brand-text {
     font-family: 'Fredoka', sans-serif;

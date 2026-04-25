@@ -74,6 +74,16 @@ service cloud.firestore {
       match /stores/{storeId} {
         allow read, create, update, delete: if isHouseholdMember(hid);
       }
+
+      // --- Handleliste ---
+      match /handleliste/{itemId} {
+        allow read, create, update, delete: if isHouseholdMember(hid);
+      }
+
+      // --- Produktbibliotek (master product list) ---
+      match /produkter/{produktId} {
+        allow read, create, update, delete: if isHouseholdMember(hid);
+      }
     }
 
     // --- Blokker alt annet ---

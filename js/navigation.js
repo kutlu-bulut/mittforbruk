@@ -8,6 +8,7 @@ const tabTitles = {
     'hjem': 'Hjem',
     'innsikt': 'Innsikt',
     'historikk': 'Historikk',
+    'liste': 'Handleliste',
     'innstillinger': 'Innstillinger',
     'add': 'Nytt kjøp'
 };

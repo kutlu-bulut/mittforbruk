@@ -12,7 +12,8 @@ export const state = {
     groupedHistory: {},
     currentOpenMonthKey: null,
     activeTab: 'hjem',
-    chart: null
+    chart: null,
+    masterProducts: []
 };
 
 export const categoryEmojis = {

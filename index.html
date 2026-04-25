@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hvor går pengene? v19.2</title>
+    <title>Hvor går pengene? v19.3</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -308,7 +308,47 @@
                 </div>
                 <div class="text-center pt-2 pb-4">
                     <button id="btnLogout" onclick="logout()" class="text-rose-500 font-bold text-xs uppercase active:opacity-50 transition-opacity">Logg ut</button>
-                    <p class="text-[10px] text-slate-300 font-mono mt-3">v19.2</p>
+                    <p class="text-[10px] text-slate-300 font-mono mt-3">v19.3</p>
+                </div>
+            </div>
+
+            <!-- HANDLELISTE -->
+            <div id="sectionListe" class="tab-content animate-pop">
+                <div class="space-y-3">
+                    <!-- Quick-add -->
+                    <div class="bg-white p-4 rounded-[2rem] border border-slate-200 shadow-sm space-y-3">
+                        <div class="flex gap-2 items-center">
+                            <div class="relative flex-1">
+                                <input type="text" id="handlelisteInput" placeholder="Legg til vare..." autocomplete="off"
+                                    class="w-full bg-slate-50 px-4 py-3 rounded-xl outline-none font-bold text-sm border border-slate-200">
+                                <div id="handlelisteAutocomplete" class="store-autocomplete hidden"></div>
+                            </div>
+                            <div class="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-2">
+                                <button onclick="document.getElementById('handlelisteQty').stepDown()" class="w-6 h-6 flex items-center justify-center text-slate-400 font-black text-lg leading-none active:scale-90 transition-all">−</button>
+                                <input type="number" id="handlelisteQty" value="1" min="1" max="99"
+                                    class="w-8 text-center bg-transparent font-black text-sm text-slate-700 outline-none">
+                                <button onclick="document.getElementById('handlelisteQty').stepUp()" class="w-6 h-6 flex items-center justify-center text-slate-400 font-black text-lg leading-none active:scale-90 transition-all">+</button>
+                            </div>
+                            <button onclick="addHandlelisteItem()" class="bg-indigo-600 text-white px-4 py-3 rounded-xl font-bold text-sm active:scale-95 transition-all shadow-sm">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Empty state -->
+                    <div id="handlelisteEmpty" class="text-center py-12 text-slate-300">
+                        <i data-lucide="shopping-cart" class="w-12 h-12 mx-auto mb-3 opacity-40"></i>
+                        <p class="font-bold text-sm">Handlelisten er tom</p>
+                        <p class="text-xs mt-1">Legg til varer ovenfor</p>
+                    </div>
+
+                    <!-- List -->
+                    <div id="handlelisteList" class="space-y-2"></div>
+
+                    <!-- Clear checked -->
+                    <button id="btnClearChecked" onclick="clearCheckedItems()" class="hidden w-full py-3 rounded-xl font-bold text-xs text-slate-400 border border-slate-200 bg-white active:scale-95 transition-all">
+                        Fjern avkryssede varer
+                    </button>
                 </div>
             </div>
 
@@ -382,6 +422,9 @@
                 </button>
                 <button id="nav-historikk" onclick="switchTab('historikk')" class="nav-btn flex-1 flex justify-center">
                     <div class="nav-inner flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl transition-all"><i data-lucide="history" class="w-5 h-5"></i><span class="text-[10px] font-bold">Historikk</span></div>
+                </button>
+                <button id="nav-liste" onclick="switchTab('liste')" class="nav-btn flex-1 flex justify-center">
+                    <div class="nav-inner flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl transition-all"><i data-lucide="shopping-cart" class="w-5 h-5"></i><span class="text-[10px] font-bold">Liste</span></div>
                 </button>
                 <button id="nav-innstillinger" onclick="switchTab('innstillinger')" class="nav-btn flex-1 flex justify-center">
                     <div class="nav-inner flex flex-col items-center gap-1 px-3 py-1.5 rounded-2xl transition-all"><i data-lucide="settings" class="w-5 h-5"></i><span class="text-[10px] font-bold">Mer</span></div>

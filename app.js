@@ -10,6 +10,7 @@ import { updateDuellen, updateDailyInsights, updateCategoryBars, updateStoreBars
 import { updateHistory } from './js/history.js';
 import { renderCategories } from './js/household.js';
 import { initStoresListener, initAutocomplete } from './js/stores.js';
+import { initHandlelisteListener, initProdukterListener, initHandlelisteAutocomplete } from './js/handleliste.js';
 import { showToast } from './js/ui.js';
 
 // Side-effect imports (registrerer window-funksjoner)
@@ -79,6 +80,11 @@ export function startApp() {
     // Init stores
     initStoresListener();
     initAutocomplete();
+
+    // Init handleliste
+    initHandlelisteListener();
+    initProdukterListener();
+    initHandlelisteAutocomplete();
 
     const safeUserName = state.currentUserData.name || 'Meg';
     document.getElementById('userNameDisplay').innerText = "Hei, " + safeUserName + "!";
