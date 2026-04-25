@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mittforbruk-v1';
+const CACHE_NAME = 'mittforbruk-v2';
 
 self.addEventListener('install', () => {
     self.skipWaiting();
