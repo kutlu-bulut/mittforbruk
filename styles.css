@@ -37,6 +37,10 @@ header .brand-bar {
     opacity: 0.3;
 }
 
+.dark-mode .dark-divider {
+    background-color: #334155;
+}
+
 /* --- Brand Text --- */
 .brand-text {
     font-family: 'Fredoka', sans-serif;
