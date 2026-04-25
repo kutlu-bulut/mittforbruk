@@ -41,6 +41,31 @@ header .brand-bar {
     background-color: #334155;
 }
 
+/* --- Drag & Drop --- */
+.sortable-ghost {
+    opacity: 0.2;
+    background: #e0e7ff !important;
+    border-color: #a5b4fc !important;
+    border-radius: 1rem;
+}
+
+.sortable-chosen {
+    box-shadow: 0 8px 24px rgba(79, 70, 229, 0.18) !important;
+    transform: scale(1.01);
+    z-index: 10;
+    position: relative;
+}
+
+.sortable-drag {
+    opacity: 1 !important;
+}
+
+/* --- Group picker slide-up --- */
+@keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+}
+
 /* --- Brand Text --- */
 .brand-text {
     font-family: 'Fredoka', sans-serif;
