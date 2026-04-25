@@ -10,11 +10,12 @@ import { db } from './firebase.js';
 import { state } from './state.js';
 import { showToast } from './ui.js';
 
-let produkterCache   = [];   // { id, name, count }
-let handlelisteCache = [];   // { id, name, quantity, checked, group, sortOrder, addedBy, addedAt }
+let produkterCache    = [];   // { id, name, count }
+let handlelisteCache  = [];   // { id, name, quantity, checked, group, sortOrder, addedBy, addedAt }
 let sortableInstances = [];
-let suppressRender = false;
+let suppressRender    = false;
 let pendingRenderItems = null;
+let selectedAddGroup  = '';   // group pre-selected in the add form
 
 // ============================================================
 // Listeners
@@ -81,7 +82,12 @@ function renderHandleliste(items) {
     const checked   = sortedItems(items.filter(i => i.checked));
 
     if (emptyState) emptyState.classList.toggle('hidden', items.length > 0);
-    if (unchecked.length === 0 && checked.length === 0) return;
+    if (unchecked.length === 0 && checked.length === 0) {
+        updateGroupPills();
+        return;
+    }
+
+    updateGroupPills();
 
     // ---- Group unchecked items ----
     // Preserve group order by first appearance (respects sortOrder within each group)
@@ -147,6 +153,90 @@ function renderHandleliste(items) {
         list.appendChild(divider);
         checked.forEach(item => list.appendChild(buildItemEl(item)));
     }
+}
+
+// ---- Group pill row in add form ----
+function updateGroupPills() {
+    const row   = document.getElementById('handlelisteGroupRow');
+    const pills = document.getElementById('handlelisteGroupPills');
+    if (!row || !pills) return;
+
+    const groups = [...new Set(
+        handlelisteCache.filter(i => i.group).map(i => i.group)
+    )].sort();
+
+    if (groups.length === 0) {
+        row.classList.add('hidden');
+        selectedAddGroup = '';
+        return;
+    }
+
+    row.classList.remove('hidden');
+    pills.innerHTML = '';
+
+    const dark = document.body.classList.contains('dark-mode');
+
+    // "Ingen gruppe" pill
+    const noneBtn = document.createElement('button');
+    noneBtn.className = selectedAddGroup === ''
+        ? 'hl-group-pill hl-group-pill-active'
+        : 'hl-group-pill hl-group-pill-inactive';
+    noneBtn.textContent = 'Ingen gruppe';
+    noneBtn.onclick = () => { selectedAddGroup = ''; updateGroupPills(); };
+    pills.appendChild(noneBtn);
+
+    // Existing group pills
+    groups.forEach(g => {
+        const btn = document.createElement('button');
+        btn.className = selectedAddGroup === g
+            ? 'hl-group-pill hl-group-pill-active'
+            : 'hl-group-pill hl-group-pill-inactive';
+        btn.textContent = g;
+        btn.onclick = () => {
+            selectedAddGroup = selectedAddGroup === g ? '' : g;
+            updateGroupPills();
+        };
+        pills.appendChild(btn);
+    });
+
+    // "+" new group pill
+    const newBtn = document.createElement('button');
+    newBtn.className = 'hl-group-pill hl-group-pill-new';
+    newBtn.innerHTML = '<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> Ny';
+    newBtn.onclick = () => showNewGroupInput(pills, groups);
+    pills.appendChild(newBtn);
+}
+
+function showNewGroupInput(pills, existingGroups) {
+    // Replace the "+" button with an inline input
+    const last = pills.lastChild;
+    if (last) last.remove();
+
+    const wrap = document.createElement('div');
+    wrap.className = 'flex items-center gap-1';
+
+    const inp = document.createElement('input');
+    inp.placeholder = 'Gruppenavn...';
+    inp.className = 'text-xs font-bold bg-slate-50 border border-slate-200 rounded-full px-3 py-1 outline-none focus:border-indigo-400 w-28 transition-colors';
+    inp.style.minWidth = '0';
+
+    const confirm = document.createElement('button');
+    confirm.className = 'hl-group-pill hl-group-pill-active';
+    confirm.textContent = 'OK';
+
+    const doConfirm = () => {
+        const name = inp.value.trim();
+        if (name) selectedAddGroup = name;
+        updateGroupPills();
+    };
+
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') doConfirm(); if (e.key === 'Escape') updateGroupPills(); });
+    confirm.onclick = doConfirm;
+
+    wrap.appendChild(inp);
+    wrap.appendChild(confirm);
+    pills.appendChild(wrap);
+    inp.focus();
 }
 
 // ---- Group header ----
@@ -513,17 +603,19 @@ window.addHandlelisteItem = async () => {
         return;
     }
 
-    // New item — append after last unchecked
-    const maxOrder = handlelisteCache
-        .filter(i => !i.checked)
-        .reduce((m, i) => Math.max(m, i.sortOrder ?? 0), 0);
+    // New item — append after last item in the target group (or overall)
+    const targetGroup = selectedAddGroup;
+    const itemsInGroup = handlelisteCache.filter(i => !i.checked && (i.group || '') === targetGroup);
+    const maxOrder = itemsInGroup.length
+        ? Math.max(...itemsInGroup.map(i => i.sortOrder ?? 0))
+        : handlelisteCache.filter(i => !i.checked).reduce((m, i) => Math.max(m, i.sortOrder ?? 0), 0);
 
     try {
         await addDoc(collection(db, "households", state.currentHid, "handleliste"), {
             name,
             quantity,
             checked:   false,
-            group:     '',
+            group:     targetGroup,
             sortOrder: maxOrder + 1000,
             addedBy:   state.currentUserData?.name || 'Meg',
             addedAt:   Date.now(),

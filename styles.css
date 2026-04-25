@@ -66,6 +66,55 @@ header .brand-bar {
     to   { transform: translateY(0);    opacity: 1; }
 }
 
+/* --- Add-form group pills --- */
+.hl-group-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 4px 12px;
+    transition: all 0.15s;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.hl-group-pill-active {
+    background-color: #4f46e5;
+    color: #fff;
+}
+
+.hl-group-pill-inactive {
+    background-color: #f1f5f9;
+    color: #64748b;
+}
+
+.hl-group-pill-inactive:active {
+    background-color: #e2e8f0;
+}
+
+.hl-group-pill-new {
+    background-color: transparent;
+    color: #94a3b8;
+    border: 1.5px dashed #cbd5e1;
+}
+
+.hl-group-pill-new:active {
+    color: #4f46e5;
+    border-color: #4f46e5;
+}
+
+.dark-mode .hl-group-pill-inactive {
+    background-color: #334155;
+    color: #94a3b8;
+}
+
+.dark-mode .hl-group-pill-new {
+    border-color: #475569;
+    color: #64748b;
+}
+
 /* --- Brand Text --- */
 .brand-text {
     font-family: 'Fredoka', sans-serif;

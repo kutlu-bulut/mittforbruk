@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hvor går pengene? v19.5</title>
+    <title>Hvor går pengene? v19.6</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -43,7 +43,7 @@
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                 <span class="text-[10px] text-indigo-300 font-medium">Ingen registrering nødvendig</span>
             </div>
-            <p class="text-[10px] text-indigo-400 font-mono mt-8">v19.5</p>
+            <p class="text-[10px] text-indigo-400 font-mono mt-8">v19.6</p>
         </div>
     </div>
 
@@ -310,7 +310,7 @@
                 </div>
                 <div class="text-center pt-2 pb-4">
                     <button id="btnLogout" onclick="logout()" class="text-rose-500 font-bold text-xs uppercase active:opacity-50 transition-opacity">Logg ut</button>
-                    <p class="text-[10px] text-slate-300 font-mono mt-3">v19.5</p>
+                    <p class="text-[10px] text-slate-300 font-mono mt-3">v19.6</p>
                 </div>
             </div>
 
@@ -334,6 +334,10 @@
                             <button onclick="addHandlelisteItem()" class="bg-indigo-600 text-white px-4 py-3 rounded-xl font-bold text-sm active:scale-95 transition-all shadow-sm">
                                 <i data-lucide="plus" class="w-4 h-4"></i>
                             </button>
+                        </div>
+                        <!-- Group selector (shown when groups exist) -->
+                        <div id="handlelisteGroupRow" class="hidden">
+                            <div id="handlelisteGroupPills" class="flex flex-wrap gap-2 items-center"></div>
                         </div>
                     </div>
 
