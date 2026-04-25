@@ -16,6 +16,7 @@ let sortableInstances = [];
 let suppressRender    = false;
 let pendingRenderItems = null;
 let selectedAddGroup  = '';   // group pre-selected in the add form
+let suppressTimer     = null; // for suppressHold cleanup
 
 // ============================================================
 // Listeners
@@ -370,47 +371,82 @@ function buildItemEl(item) {
 
 // ---- Drag end handler ----
 async function handleDragEnd(evt) {
-    // Suppress onSnapshot re-renders briefly to avoid flicker
-    suppressRender = true;
-
-    const draggedId    = evt.item.dataset.id;
-    const srcContainer = evt.from;
+    const draggedId     = evt.item.dataset.id;
+    const srcContainer  = evt.from;
     const destContainer = evt.to;
-    const newGroup     = destContainer.dataset.group ?? '';
+    const newGroup      = destContainer.dataset.group ?? '';
 
+    // --- Optimistic: update local cache from DOM order ---
+    const destIds = [...destContainer.querySelectorAll('[data-id]')].map(el => el.dataset.id);
+    const srcIds  = srcContainer !== destContainer
+        ? [...srcContainer.querySelectorAll('[data-id]')].map(el => el.dataset.id)
+        : [];
+
+    destIds.forEach((id, idx) => {
+        const item = handlelisteCache.find(i => i.id === id);
+        if (!item) return;
+        item.sortOrder = (idx + 1) * 1000;
+        if (id === draggedId && srcContainer !== destContainer) item.group = newGroup;
+    });
+    srcIds.forEach((id, idx) => {
+        const item = handlelisteCache.find(i => i.id === id);
+        if (item) item.sortOrder = (idx + 1) * 1000;
+    });
+
+    // SortableJS already moved the DOM node — suppress snapshot re-renders
+    suppressHold();
+
+    // --- Write to Firestore in background ---
     try {
         const batch = writeBatch(db);
-
-        // Update sortOrder for all items in destination container
-        [...destContainer.querySelectorAll('[data-id]')].forEach((el, idx) => {
-            const id = el.dataset.id;
+        destIds.forEach((id, idx) => {
             const upd = { sortOrder: (idx + 1) * 1000 };
-            if (id === draggedId && srcContainer !== destContainer) {
-                upd.group = newGroup; // item crossed group boundary
-            }
+            if (id === draggedId && srcContainer !== destContainer) upd.group = newGroup;
             batch.update(doc(db, "households", state.currentHid, "handleliste", id), upd);
         });
-
-        // Also reindex source container if it's different
-        if (srcContainer !== destContainer) {
-            [...srcContainer.querySelectorAll('[data-id]')].forEach((el, idx) => {
-                batch.update(doc(db, "households", state.currentHid, "handleliste", el.dataset.id), {
-                    sortOrder: (idx + 1) * 1000,
-                });
+        srcIds.forEach((id, idx) => {
+            batch.update(doc(db, "households", state.currentHid, "handleliste", id), {
+                sortOrder: (idx + 1) * 1000,
             });
-        }
-
+        });
         await batch.commit();
     } catch (err) {
         showToast("Feil ved lagring av rekkefølge: " + err.message, 'error');
-    } finally {
-        setTimeout(() => {
-            suppressRender = false;
-            if (pendingRenderItems) {
-                renderHandleliste(pendingRenderItems);
-                pendingRenderItems = null;
-            }
-        }, 400);
+    }
+}
+
+// ============================================================
+// Optimistic update helpers
+// ============================================================
+
+// Suppress onSnapshot re-renders for a window after a local write.
+// Any snapshot that arrives while suppressed is stored and flushed
+// only if its data differs from what we already rendered locally.
+function suppressHold(ms = 1500) {
+    suppressRender = true;
+    if (suppressTimer) clearTimeout(suppressTimer);
+    suppressTimer = setTimeout(() => {
+        suppressRender = false;
+        suppressTimer  = null;
+        if (pendingRenderItems) {
+            renderHandleliste(pendingRenderItems);
+            pendingRenderItems = null;
+        }
+    }, ms);
+}
+
+// Apply a mutation to handlelisteCache, re-render immediately from
+// local state, then write to Firestore in the background.
+async function optimisticWrite(mutateFn, firestoreFn) {
+    mutateFn();
+    renderHandleliste(handlelisteCache);
+    suppressHold();
+    try {
+        await firestoreFn();
+    } catch (err) {
+        // Let the next snapshot correct any divergence
+        suppressRender = false;
+        showToast("Feil: " + err.message, 'error');
     }
 }
 
@@ -629,26 +665,27 @@ window.addHandlelisteItem = async () => {
     }
 };
 
-window.updateHandlelisteQty = async (id, delta) => {
+window.updateHandlelisteQty = (id, delta) => {
     const item = handlelisteCache.find(i => i.id === id);
     if (!item) return;
     const newQty = Math.max(1, (item.quantity || 1) + delta);
-    try {
-        await updateDoc(doc(db, "households", state.currentHid, "handleliste", id), { quantity: newQty });
-    } catch (err) {
-        showToast("Feil: " + err.message, 'error');
-    }
+    return optimisticWrite(
+        () => { item.quantity = newQty; },
+        () => updateDoc(doc(db, "households", state.currentHid, "handleliste", id), { quantity: newQty })
+    );
 };
 
-window.toggleHandlelisteItem = async (id, checked) => {
-    try {
-        await updateDoc(doc(db, "households", state.currentHid, "handleliste", id), { checked });
-    } catch (err) {
-        showToast("Feil: " + err.message, 'error');
-    }
-};
+window.toggleHandlelisteItem = (id, checked) =>
+    optimisticWrite(
+        () => {
+            const item = handlelisteCache.find(i => i.id === id);
+            if (item) item.checked = checked;
+        },
+        () => updateDoc(doc(db, "households", state.currentHid, "handleliste", id), { checked })
+    );
 
 window.deleteHandlelisteItem = async (id) => {
+    // Delete has no local-cache equivalent — just write and let snapshot update
     try {
         await deleteDoc(doc(db, "households", state.currentHid, "handleliste", id));
     } catch (err) {
@@ -656,13 +693,14 @@ window.deleteHandlelisteItem = async (id) => {
     }
 };
 
-window.setItemGroup = async (id, group) => {
-    try {
-        await updateDoc(doc(db, "households", state.currentHid, "handleliste", id), { group: group || '' });
-    } catch (err) {
-        showToast("Feil: " + err.message, 'error');
-    }
-};
+window.setItemGroup = (id, group) =>
+    optimisticWrite(
+        () => {
+            const item = handlelisteCache.find(i => i.id === id);
+            if (item) item.group = group || '';
+        },
+        () => updateDoc(doc(db, "households", state.currentHid, "handleliste", id), { group: group || '' })
+    );
 
 window.clearCheckedItems = async () => {
     try {
