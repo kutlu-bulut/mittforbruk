@@ -17,6 +17,26 @@ let suppressRender    = false;
 let pendingRenderItems = null;
 let selectedAddGroup  = '';   // group pre-selected in the add form
 let suppressTimer     = null; // for suppressHold cleanup
+let groupOrderMemory  = [];   // stable group insertion order (never reordered by drag)
+
+// ---- Group color palette ----
+const GROUP_COLORS = [
+    { dot: '#818cf8', bg: '#eef2ff', text: '#4338ca', darkBg: '#312e81', darkText: '#a5b4fc' }, // indigo
+    { dot: '#f87171', bg: '#fff1f2', text: '#be123c', darkBg: '#4c0519', darkText: '#fca5a5' }, // rose
+    { dot: '#fbbf24', bg: '#fffbeb', text: '#b45309', darkBg: '#451a03', darkText: '#fcd34d' }, // amber
+    { dot: '#34d399', bg: '#ecfdf5', text: '#065f46', darkBg: '#022c22', darkText: '#6ee7b7' }, // emerald
+    { dot: '#38bdf8', bg: '#f0f9ff', text: '#0369a1', darkBg: '#082f49', darkText: '#7dd3fc' }, // sky
+    { dot: '#c084fc', bg: '#faf5ff', text: '#6d28d9', darkBg: '#2e1065', darkText: '#d8b4fe' }, // violet
+    { dot: '#fb923c', bg: '#fff7ed', text: '#c2410c', darkBg: '#431407', darkText: '#fdba74' }, // orange
+    { dot: '#2dd4bf', bg: '#f0fdfa', text: '#0f766e', darkBg: '#042f2e', darkText: '#5eead4' }, // teal
+];
+
+function getGroupColor(groupName) {
+    if (!groupName) return GROUP_COLORS[0];
+    let h = 0;
+    for (let i = 0; i < groupName.length; i++) h = (h * 31 + groupName.charCodeAt(i)) | 0;
+    return GROUP_COLORS[Math.abs(h) % GROUP_COLORS.length];
+}
 
 // ============================================================
 // Listeners

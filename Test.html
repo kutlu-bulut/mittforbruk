@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Form Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-100 p-4">
+    <div class="max-w-sm mx-auto mt-4">
+        <div class="bg-white p-7 rounded-[2.5rem] shadow-xl border border-slate-200 space-y-5 relative">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h2 class="text-lg font-black text-indigo-600">Nytt kjøp</h2>
+                <button class="bg-slate-50 p-2 rounded-full border border-slate-200">✕</button>
+            </div>
+            <div class="space-y-4">
+                <div class="flex gap-2 p-1.5 bg-slate-50 rounded-xl border border-slate-200">
+                    <button class="flex-1 py-2.5 rounded-lg text-xs font-black text-white" style="background:#e91e8c">Hülya</button>
+                    <button class="flex-1 py-2.5 rounded-lg text-xs font-black text-slate-400">Kutlu</button>
+                </div>
+                <div class="space-y-1 overflow-hidden">
+                    <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Dato</label>
+                    <input type="date" class="w-full bg-slate-50 p-3.5 rounded-xl outline-none font-bold text-base border border-slate-200" value="2026-04-20">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Butikk</label>
+                    <input type="text" placeholder="Butikk" class="w-full bg-slate-50 p-3.5 rounded-xl outline-none font-bold text-base border border-slate-200">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Vare</label>
+                    <input type="text" placeholder="Vare" class="w-full bg-slate-50 p-3.5 rounded-xl outline-none font-bold text-base border border-slate-200">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Pris</label>
+                    <input type="number" placeholder="Pris" class="w-full bg-slate-50 p-3.5 rounded-xl font-black text-indigo-600 outline-none border border-slate-200">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold uppercase text-slate-400 ml-2">Kategori</label>
+                    <select class="w-full bg-slate-50 p-3.5 rounded-xl font-bold text-base appearance-none outline-none border border-slate-200">
+                        <option>🛒 Mat</option><option>👕 Klær</option><option>📦 Annet</option>
+                    </select>
+                </div>
+                <div class="flex gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+                    <button class="flex-1 py-2.5 rounded-lg text-xs font-bold bg-white shadow-sm text-slate-900 border border-slate-100">Behov</button>
+                    <button class="flex-1 py-2.5 rounded-lg text-xs font-bold text-slate-400">Lyst</button>
+                </div>
+                <button class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold text-base shadow-lg mt-2">Lagre kjøpet</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
