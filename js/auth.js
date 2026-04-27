@@ -55,8 +55,10 @@ export function initAuth(onReady) {
                             applyUserPreferences();
 
                             if (state.currentHid) {
+                                localStorage.setItem('mittforbruk_authed', '1');
                                 if (_onReady) _onReady();
                             } else {
+                                localStorage.setItem('mittforbruk_authed', '1');
                                 document.getElementById('loginScreen').classList.add('hidden');
                                 document.getElementById('appContent').classList.add('hidden');
                                 document.getElementById('onboardingScreen').classList.remove('hidden');
@@ -74,6 +76,7 @@ export function initAuth(onReady) {
             }
         } else {
             listenerInitialized = false;
+            localStorage.removeItem('mittforbruk_authed');
             document.documentElement.classList.remove('auth-cached');
             document.getElementById('loginScreen').classList.remove('hidden');
         }
