@@ -5,6 +5,133 @@
 import { state, profileColors, categoryEmojis } from './state.js';
 import { escapeHtml } from './ui.js';
 
+const MONTH_NAMES = ['Januar','Februar','Mars','April','Mai','Juni','Juli','August','September','Oktober','November','Desember'];
+
+let insightsYear  = new Date().getFullYear();
+let insightsMonth = new Date().getMonth();
+
+// ============================================================
+// Public entry point — called from app.js and month nav
+// ============================================================
+export function refreshInsightsView(year, month) {
+    if (year  !== undefined) insightsYear  = year;
+    if (month !== undefined) insightsMonth = month;
+
+    const all = state.allPurchases || [];
+
+    const purchases = all.filter(p => {
+        const d = new Date(p.createdAt);
+        return d.getFullYear() === insightsYear && d.getMonth() === insightsMonth;
+    });
+
+    let total = 0, buyerSums = {}, catSums = {}, storeSums = {}, daySums = {};
+    purchases.forEach(p => {
+        const price = p.price || 0;
+        total += price;
+        const buyer = p.buyer || 'Ukjent';
+        const cat   = p.category || 'Annet';
+        const store = p.store || 'Ukjent';
+        const day   = new Date(p.createdAt).getDate();
+        buyerSums[buyer] = (buyerSums[buyer] || 0) + price;
+        catSums[cat]     = (catSums[cat]     || 0) + price;
+        storeSums[store] = (storeSums[store] || 0) + price;
+        daySums[day]     = (daySums[day]     || 0) + price;
+    });
+
+    renderInsightsMonthNav(all);
+    updateDuellen(buyerSums);
+    updateDailyInsights(total, insightsYear, insightsMonth);
+    updateDailyChart(daySums, insightsYear, insightsMonth);
+    updateCategoryBars(catSums);
+    updateStoreBars(storeSums);
+}
+
+function renderInsightsMonthNav(all) {
+    const el = document.getElementById('insightsMonthNav');
+    if (!el) return;
+
+    const now = new Date();
+    const isCurrentMonth = insightsYear === now.getFullYear() && insightsMonth === now.getMonth();
+
+    let hasPrev = false;
+    if (all.length > 0) {
+        const minTs   = Math.min(...all.map(p => p.createdAt || Infinity));
+        const earliest = new Date(minTs);
+        hasPrev = insightsYear > earliest.getFullYear() ||
+                  (insightsYear === earliest.getFullYear() && insightsMonth > earliest.getMonth());
+    }
+
+    el.innerHTML = `
+        <div class="flex items-center justify-between bg-white rounded-2xl border border-slate-200 shadow-sm px-4 py-3">
+            <button onclick="window.insightsPrevMonth()" class="w-9 h-9 rounded-full flex items-center justify-center transition-colors ${hasPrev ? 'text-slate-600 active:bg-slate-100' : 'text-slate-200 pointer-events-none'}">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <div class="text-center">
+                <p class="text-sm font-black text-slate-900">${MONTH_NAMES[insightsMonth]} ${insightsYear}</p>
+                ${isCurrentMonth ? '<p class="text-[10px] font-semibold text-indigo-500 mt-0.5">Denne måneden</p>' : ''}
+            </div>
+            <button onclick="window.insightsNextMonth()" class="w-9 h-9 rounded-full flex items-center justify-center transition-colors ${!isCurrentMonth ? 'text-slate-600 active:bg-slate-100' : 'text-slate-200 pointer-events-none'}">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+        </div>
+    `;
+}
+
+window.insightsPrevMonth = () => {
+    let m = insightsMonth - 1, y = insightsYear;
+    if (m < 0) { m = 11; y--; }
+    refreshInsightsView(y, m);
+};
+
+window.insightsNextMonth = () => {
+    const now = new Date();
+    let m = insightsMonth + 1, y = insightsYear;
+    if (m > 11) { m = 0; y++; }
+    if (y > now.getFullYear() || (y === now.getFullYear() && m > now.getMonth())) return;
+    refreshInsightsView(y, m);
+};
+
+function updateDailyChart(daySums, year, month) {
+    const el = document.getElementById('dailyChart');
+    if (!el) return;
+
+    const daysInMonth   = new Date(year, month + 1, 0).getDate();
+    const now           = new Date();
+    const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
+    const today         = now.getDate();
+
+    const values = Array.from({ length: daysInMonth }, (_, i) => daySums[i + 1] || 0);
+    const maxVal = Math.max(...values, 1);
+
+    const chartH = 72;
+    const barW   = 7;
+    const gap    = 3;
+    const totalW = daysInMonth * (barW + gap) - gap;
+    const svgH   = chartH + 18;
+
+    const bars = values.map((v, i) => {
+        const day      = i + 1;
+        const h        = v > 0 ? Math.max((v / maxVal) * chartH, 3) : 0;
+        const x        = i * (barW + gap);
+        const y        = chartH - h;
+        const isToday  = isCurrentMonth && day === today;
+        const isFuture = isCurrentMonth && day > today;
+        const fill     = isToday ? '#6366f1' : isFuture ? '#e2e8f0' : v > 0 ? '#a5b4fc' : '#f1f5f9';
+        return `<rect x="${x}" y="${y.toFixed(1)}" width="${barW}" height="${h.toFixed(1) || 0}" rx="2" fill="${fill}"/>`;
+    }).join('');
+
+    const labels = [];
+    for (let i = 0; i < daysInMonth; i++) {
+        const day = i + 1;
+        if (day === 1 || day % 5 === 0 || day === daysInMonth) {
+            const x = i * (barW + gap) + barW / 2;
+            labels.push(`<text x="${x.toFixed(1)}" y="${svgH - 2}" text-anchor="middle" font-size="6.5" fill="#94a3b8" font-family="Inter,sans-serif" font-weight="600">${day}</text>`);
+        }
+    }
+
+    el.innerHTML = `<svg viewBox="0 0 ${totalW} ${svgH}" preserveAspectRatio="none" style="width:100%;height:${svgH}px">${bars}${labels.join('')}</svg>`;
+}
+
 // ============================================================
 // Duell / Ranking — tilpasser seg antall medlemmer
 // ============================================================
@@ -140,24 +267,28 @@ function renderDuelMulti(buyerSums) {
 // ============================================================
 // Daglig oversikt
 // ============================================================
-export function updateDailyInsights(currentTotal) {
-    const now = new Date();
-    const currentDay = now.getDate() || 1;
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+export function updateDailyInsights(currentTotal, year, month) {
+    const now            = new Date();
+    const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
+    const daysInMonth    = new Date(year, month + 1, 0).getDate();
+    const daysElapsed    = isCurrentMonth ? (now.getDate() || 1) : daysInMonth;
 
-    const avg = Math.round(currentTotal / currentDay);
+    const avg = currentTotal > 0 ? Math.round(currentTotal / daysElapsed) : 0;
     document.getElementById('avgPerDay').innerText = `${avg.toLocaleString()} kr`;
 
-    const diff = state.currentBudget - currentTotal;
-    const daysLeft = (daysInMonth - currentDay) + 1;
-
-    if (diff > 0 && daysLeft > 0) {
-        const leftAvg = Math.round(diff / daysLeft);
-        document.getElementById('leftPerDay').innerText = `${leftAvg.toLocaleString()} kr`;
-        document.getElementById('leftPerDay').className = "text-lg font-black text-emerald-600";
+    if (isCurrentMonth) {
+        const diff     = state.currentBudget - currentTotal;
+        const daysLeft = (daysInMonth - now.getDate()) + 1;
+        if (diff > 0 && daysLeft > 0) {
+            document.getElementById('leftPerDay').innerText   = `${Math.round(diff / daysLeft).toLocaleString()} kr`;
+            document.getElementById('leftPerDay').className   = "text-lg font-black text-emerald-600";
+        } else {
+            document.getElementById('leftPerDay').innerText   = "0 kr";
+            document.getElementById('leftPerDay').className   = "text-lg font-black text-rose-500";
+        }
     } else {
-        document.getElementById('leftPerDay').innerText = "0 kr";
-        document.getElementById('leftPerDay').className = "text-lg font-black text-rose-500";
+        document.getElementById('leftPerDay').innerText = "—";
+        document.getElementById('leftPerDay').className = "text-lg font-black text-slate-300";
     }
 }
 

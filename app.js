@@ -6,7 +6,7 @@ import { collection, addDoc, query, orderBy, onSnapshot, setDoc, doc, getDoc, wh
 import { db } from './js/firebase.js';
 import { state, achievementDefs } from './js/state.js';
 import { renderPurchaseCard } from './js/cards.js';
-import { updateDuellen, updateDailyInsights, updateCategoryBars, updateStoreBars, updateProfileStoreBars } from './js/insights.js';
+import { refreshInsightsView, updateProfileStoreBars } from './js/insights.js';
 import { updateHistory } from './js/history.js';
 import { renderCategories } from './js/household.js';
 import { initStoresListener, initAutocomplete } from './js/stores.js';
@@ -178,6 +178,7 @@ export function startApp() {
             const id = dDoc.id;
             const date = new Date(p.createdAt);
             all.push({ ...p, id });
+            state.allPurchases = all;
 
             if (p.buyer === safeUserName) {
                 myTotalLifetimePurchases++;
@@ -253,11 +254,9 @@ export function startApp() {
             ratedCount: myRatedCount
         });
 
-        updateDuellen(buyerSums);
-        updateDailyInsights(total);
+        state.allPurchases = all;
+        refreshInsightsView();
         updateHistory(all);
-        updateCategoryBars(catSums);
-        updateStoreBars(storeSums);
         updateProfileStoreBars(myStoreSums);
     }, (err) => {
         console.error("Purchases listener error:", err);

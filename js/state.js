@@ -13,7 +13,8 @@ export const state = {
     currentOpenMonthKey: null,
     activeTab: 'hjem',
     chart: null,
-    masterProducts: []
+    masterProducts: [],
+    allPurchases: []
 };
 
 export const categoryEmojis = {
