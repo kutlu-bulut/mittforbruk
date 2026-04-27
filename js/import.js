@@ -75,7 +75,9 @@ window.openImportSheet = async () => {
     overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 };
 
-// ---- Step 1: file picker ----
+// ---- Step 1: paste or file upload ----
+// Primary method is paste (works on iOS PWA). File upload is a fallback
+// because iOS PWA blocks <input type="file"> in dynamically created elements.
 
 function renderFilePicker(sheet, dark) {
     sheet.innerHTML = `
@@ -86,27 +88,47 @@ function renderFilePicker(sheet, dark) {
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </button>
             </div>
-            <p class="text-xs ${dark ? 'text-slate-400' : 'text-slate-500'} mb-5">Fane-separert CSV-fil fra nettbanken (DNB-format)</p>
-            <label class="flex flex-col items-center justify-center gap-3 p-10 rounded-2xl border-2 border-dashed ${dark ? 'border-slate-600 bg-slate-900' : 'border-slate-200 bg-slate-50'} cursor-pointer active:opacity-70 transition-opacity">
-                <svg class="w-10 h-10 ${dark ? 'text-slate-500' : 'text-slate-300'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-                <span class="text-sm font-bold ${dark ? 'text-slate-400' : 'text-slate-500'}">Velg fil</span>
-                <span class="text-xs ${dark ? 'text-slate-600' : 'text-slate-400'}">.csv · .txt · .tsv</span>
+            <p class="text-xs ${dark ? 'text-slate-400' : 'text-slate-500'} mb-3">Lim inn innholdet fra CSV-filen (DNB-format)</p>
+
+            <textarea id="_imp_textarea" rows="6" placeholder="Lim inn CSV-innhold her..."
+                class="w-full text-xs font-mono rounded-xl px-3 py-3 border resize-none outline-none focus:border-indigo-400 transition-colors ${dark ? 'bg-slate-900 border-slate-600 text-slate-200 placeholder-slate-600' : 'bg-slate-50 border-slate-200 text-slate-700 placeholder-slate-300'}"></textarea>
+
+            <button id="_imp_paste_go" class="w-full mt-3 py-3 rounded-xl text-sm font-bold bg-indigo-600 text-white active:opacity-80">
+                Fortsett
+            </button>
+
+            <div class="flex items-center gap-3 my-4">
+                <div class="h-px flex-1 ${dark ? 'bg-slate-700' : 'bg-slate-200'}"></div>
+                <span class="text-xs font-bold ${dark ? 'text-slate-600' : 'text-slate-400'}">eller velg fil</span>
+                <div class="h-px flex-1 ${dark ? 'bg-slate-700' : 'bg-slate-200'}"></div>
+            </div>
+
+            <label class="flex items-center justify-center gap-2 py-3 rounded-xl border ${dark ? 'border-slate-600 text-slate-400' : 'border-slate-200 text-slate-400'} cursor-pointer active:opacity-70 transition-opacity text-sm font-bold">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Velg fil (.csv / .txt)
                 <input type="file" accept=".csv,.txt,.tsv" class="sr-only" id="_imp_file">
             </label>
         </div>`;
 
+    const processText = (text) => {
+        const rows = parseCSV(text);
+        if (!rows.length) { showToast('Ingen gyldige transaksjoner funnet', 'error'); return; }
+        renderPreview(sheet, dark, rows);
+    };
+
     sheet.querySelector('#_imp_close').onclick = () => document.getElementById('importSheetOverlay')?.remove();
+
+    sheet.querySelector('#_imp_paste_go').onclick = () => {
+        const text = sheet.querySelector('#_imp_textarea').value.trim();
+        if (!text) { showToast('Lim inn CSV-innhold først', 'error'); return; }
+        processText(text);
+    };
+
     sheet.querySelector('#_imp_file').onchange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = (ev) => {
-            const rows = parseCSV(ev.target.result);
-            if (!rows.length) { showToast('Ingen gyldige transaksjoner funnet', 'error'); return; }
-            renderPreview(sheet, dark, rows);
-        };
+        reader.onload = (ev) => processText(ev.target.result);
         reader.readAsText(file, 'UTF-8');
     };
 }
