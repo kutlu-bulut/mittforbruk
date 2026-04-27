@@ -74,6 +74,8 @@ export function initAuth(onReady) {
             }
         } else {
             listenerInitialized = false;
+            document.documentElement.classList.remove('auth-cached');
+            document.getElementById('loginScreen').classList.remove('hidden');
         }
     });
 }

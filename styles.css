@@ -4,6 +4,9 @@
     --user-color: #4f46e5;
 }
 
+/* Hide login screen immediately for returning logged-in users */
+html.auth-cached #loginScreen { display: none; }
+
 body {
     font-family: 'Inter', sans-serif;
     -webkit-tap-highlight-color: transparent;
