@@ -14,7 +14,8 @@ export const state = {
     activeTab: 'hjem',
     chart: null,
     masterProducts: [],
-    allPurchases: []
+    allPurchases: [],
+    categoriesCache: []
 };
 
 export const categoryEmojis = {

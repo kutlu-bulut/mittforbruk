@@ -19,6 +19,7 @@ import './js/purchases.js';
 import './js/preferences.js';
 import './js/household.js';
 import './js/stores.js';
+import './js/import.js';
 
 import { initAuth } from './js/auth.js';
 
@@ -266,6 +267,7 @@ export function startApp() {
 
     // Categories
     onSnapshot(query(collection(db, "households", state.currentHid, "categories"), orderBy("name")), (snap) => {
+        state.categoriesCache = snap.docs.map(d => d.data().name).filter(Boolean);
         renderCategories(snap);
     }, (err) => {
         console.error("Categories listener error:", err);
