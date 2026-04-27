@@ -7,6 +7,9 @@
 /* Hide login screen immediately for returning logged-in users */
 html.auth-cached #loginScreen { display: none; }
 
+.hide-scrollbar { scrollbar-width: none; }
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+
 body {
     font-family: 'Inter', sans-serif;
     -webkit-tap-highlight-color: transparent;

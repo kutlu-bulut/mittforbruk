@@ -10,7 +10,7 @@ import { refreshInsightsView, updateProfileStoreBars } from './js/insights.js';
 import { updateHistory } from './js/history.js';
 import { renderCategories } from './js/household.js';
 import { initStoresListener, initAutocomplete } from './js/stores.js';
-import { initHandlelisteListener, initProdukterListener, initHandlelisteAutocomplete } from './js/handleliste.js';
+import { initHandlelisteListener, initProdukterListener, initHandlelisteAutocomplete, initShoppingListsListener } from './js/handleliste.js';
 import { showToast } from './js/ui.js';
 
 // Side-effect imports (registrerer window-funksjoner)
@@ -82,6 +82,7 @@ export function startApp() {
     initAutocomplete();
 
     // Init handleliste
+    initShoppingListsListener();
     initHandlelisteListener();
     initProdukterListener();
     initHandlelisteAutocomplete();

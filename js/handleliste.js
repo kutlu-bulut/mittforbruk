@@ -4,20 +4,22 @@
 
 import {
     collection, addDoc, updateDoc, deleteDoc, doc,
-    onSnapshot, getDocs, writeBatch, increment
+    onSnapshot, getDocs, writeBatch, increment, setDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from './firebase.js';
 import { state } from './state.js';
 import { showToast } from './ui.js';
 
 let produkterCache    = [];   // { id, name, count }
-let handlelisteCache  = [];   // { id, name, quantity, checked, group, sortOrder, addedBy, addedAt }
+let handlelisteCache  = [];   // { id, name, quantity, checked, group, listId, sortOrder, addedBy, addedAt }
 let sortableInstances = [];
 let suppressRender    = false;
 let pendingRenderItems = null;
 let selectedAddGroup  = '';   // group pre-selected in the add form
 let suppressTimer     = null; // for suppressHold cleanup
 let groupOrderMemory  = [];   // stable group insertion order (never reordered by drag)
+let selectedListId    = 'main';
+let listsCache        = [];   // [{ id, name, emoji, sortOrder }]
 
 // ---- Group color palette ----
 const GROUP_COLORS = [
@@ -77,6 +79,21 @@ export function initProdukterListener() {
     );
 }
 
+export function initShoppingListsListener() {
+    if (!state.currentHid) return;
+    const ref = doc(db, "households", state.currentHid, "settings", "shoppingLists");
+    onSnapshot(ref, async (snap) => {
+        if (!snap.exists()) {
+            await setDoc(ref, { lists: [{ id: 'main', name: 'Handleliste', emoji: '🛒', sortOrder: 0 }] });
+            return;
+        }
+        listsCache = (snap.data().lists || []).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+        if (listsCache.length === 0) listsCache = [{ id: 'main', name: 'Handleliste', emoji: '🛒', sortOrder: 0 }];
+        if (!listsCache.find(l => l.id === selectedListId)) selectedListId = listsCache[0].id;
+        renderHandleliste(handlelisteCache);
+    }, err => console.error("ShoppingLists listener error:", err));
+}
+
 // ============================================================
 // Render
 // ============================================================
@@ -93,16 +110,26 @@ function renderHandleliste(items) {
     const emptyState = document.getElementById('handlelisteEmpty');
     if (!list) return;
 
+    renderListTabs();
+
+    // Filter to the active list (items without listId belong to 'main')
+    const listItems = items.filter(i => (i.listId || 'main') === selectedListId);
+
     // Tear down old SortableJS instances before rebuilding DOM
     sortableInstances.forEach(s => { try { s.destroy(); } catch (_) {} });
     sortableInstances = [];
 
     list.innerHTML = '';
 
-    const unchecked = sortedItems(items.filter(i => !i.checked));
-    const checked   = sortedItems(items.filter(i => i.checked));
+    const unchecked = sortedItems(listItems.filter(i => !i.checked));
+    const checked   = sortedItems(listItems.filter(i => i.checked));
 
-    if (emptyState) emptyState.classList.toggle('hidden', items.length > 0);
+    if (emptyState) {
+        emptyState.classList.toggle('hidden', listItems.length > 0);
+        const currentList = listsCache.find(l => l.id === selectedListId);
+        const nameEl = emptyState.querySelector('p.font-bold');
+        if (nameEl) nameEl.textContent = (currentList?.name || 'Handlelisten') + ' er tom';
+    }
     if (unchecked.length === 0 && checked.length === 0) {
         updateGroupPills();
         return;
@@ -183,7 +210,9 @@ function updateGroupPills() {
     if (!row || !pills) return;
 
     const groups = [...new Set(
-        handlelisteCache.filter(i => i.group).map(i => i.group)
+        handlelisteCache
+            .filter(i => i.group && (i.listId || 'main') === selectedListId)
+            .map(i => i.group)
     )].sort();
 
     if (groups.length === 0) {
@@ -639,6 +668,223 @@ function inlineRenameGroup(oldName, nameEl, itemIds) {
 }
 
 // ============================================================
+// List tabs
+// ============================================================
+
+function renderListTabs() {
+    const el = document.getElementById('shoppingListTabs');
+    if (!el) return;
+
+    const tabs = listsCache.map(list => {
+        const active = list.id === selectedListId;
+        const onclick = active
+            ? `window.showListOptions('${list.id}')`
+            : `window.switchList('${list.id}')`;
+        return `
+            <button onclick="${onclick}" class="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold transition-colors whitespace-nowrap
+                ${active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200 active:bg-slate-50'}">
+                ${list.emoji ? `<span>${escapeText(list.emoji)}</span>` : ''}
+                <span>${escapeText(list.name)}</span>
+                ${active ? `<svg class="w-3 h-3 opacity-60 ml-0.5" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>` : ''}
+            </button>`;
+    }).join('');
+
+    el.innerHTML = `
+        <div class="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+            ${tabs}
+            <button onclick="window.showNewListDialog()" class="shrink-0 flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-bold text-slate-400 border border-dashed border-slate-300 bg-white active:bg-slate-50 transition-colors whitespace-nowrap">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                Ny
+            </button>
+        </div>`;
+}
+
+window.switchList = (id) => {
+    selectedListId = id;
+    selectedAddGroup = '';
+    renderHandleliste(handlelisteCache);
+};
+
+window.showListOptions = (listId) => {
+    const list = listsCache.find(l => l.id === listId);
+    if (!list) return;
+    document.getElementById('listMgmtOverlay')?.remove();
+    const dark = document.body.classList.contains('dark-mode');
+    const canDelete = listsCache.length > 1;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'listMgmtOverlay';
+    overlay.className = 'fixed inset-0 z-50 flex items-end justify-center';
+    overlay.style.cssText = 'background:rgba(15,23,42,0.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)';
+
+    const sheet = document.createElement('div');
+    sheet.className = `w-full max-w-lg rounded-t-3xl p-5 shadow-2xl border-t ${dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`;
+    sheet.style.cssText = 'animation:slideUp 0.25s cubic-bezier(0.34,1.56,0.64,1)';
+
+    sheet.innerHTML = `
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="font-bold text-base ${dark ? 'text-slate-100' : 'text-slate-900'}">${escapeText(list.emoji || '')} ${escapeText(list.name)}</h3>
+            <button id="_lo_close" class="w-9 h-9 rounded-full flex items-center justify-center ${dark ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-400'} active:opacity-70">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="space-y-2">
+            <button id="_lo_rename" class="w-full px-4 py-3 rounded-xl text-sm font-bold text-left ${dark ? 'bg-slate-700 text-slate-200' : 'bg-slate-50 text-slate-700'} active:opacity-70">✏️ Gi nytt navn</button>
+            <button id="_lo_delete" class="w-full px-4 py-3 rounded-xl text-sm font-bold text-left ${canDelete ? 'bg-rose-50 text-rose-500' : 'bg-slate-50 text-slate-300'} active:opacity-70" ${canDelete ? '' : 'disabled'}>
+                🗑️ Slett liste${canDelete ? '' : ' (trenger minst 1 liste)'}
+            </button>
+        </div>`;
+
+    const close = () => overlay.remove();
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    sheet.querySelector('#_lo_close').onclick = close;
+    sheet.querySelector('#_lo_rename').onclick = () => { close(); showRenameListDialog(listId); };
+    if (canDelete) sheet.querySelector('#_lo_delete').onclick = () => { close(); showDeleteListConfirm(listId); };
+
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+};
+
+window.showNewListDialog = () => {
+    document.getElementById('listMgmtOverlay')?.remove();
+    const EMOJIS = ['🛒','🏖️','🛍️','🏠','🎁','🐶','🌱','💊','🔧','📦','🎮','✈️'];
+    let pickedEmoji = '🛒';
+    const dark = document.body.classList.contains('dark-mode');
+
+    const overlay = document.createElement('div');
+    overlay.id = 'listMgmtOverlay';
+    overlay.className = 'fixed inset-0 z-50 flex items-end justify-center';
+    overlay.style.cssText = 'background:rgba(15,23,42,0.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)';
+
+    const sheet = document.createElement('div');
+    sheet.className = `w-full max-w-lg rounded-t-3xl p-5 shadow-2xl border-t ${dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`;
+    sheet.style.cssText = 'animation:slideUp 0.25s cubic-bezier(0.34,1.56,0.64,1)';
+
+    sheet.innerHTML = `
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-bold text-base ${dark ? 'text-slate-100' : 'text-slate-900'}">Ny liste</h3>
+            <button id="_nl_close" class="w-9 h-9 rounded-full flex items-center justify-center ${dark ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-400'} active:opacity-70">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="flex gap-2 flex-wrap mb-4" id="_nl_emojis">
+            ${EMOJIS.map(e => `<button class="nl-emoji w-10 h-10 rounded-xl text-xl flex items-center justify-center border-2 ${e === pickedEmoji ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 bg-slate-50'} active:scale-90 transition-all" data-emoji="${e}">${e}</button>`).join('')}
+        </div>
+        <input id="_nl_input" type="text" placeholder="Navn på listen..." maxlength="30"
+            class="w-full px-4 py-3 rounded-xl text-sm font-bold border ${dark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'bg-slate-50 border-slate-200'} outline-none focus:border-indigo-400 mb-4">
+        <button id="_nl_confirm" class="w-full py-3 rounded-xl text-sm font-bold bg-indigo-600 text-white active:opacity-80">Opprett liste</button>`;
+
+    const close = () => overlay.remove();
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    sheet.querySelector('#_nl_close').onclick = close;
+
+    sheet.querySelector('#_nl_emojis').addEventListener('click', e => {
+        const btn = e.target.closest('.nl-emoji');
+        if (!btn) return;
+        pickedEmoji = btn.dataset.emoji;
+        sheet.querySelectorAll('.nl-emoji').forEach(b => {
+            const sel = b.dataset.emoji === pickedEmoji;
+            b.className = `nl-emoji w-10 h-10 rounded-xl text-xl flex items-center justify-center border-2 ${sel ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 bg-slate-50'} active:scale-90 transition-all`;
+        });
+    });
+
+    sheet.querySelector('#_nl_confirm').onclick = async () => {
+        const name = sheet.querySelector('#_nl_input').value.trim();
+        if (!name) { sheet.querySelector('#_nl_input').focus(); return; }
+        const newList = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name, emoji: pickedEmoji, sortOrder: listsCache.length };
+        await saveListsMeta([...listsCache, newList]);
+        selectedListId = newList.id;
+        close();
+    };
+
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+    setTimeout(() => sheet.querySelector('#_nl_input')?.focus(), 300);
+};
+
+function showRenameListDialog(listId) {
+    const list = listsCache.find(l => l.id === listId);
+    if (!list) return;
+    document.getElementById('listMgmtOverlay')?.remove();
+    const dark = document.body.classList.contains('dark-mode');
+
+    const overlay = document.createElement('div');
+    overlay.id = 'listMgmtOverlay';
+    overlay.className = 'fixed inset-0 z-50 flex items-end justify-center';
+    overlay.style.cssText = 'background:rgba(15,23,42,0.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)';
+
+    const sheet = document.createElement('div');
+    sheet.className = `w-full max-w-lg rounded-t-3xl p-5 shadow-2xl border-t ${dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`;
+    sheet.style.cssText = 'animation:slideUp 0.25s cubic-bezier(0.34,1.56,0.64,1)';
+
+    sheet.innerHTML = `
+        <h3 class="font-bold text-base ${dark ? 'text-slate-100' : 'text-slate-900'} mb-4">Gi nytt navn</h3>
+        <input id="_rl_input" type="text" value="${escapeText(list.name)}" maxlength="30"
+            class="w-full px-4 py-3 rounded-xl text-sm font-bold border ${dark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-slate-50 border-slate-200'} outline-none focus:border-indigo-400 mb-4">
+        <button id="_rl_confirm" class="w-full py-3 rounded-xl text-sm font-bold bg-indigo-600 text-white active:opacity-80 mb-2">Lagre</button>
+        <button id="_rl_cancel" class="w-full py-3 rounded-xl text-sm font-bold ${dark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'} active:opacity-80">Avbryt</button>`;
+
+    const close = () => overlay.remove();
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    sheet.querySelector('#_rl_cancel').onclick = close;
+    sheet.querySelector('#_rl_confirm').onclick = async () => {
+        const newName = sheet.querySelector('#_rl_input').value.trim();
+        if (!newName) return;
+        await saveListsMeta(listsCache.map(l => l.id === listId ? { ...l, name: newName } : l));
+        close();
+    };
+
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+    setTimeout(() => { const inp = sheet.querySelector('#_rl_input'); if (inp) { inp.focus(); inp.select(); } }, 300);
+}
+
+function showDeleteListConfirm(listId) {
+    const list = listsCache.find(l => l.id === listId);
+    if (!list || listsCache.length <= 1) return;
+    document.getElementById('listMgmtOverlay')?.remove();
+    const dark = document.body.classList.contains('dark-mode');
+    const itemCount = handlelisteCache.filter(i => (i.listId || 'main') === listId).length;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'listMgmtOverlay';
+    overlay.className = 'fixed inset-0 z-50 flex items-end justify-center';
+    overlay.style.cssText = 'background:rgba(15,23,42,0.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)';
+
+    const sheet = document.createElement('div');
+    sheet.className = `w-full max-w-lg rounded-t-3xl p-5 shadow-2xl border-t ${dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`;
+    sheet.style.cssText = 'animation:slideUp 0.25s cubic-bezier(0.34,1.56,0.64,1)';
+
+    sheet.innerHTML = `
+        <h3 class="font-bold text-base ${dark ? 'text-slate-100' : 'text-slate-900'} mb-2">Slett «${escapeText(list.name)}»?</h3>
+        <p class="text-sm ${dark ? 'text-slate-400' : 'text-slate-500'} mb-5">${itemCount > 0 ? `${itemCount} vare${itemCount !== 1 ? 'r' : ''} vil også bli slettet.` : 'Listen er tom.'}</p>
+        <button id="_dl_confirm" class="w-full py-3 rounded-xl text-sm font-bold bg-rose-500 text-white active:opacity-80 mb-2">Slett liste</button>
+        <button id="_dl_cancel" class="w-full py-3 rounded-xl text-sm font-bold ${dark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'} active:opacity-80">Avbryt</button>`;
+
+    const close = () => overlay.remove();
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    sheet.querySelector('#_dl_cancel').onclick = close;
+    sheet.querySelector('#_dl_confirm').onclick = async () => {
+        close();
+        const batch = writeBatch(db);
+        handlelisteCache
+            .filter(i => (i.listId || 'main') === listId)
+            .forEach(i => batch.delete(doc(db, "households", state.currentHid, "handleliste", i.id)));
+        await batch.commit();
+        selectedListId = listsCache.find(l => l.id !== listId)?.id || 'main';
+        await saveListsMeta(listsCache.filter(l => l.id !== listId));
+    };
+
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+}
+
+async function saveListsMeta(lists) {
+    const ref = doc(db, "households", state.currentHid, "settings", "shoppingLists");
+    await setDoc(ref, { lists });
+}
+
+// ============================================================
 // CRUD
 // ============================================================
 
@@ -651,8 +897,11 @@ window.addHandlelisteItem = async () => {
     const quantity = parseInt(qtyEl?.value) || 1;
     if (!name) return;
 
-    // Check for existing item with same name
-    const existing = handlelisteCache.find(i => i.name.toLowerCase() === name.toLowerCase());
+    // Check for existing item with same name in the active list
+    const existing = handlelisteCache.find(i =>
+        i.name.toLowerCase() === name.toLowerCase() &&
+        (i.listId || 'main') === selectedListId
+    );
 
     if (existing) {
         if (existing.checked) {
@@ -684,10 +933,11 @@ window.addHandlelisteItem = async () => {
 
     // New item — append after last item in the target group (or overall)
     const targetGroup = selectedAddGroup;
-    const itemsInGroup = handlelisteCache.filter(i => !i.checked && (i.group || '') === targetGroup);
+    const listItemsUnchecked = handlelisteCache.filter(i => !i.checked && (i.listId || 'main') === selectedListId);
+    const itemsInGroup = listItemsUnchecked.filter(i => (i.group || '') === targetGroup);
     const maxOrder = itemsInGroup.length
         ? Math.max(...itemsInGroup.map(i => i.sortOrder ?? 0))
-        : handlelisteCache.filter(i => !i.checked).reduce((m, i) => Math.max(m, i.sortOrder ?? 0), 0);
+        : listItemsUnchecked.reduce((m, i) => Math.max(m, i.sortOrder ?? 0), 0);
 
     try {
         await addDoc(collection(db, "households", state.currentHid, "handleliste"), {
@@ -695,6 +945,7 @@ window.addHandlelisteItem = async () => {
             quantity,
             checked:   false,
             group:     targetGroup,
+            listId:    selectedListId,
             sortOrder: maxOrder + 1000,
             addedBy:   state.currentUserData?.name || 'Meg',
             addedAt:   Date.now(),
@@ -747,9 +998,10 @@ window.setItemGroup = (id, group) =>
 
 window.clearCheckedItems = async () => {
     try {
-        const snap = await getDocs(collection(db, "households", state.currentHid, "handleliste"));
         const batch = writeBatch(db);
-        snap.forEach(d => { if (d.data().checked) batch.delete(d.ref); });
+        handlelisteCache
+            .filter(i => i.checked && (i.listId || 'main') === selectedListId)
+            .forEach(i => batch.delete(doc(db, "households", state.currentHid, "handleliste", i.id)));
         await batch.commit();
         showToast("Handlevognen er tømt!");
     } catch (err) {
