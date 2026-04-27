@@ -2,7 +2,7 @@
 // CSV Import — bank transaction import
 // ============================================================
 
-import { collection, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { collection, doc, writeBatch, setDoc, getDoc, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from './firebase.js';
 import { state } from './state.js';
 import { showToast } from './ui.js';
@@ -183,6 +183,9 @@ function renderFilePicker(sheet, dark) {
     const processText = (text) => {
         const rows = parseCSV(text);
         if (!rows.length) { showToast('Ingen gyldige transaksjoner funnet', 'error'); return; }
+        markDuplicates(rows);
+        // Pre-uncheck likely duplicates
+        rows.forEach(r => { if (r.isDuplicate) r.selected = false; });
         renderPreview(sheet, dark, rows);
     };
 
@@ -266,6 +269,7 @@ function renderPreview(sheet, dark, rows) {
                                 <span>${escText(r.date)}</span>
                                 ${r.isTransfer ? '<span class="text-amber-500 font-bold">· overføring</span>' : ''}
                                 ${r.category ? `<span class="text-indigo-500 font-bold bg-indigo-50 rounded-full px-1.5 py-px">${escText(r.category)}</span>` : '<span class="text-slate-300">· ukjent</span>'}
+                                ${r.isDuplicate ? '<span class="text-rose-400 font-bold bg-rose-50 rounded-full px-1.5 py-px">duplikat</span>' : ''}
                             </p>
                         </div>
                         <span class="text-sm font-black shrink-0 ${r.selected ? (dark ? 'text-slate-200' : 'text-slate-700') : (dark ? 'text-slate-600' : 'text-slate-300')}">
@@ -296,6 +300,21 @@ function renderPreview(sheet, dark, rows) {
     render();
 }
 
+// ---- Duplicate detection ----
+
+function markDuplicates(rows) {
+    rows.forEach(r => {
+        const [y, m, d] = r.date.split('-').map(Number);
+        const dayStart = new Date(y, m - 1, d).getTime();
+        const dayEnd   = dayStart + 86400000;
+        r.isDuplicate = (state.allPurchases || []).some(p =>
+            p.price === r.amount &&
+            p.createdAt >= dayStart && p.createdAt < dayEnd &&
+            (p.store || '').toLowerCase() === r.desc.toLowerCase()
+        );
+    });
+}
+
 // ---- Write to Firestore ----
 
 async function doImport(rows, fallbackCategory, buyer) {
@@ -306,29 +325,196 @@ async function doImport(rows, fallbackCategory, buyer) {
         const known = new Set(state.categoriesCache || []);
         const newCats = [...new Set(toImport.map(r => r.category).filter(Boolean).filter(c => !known.has(c)))];
         for (const name of newCats) {
-            const { addDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
             await addDoc(collection(db, "households", state.currentHid, "categories"), { name });
         }
+
+        // Generate unique import batch ID
+        const importId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        const importedAt = Date.now();
+        let totalAmount = 0;
+        const usedCategories = new Set();
 
         const batch = writeBatch(db);
         toImport.forEach(r => {
             const [y, m, d] = r.date.split('-').map(Number);
             const createdAt = new Date(y, m - 1, d, 12, 0, 0).getTime();
+            const category = r.category || fallbackCategory;
+            totalAmount += r.amount;
+            usedCategories.add(category);
             batch.set(doc(collection(db, "households", state.currentHid, "purchases")), {
                 store: r.desc,
                 desc: '',
                 price: r.amount,
-                category: r.category || fallbackCategory,
+                category,
                 buyer,
                 type: 'Behov',
                 rating: 0,
                 createdAt,
+                importId,
             });
         });
         await batch.commit();
+
+        // Save import record to settings/importHistory
+
+        const histRef = doc(db, "households", state.currentHid, "settings", "importHistory");
+        const histSnap = await getDoc(histRef);
+        const existing = histSnap.exists() ? (histSnap.data().imports || []) : [];
+        await setDoc(histRef, {
+            imports: [...existing, {
+                id: importId,
+                importedAt,
+                count: toImport.length,
+                totalAmount,
+                buyer,
+                categories: [...usedCategories],
+            }]
+        });
+
         document.getElementById('importSheetOverlay')?.remove();
         showToast(`${toImport.length} kjøp importert!`);
     } catch (err) {
         showToast('Feil ved import: ' + err.message, 'error');
     }
+}
+
+// ---- Import history sheet ----
+
+window.openImportHistory = async () => {
+    document.getElementById('importSheetOverlay')?.remove();
+    const dark = document.body.classList.contains('dark-mode');
+
+    const overlay = document.createElement('div');
+    overlay.id = 'importSheetOverlay';
+    overlay.className = 'fixed inset-0 z-50 flex flex-col items-center justify-end';
+    overlay.style.cssText = 'background:rgba(15,23,42,0.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)';
+
+    const sheet = document.createElement('div');
+    sheet.className = `w-full max-w-lg rounded-t-3xl shadow-2xl border-t flex flex-col ${dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`;
+    sheet.style.cssText = 'animation:slideUp 0.25s cubic-bezier(0.34,1.56,0.64,1);max-height:85vh';
+
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    await renderHistorySheet(sheet, dark);
+};
+
+async function renderHistorySheet(sheet, dark) {
+    sheet.innerHTML = `<div class="p-5 text-center text-slate-400 text-sm">Laster...</div>`;
+
+    const histRef = doc(db, "households", state.currentHid, "settings", "importHistory");
+    const histSnap = await getDoc(histRef);
+    const imports = histSnap.exists() ? [...(histSnap.data().imports || [])].reverse() : [];
+
+    function fmt(n) { return n.toLocaleString('nb-NO', { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
+    function fmtDate(ts) {
+        const d = new Date(ts);
+        return d.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    sheet.innerHTML = `
+        <div class="p-5 pb-2 shrink-0 flex items-center justify-between">
+            <h3 class="font-bold text-base ${dark ? 'text-slate-100' : 'text-slate-900'}">Importhistorikk</h3>
+            <button id="_ih_close" class="w-9 h-9 rounded-full flex items-center justify-center ${dark ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-400'} active:opacity-70">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="overflow-y-auto flex-1 px-5 pb-5">
+            ${imports.length === 0 ? `<p class="text-sm ${dark ? 'text-slate-500' : 'text-slate-400'} text-center py-10">Ingen importer ennå</p>` : imports.map(imp => `
+            <div class="mb-3 p-4 rounded-2xl border ${dark ? 'bg-slate-700 border-slate-600' : 'bg-slate-50 border-slate-200'}">
+                <div class="flex items-start justify-between gap-2 mb-2">
+                    <div>
+                        <p class="text-sm font-bold ${dark ? 'text-slate-100' : 'text-slate-900'}">${fmtDate(imp.importedAt)}</p>
+                        <p class="text-xs ${dark ? 'text-slate-400' : 'text-slate-500'}">${imp.count} kjøp · ${fmt(imp.totalAmount)} kr · ${escText(imp.buyer)}</p>
+                        <div class="flex flex-wrap gap-1 mt-1.5">
+                            ${(imp.categories || []).map(c => `<span class="text-[10px] font-bold bg-indigo-50 text-indigo-500 rounded-full px-2 py-px">${escText(c)}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-2 mt-3">
+                    <button data-imp="${escText(imp.id)}" class="ih-recat flex-1 py-2 rounded-xl text-xs font-bold ${dark ? 'bg-slate-600 text-slate-200' : 'bg-white text-slate-600 border border-slate-200'} active:opacity-70">
+                        Endre kategori
+                    </button>
+                    <button data-imp="${escText(imp.id)}" data-count="${imp.count}" class="ih-del flex-1 py-2 rounded-xl text-xs font-bold bg-rose-50 text-rose-500 border border-rose-100 active:opacity-70">
+                        Slett import
+                    </button>
+                </div>
+            </div>`).join('')}
+        </div>`;
+
+    sheet.querySelector('#_ih_close').onclick = () => document.getElementById('importSheetOverlay')?.remove();
+
+    sheet.querySelectorAll('.ih-del').forEach(btn => {
+        btn.onclick = async () => {
+            const importId = btn.dataset.imp;
+            const count = parseInt(btn.dataset.count);
+            if (!confirm(`Slette ${count} importerte kjøp?`)) return;
+            try {
+                const toDelete = (state.allPurchases || []).filter(p => p.importId === importId);
+                const batch = writeBatch(db);
+                toDelete.forEach(p => batch.delete(doc(db, "households", state.currentHid, "purchases", p.id)));
+                await batch.commit();
+                // Remove from history
+                const snap = await getDoc(histRef);
+                const updated = (snap.data()?.imports || []).filter(i => i.id !== importId);
+                await setDoc(histRef, { imports: updated });
+                showToast(`${toDelete.length} kjøp slettet`);
+                await renderHistorySheet(sheet, dark);
+            } catch (err) {
+                showToast('Feil: ' + err.message, 'error');
+            }
+        };
+    });
+
+    sheet.querySelectorAll('.ih-recat').forEach(btn => {
+        btn.onclick = () => showRecatSheet(btn.dataset.imp, dark, sheet, histRef);
+    });
+}
+
+async function showRecatSheet(importId, dark, parentSheet, histRef) {
+    const categories = state.categoriesCache?.length
+        ? state.categoriesCache
+        : ['Mat', 'Restaurant', 'Shopping', 'Transport', 'Bolig', 'Helse', 'Underholdning', 'Annet'];
+
+    const overlay2 = document.createElement('div');
+    overlay2.className = 'fixed inset-0 z-[60] flex items-center justify-center p-6';
+    overlay2.style.cssText = 'background:rgba(15,23,42,0.4)';
+
+    const card = document.createElement('div');
+    card.className = `w-full max-w-xs rounded-2xl p-5 shadow-2xl ${dark ? 'bg-slate-800' : 'bg-white'}`;
+    card.innerHTML = `
+        <h3 class="font-bold text-sm mb-3 ${dark ? 'text-slate-100' : 'text-slate-900'}">Velg ny kategori</h3>
+        <div class="space-y-2">
+            ${categories.map(c => `<button data-cat="${escText(c)}" class="recat-opt w-full py-2.5 rounded-xl text-sm font-bold text-left px-4 ${dark ? 'bg-slate-700 text-slate-200' : 'bg-slate-50 text-slate-700'} active:opacity-70">${escText(c)}</button>`).join('')}
+        </div>
+        <button id="_rc_cancel" class="mt-3 w-full py-2.5 rounded-xl text-sm font-bold ${dark ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-400'} active:opacity-70">Avbryt</button>`;
+
+    overlay2.appendChild(card);
+    document.body.appendChild(overlay2);
+    overlay2.addEventListener('click', e => { if (e.target === overlay2) overlay2.remove(); });
+    card.querySelector('#_rc_cancel').onclick = () => overlay2.remove();
+
+    card.querySelectorAll('.recat-opt').forEach(btn => {
+        btn.onclick = async () => {
+            const newCat = btn.dataset.cat;
+            overlay2.remove();
+            try {
+                const toUpdate = (state.allPurchases || []).filter(p => p.importId === importId);
+                const batch = writeBatch(db);
+                toUpdate.forEach(p => batch.update(doc(db, "households", state.currentHid, "purchases", p.id), { category: newCat }));
+                await batch.commit();
+                // Update categories list in history
+                const snap = await getDoc(histRef);
+                const updated = (snap.data()?.imports || []).map(i =>
+                    i.id === importId ? { ...i, categories: [newCat] } : i
+                );
+                await setDoc(histRef, { imports: updated });
+                showToast(`Kategori endret til ${newCat}!`);
+                await renderHistorySheet(parentSheet, dark);
+            } catch (err) {
+                showToast('Feil: ' + err.message, 'error');
+            }
+        };
+    });
 }
