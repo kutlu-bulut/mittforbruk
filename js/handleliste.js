@@ -19,7 +19,7 @@ let selectedAddGroup  = '';   // group pre-selected in the add form
 let suppressTimer     = null; // for suppressHold cleanup
 let groupOrderMemory  = [];   // stable group insertion order (never reordered by drag)
 let selectedListId    = 'main';
-let listsCache        = [];   // [{ id, name, emoji, sortOrder }]
+let listsCache        = [{ id: 'main', name: 'Handleliste', emoji: '🛒', sortOrder: 0 }];
 
 // ---- Group color palette ----
 const GROUP_COLORS = [
