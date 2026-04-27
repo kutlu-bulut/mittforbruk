@@ -1,7 +1,7 @@
 # CLAUDE.md — Prosjektkontekst for AI-assistert utvikling
 
 > Denne filen er ment å gi kontekst til Claude (eller andre AI-verktøy) som jobber med dette prosjektet.
-> Oppdatert: April 2026 | Versjon: v19.2
+> Oppdatert: April 2026 | Versjon: v19.14
 
 ---
 
@@ -73,8 +73,14 @@ households/{hid}
   ├── name, migrated
   ├── settings/global
   │     └── monthlyBudget, categoriesMigrated
+  ├── settings/shoppingLists
+  │     └── lists: [{ id, name, emoji, sortOrder }]
   ├── purchases/{purchaseId}
   │     └── store, desc, price, category, buyer, createdAt, type, rating
+  ├── handleliste/{itemId}
+  │     └── name, quantity, checked, group, listId, sortOrder, addedBy, addedAt
+  ├── produkter/{productId}
+  │     └── name, count
   ├── categories/{catId}
   │     └── name
   └── stores/{storeId}
@@ -125,6 +131,38 @@ All brukerinput som vises i DOM-en må escapes. `textContent` er safe by default
 Nettleseren cacher JS-moduler aggressivt. Etter deploy kan gamle versjoner fortsatt kjøre.
 
 **Regel:** Alltid hard refresh (Cmd+Shift+R) etter deploy. Oppdater versjonsnummer i `index.html` (title + login-skjerm) for hver endring.
+
+### GitHub-token og push
+Fine-grained PAT feiler med 403 "Resource not accessible" for push. Bruk klassisk PAT med `repo`-scope.
+- Token lagret i `~/.git-credentials` og `/root/.claude/settings.json` (env: `GITHUB_TOKEN`)
+- Push alltid direkte: `git push https://kutlu-bulut:${GITHUB_TOKEN}@github.com/kutlu-bulut/mittforbruk.git main`
+- Den lokale git-proxyen (127.0.0.1) bytter port hver session — bruk token-URL i stedet
+- Etter push: kjør `git fetch origin` for å synkronisere tracking-refs (unngår falske "unpushed commits"-advarsler)
+
+**Regel:** Alltid push til `main` direkte via token-URL. Aldri opprett PR med mindre brukeren eksplisitt ber om det.
+
+### Login-flash ved refresh (Firebase Auth + IndexedDB)
+Firebase 9+ lagrer auth-state i **IndexedDB**, ikke localStorage. Det betyr at `localStorage.getItem('firebase:authUser:...')` alltid er tom og kan ikke brukes til å gjette om brukeren er innlogget.
+
+**Løsning:** Eget localStorage-flagg `mittforbruk_authed` satt av `auth.js` når brukeren logger inn, og slettet ved logout. Et inline `<script>` i `<head>` legger til klassen `auth-cached` på `<html>` hvis flagget finnes, og CSS skjuler `#loginScreen` umiddelbart: `html.auth-cached #loginScreen { display: none; }`.
+
+**Regel:** Bruk aldri Firebase sin interne localStorage-nøkkel. Lag et eget flagg.
+
+### Firestore `settings/`-wildcard dekker nye dokumenter
+`match /settings/{settingId}` i `firestore.rules` gir tilgang til *alle* dokumenter under `settings/`, inkludert nye som `settings/shoppingLists`. Ingen regeloppdatering trengs for nye settings-dokumenter.
+
+**Regel:** Nye features som bruker `households/{hid}/settings/{noe}` trenger ikke regelendring.
+
+### Race condition med module-level caches
+Moduler som har lyttere som kan brenne i vilkårlig rekkefølge (f.eks. `initHandlelisteListener` vs `initShoppingListsListener`) må ikke initialisere cacher som `[]` hvis render-funksjoner er avhengige av dem. Hvis `renderListTabs()` kalles før `listsCache` er populert, vises ingenting.
+
+**Løsning:** Initialiser cacher med fornuftige defaults, f.eks.:
+```js
+let listsCache = [{ id: 'main', name: 'Handleliste', emoji: '🛒', sortOrder: 0 }];
+```
+Da er det alltid noe å rendre, selv før Firestore svarer.
+
+**Regel:** Module-level state som brukes i render skal ha meningsfulle defaults, ikke tomme arrays.
 
 ---
 
