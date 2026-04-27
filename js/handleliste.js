@@ -209,9 +209,15 @@ function updateGroupPills() {
     // Existing group pills
     groups.forEach(g => {
         const btn = document.createElement('button');
-        btn.className = selectedAddGroup === g
-            ? 'hl-group-pill hl-group-pill-active'
-            : 'hl-group-pill hl-group-pill-inactive';
+        const pillColor = getGroupColor(g);
+        if (selectedAddGroup === g) {
+            btn.className = 'hl-group-pill';
+            btn.style.backgroundColor = dark ? pillColor.darkBg : pillColor.bg;
+            btn.style.color = dark ? pillColor.darkText : pillColor.text;
+            btn.style.border = `1.5px solid ${pillColor.dot}`;
+        } else {
+            btn.className = 'hl-group-pill hl-group-pill-inactive';
+        }
         btn.textContent = g;
         btn.onclick = () => {
             selectedAddGroup = selectedAddGroup === g ? '' : g;
@@ -266,11 +272,16 @@ function buildGroupHeader(groupName, groupItems) {
     header.className = 'flex items-center gap-2 mb-2 mt-1 px-1';
 
     if (groupName) {
+        const color = getGroupColor(groupName);
+        const dark = document.body.classList.contains('dark-mode');
+
         const dot = document.createElement('div');
-        dot.className = 'w-2 h-2 rounded-full bg-indigo-400 shrink-0';
+        dot.className = 'w-2 h-2 rounded-full shrink-0';
+        dot.style.backgroundColor = color.dot;
 
         const nameEl = document.createElement('span');
-        nameEl.className = 'text-xs font-bold text-slate-500 uppercase tracking-wider flex-1 truncate';
+        nameEl.className = 'text-xs font-bold uppercase tracking-wider flex-1 truncate';
+        nameEl.style.color = dark ? color.darkText : color.text;
         nameEl.textContent = groupName;
 
         const editBtn = document.createElement('button');
@@ -337,9 +348,15 @@ function buildItemEl(item) {
     if (!item.checked) {
         // Group chip
         const chip = document.createElement('button');
+        const chipColor = item.group ? getGroupColor(item.group) : null;
+        const chipDark = document.body.classList.contains('dark-mode');
         chip.className = item.group
-            ? 'mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold text-indigo-500 bg-indigo-50 rounded-full px-2 py-0.5 transition-colors active:bg-indigo-100'
+            ? 'mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold rounded-full px-2 py-0.5 transition-colors'
             : 'mt-0.5 inline-flex items-center gap-1 text-[10px] font-semibold text-slate-300 hover:text-slate-400 transition-colors';
+        if (item.group && chipColor) {
+            chip.style.color = chipDark ? chipColor.darkText : chipColor.text;
+            chip.style.backgroundColor = chipDark ? chipColor.darkBg : chipColor.bg;
+        }
         chip.innerHTML = item.group
             ? `<svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><circle cx="7" cy="7" r="1" fill="currentColor"/></svg>${escapeText(item.group)}`
             : `<svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>gruppe`;
@@ -519,9 +536,15 @@ function showGroupPicker(itemId) {
         existingGroups.forEach(g => {
             const isActive = item.group === g;
             const btn = document.createElement('button');
-            btn.className = isActive
-                ? 'px-4 py-2 rounded-xl text-sm font-bold bg-indigo-600 text-white shadow-sm active:opacity-80 transition-opacity'
-                : `px-4 py-2 rounded-xl text-sm font-bold active:opacity-70 transition-opacity ${dark ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-700'}`;
+            const gc = getGroupColor(g);
+            if (isActive) {
+                btn.className = 'px-4 py-2 rounded-xl text-sm font-bold shadow-sm active:opacity-80 transition-opacity';
+                btn.style.backgroundColor = dark ? gc.darkBg : gc.bg;
+                btn.style.color = dark ? gc.darkText : gc.text;
+                btn.style.border = `1.5px solid ${gc.dot}`;
+            } else {
+                btn.className = `px-4 py-2 rounded-xl text-sm font-bold active:opacity-70 transition-opacity ${dark ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-700'}`;
+            }
             btn.textContent = g;
             btn.onclick = () => { window.setItemGroup(itemId, g); overlay.remove(); };
             grid.appendChild(btn);
