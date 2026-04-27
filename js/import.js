@@ -219,85 +219,121 @@ function renderPreview(sheet, dark, rows) {
         (state.householdMembers || []).map(m => m.name).filter(Boolean).concat([selectedBuyer])
     )];
 
-    function totalOf(rs) { return rs.reduce((s, r) => s + r.amount, 0); }
+    const fmt = n => n.toLocaleString('nb-NO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
-    function render() {
+    // Surgical updates — no scroll reset
+    function updateStats() {
         const sel = rows.filter(r => r.selected);
-        const total = totalOf(sel);
+        const total = sel.reduce((s, r) => s + r.amount, 0);
+        const statsEl = sheet.querySelector('#_imp_stats');
+        if (statsEl) statsEl.textContent = `${sel.length} av ${rows.length} valgt · ${fmt(total)} kr`;
+        const btn = sheet.querySelector('#_imp_confirm');
+        if (!btn) return;
+        const hasAny = sel.length > 0;
+        btn.textContent = hasAny ? `Importer ${sel.length} kjøp` : 'Velg minst ett kjøp';
+        btn.className = `w-full py-3.5 rounded-2xl text-sm font-bold transition-all ${hasAny ? 'bg-indigo-600 text-white active:opacity-80' : (dark ? 'bg-slate-700 text-slate-500' : 'bg-slate-100 text-slate-300')}`;
+        btn.onclick = hasAny ? () => doImport(rows, selectedCategory, selectedBuyer) : null;
+    }
 
-        sheet.innerHTML = `
-            <div class="p-5 pb-2 shrink-0">
-                <div class="flex items-center justify-between mb-1">
-                    <h3 class="font-bold text-base ${dark ? 'text-slate-100' : 'text-slate-900'}">Forhåndsvisning</h3>
-                    <button id="_imp_close" class="w-9 h-9 rounded-full flex items-center justify-center ${dark ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-400'} active:opacity-70">
-                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                    </button>
-                </div>
-                <p class="text-xs ${dark ? 'text-slate-400' : 'text-slate-500'} mb-4">${sel.length} av ${rows.length} valgt &nbsp;·&nbsp; ${total.toLocaleString('nb-NO', {minimumFractionDigits:0, maximumFractionDigits:2})} kr</p>
-
-                <div class="flex gap-2 mb-3">
-                    <div class="flex-1">
-                        <p class="text-[10px] font-bold uppercase tracking-wide ${dark ? 'text-slate-400' : 'text-slate-400'} mb-1">Ukjent kategori</p>
-                        <select id="_imp_cat" class="w-full text-sm font-bold rounded-xl px-3 py-2 border ${dark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-slate-50 border-slate-200'} outline-none">
-                            ${categories.map(c => `<option value="${escText(c)}" ${c === selectedCategory ? 'selected' : ''}>${escText(c)}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div class="flex-1">
-                        <p class="text-[10px] font-bold uppercase tracking-wide ${dark ? 'text-slate-400' : 'text-slate-400'} mb-1">Kjøper</p>
-                        <select id="_imp_buyer" class="w-full text-sm font-bold rounded-xl px-3 py-2 border ${dark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-slate-50 border-slate-200'} outline-none">
-                            ${buyerOptions.map(b => `<option value="${escText(b)}" ${b === selectedBuyer ? 'selected' : ''}>${escText(b)}</option>`).join('')}
-                        </select>
-                    </div>
-                </div>
-
-                <div class="flex gap-3 mb-1">
-                    <button id="_imp_selall" class="text-[11px] font-bold text-indigo-500 active:opacity-70">Velg alle</button>
-                    <span class="${dark ? 'text-slate-600' : 'text-slate-200'}">·</span>
-                    <button id="_imp_deselall" class="text-[11px] font-bold ${dark ? 'text-slate-500' : 'text-slate-400'} active:opacity-70">Fjern alle</button>
-                </div>
-            </div>
-
-            <div class="overflow-y-auto flex-1 px-5" id="_imp_rows">
-                ${rows.map((r, i) => `
-                    <div class="flex items-center gap-3 py-2.5 border-b ${dark ? 'border-slate-700' : 'border-slate-100'} last:border-0">
-                        <button data-idx="${i}" class="imp-toggle w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${r.selected ? 'bg-indigo-600 border-indigo-600' : (dark ? 'border-slate-600' : 'border-slate-300')}">
-                            ${r.selected ? '<svg class="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>' : ''}
-                        </button>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-bold truncate ${r.selected ? (dark ? 'text-slate-100' : 'text-slate-900') : (dark ? 'text-slate-600' : 'text-slate-300')}">${escText(r.desc)}</p>
-                            <p class="text-[10px] ${dark ? 'text-slate-500' : 'text-slate-400'} flex items-center gap-1.5 flex-wrap">
-                                <span>${escText(r.date)}</span>
-                                ${r.isTransfer ? '<span class="text-amber-500 font-bold">· overføring</span>' : ''}
-                                ${r.category ? `<span class="text-indigo-500 font-bold bg-indigo-50 rounded-full px-1.5 py-px">${escText(r.category)}</span>` : '<span class="text-slate-300">· ukjent</span>'}
-                                ${r.isDuplicate ? '<span class="text-rose-400 font-bold bg-rose-50 rounded-full px-1.5 py-px">duplikat</span>' : ''}
-                            </p>
-                        </div>
-                        <span class="text-sm font-black shrink-0 ${r.selected ? (dark ? 'text-slate-200' : 'text-slate-700') : (dark ? 'text-slate-600' : 'text-slate-300')}">
-                            ${r.amount.toLocaleString('nb-NO', {minimumFractionDigits:0, maximumFractionDigits:2})} kr
-                        </span>
-                    </div>`).join('')}
-            </div>
-
-            <div class="p-5 pt-3 shrink-0">
-                <button id="_imp_confirm" class="w-full py-3.5 rounded-2xl text-sm font-bold transition-all ${sel.length ? 'bg-indigo-600 text-white active:opacity-80' : `${dark ? 'bg-slate-700 text-slate-500' : 'bg-slate-100 text-slate-300'}`}">
-                    ${sel.length ? `Importer ${sel.length} kjøp` : 'Velg minst ett kjøp'}
-                </button>
-            </div>`;
-
-        sheet.querySelector('#_imp_close').onclick = () => document.getElementById('importSheetOverlay')?.remove();
-        sheet.querySelector('#_imp_cat').onchange = e => { selectedCategory = e.target.value; };
-        sheet.querySelector('#_imp_buyer').onchange = e => { selectedBuyer = e.target.value; };
-        sheet.querySelector('#_imp_selall').onclick = () => { rows.forEach(r => r.selected = true); render(); };
-        sheet.querySelector('#_imp_deselall').onclick = () => { rows.forEach(r => r.selected = false); render(); };
-        sheet.querySelectorAll('.imp-toggle').forEach(btn => {
-            btn.onclick = () => { rows[parseInt(btn.dataset.idx)].selected ^= true; render(); };
-        });
-        if (sel.length) {
-            sheet.querySelector('#_imp_confirm').onclick = () => doImport(rows, selectedCategory, selectedBuyer);
+    function updateRow(i) {
+        const r = rows[i];
+        const toggleBtn = sheet.querySelector(`.imp-toggle[data-idx="${i}"]`);
+        if (!toggleBtn) return;
+        const row = toggleBtn.closest('[data-row]');
+        if (r.selected) {
+            toggleBtn.className = 'imp-toggle w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all bg-indigo-600 border-indigo-600';
+            toggleBtn.innerHTML = '<svg class="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>';
+        } else {
+            toggleBtn.className = `imp-toggle w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${dark ? 'border-slate-600' : 'border-slate-300'}`;
+            toggleBtn.innerHTML = '';
+        }
+        if (row) {
+            row.querySelector('.row-name').className = `row-name text-sm font-bold truncate ${r.selected ? (dark ? 'text-slate-100' : 'text-slate-900') : (dark ? 'text-slate-600' : 'text-slate-300')}`;
+            row.querySelector('.row-amt').className  = `row-amt text-sm font-black shrink-0 ${r.selected ? (dark ? 'text-slate-200' : 'text-slate-700') : (dark ? 'text-slate-600' : 'text-slate-300')}`;
         }
     }
 
-    render();
+    // Initial full render (once only)
+    sheet.innerHTML = `
+        <div class="p-5 pb-2 shrink-0">
+            <div class="flex items-center justify-between mb-1">
+                <h3 class="font-bold text-base ${dark ? 'text-slate-100' : 'text-slate-900'}">Forhåndsvisning</h3>
+                <button id="_imp_close" class="w-9 h-9 rounded-full flex items-center justify-center ${dark ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-400'} active:opacity-70">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <p id="_imp_stats" class="text-xs ${dark ? 'text-slate-400' : 'text-slate-500'} mb-4"></p>
+
+            <div class="flex gap-2 mb-3">
+                <div class="flex-1">
+                    <p class="text-[10px] font-bold uppercase tracking-wide ${dark ? 'text-slate-400' : 'text-slate-400'} mb-1">Ukjent kategori</p>
+                    <select id="_imp_cat" class="w-full text-sm font-bold rounded-xl px-3 py-2 border ${dark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-slate-50 border-slate-200'} outline-none">
+                        ${categories.map(c => `<option value="${escText(c)}" ${c === selectedCategory ? 'selected' : ''}>${escText(c)}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="flex-1">
+                    <p class="text-[10px] font-bold uppercase tracking-wide ${dark ? 'text-slate-400' : 'text-slate-400'} mb-1">Kjøper</p>
+                    <select id="_imp_buyer" class="w-full text-sm font-bold rounded-xl px-3 py-2 border ${dark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-slate-50 border-slate-200'} outline-none">
+                        ${buyerOptions.map(b => `<option value="${escText(b)}" ${b === selectedBuyer ? 'selected' : ''}>${escText(b)}</option>`).join('')}
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex gap-3 mb-1">
+                <button id="_imp_selall" class="text-[11px] font-bold text-indigo-500 active:opacity-70">Velg alle</button>
+                <span class="${dark ? 'text-slate-600' : 'text-slate-200'}">·</span>
+                <button id="_imp_deselall" class="text-[11px] font-bold ${dark ? 'text-slate-500' : 'text-slate-400'} active:opacity-70">Fjern alle</button>
+            </div>
+        </div>
+
+        <div class="overflow-y-auto flex-1 px-5" id="_imp_rows">
+            ${rows.map((r, i) => `
+                <div data-row="${i}" class="flex items-center gap-3 py-2.5 border-b ${dark ? 'border-slate-700' : 'border-slate-100'} last:border-0">
+                    <button data-idx="${i}" class="imp-toggle w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${r.selected ? 'bg-indigo-600 border-indigo-600' : (dark ? 'border-slate-600' : 'border-slate-300')}">
+                        ${r.selected ? '<svg class="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>' : ''}
+                    </button>
+                    <div class="flex-1 min-w-0">
+                        <p class="row-name text-sm font-bold truncate ${r.selected ? (dark ? 'text-slate-100' : 'text-slate-900') : (dark ? 'text-slate-600' : 'text-slate-300')}">${escText(r.desc)}</p>
+                        <p class="text-[10px] ${dark ? 'text-slate-500' : 'text-slate-400'} flex items-center gap-1.5 flex-wrap">
+                            <span>${escText(r.date)}</span>
+                            ${r.isTransfer ? '<span class="text-amber-500 font-bold">· overføring</span>' : ''}
+                            ${r.category ? `<span class="text-indigo-500 font-bold bg-indigo-50 rounded-full px-1.5 py-px">${escText(r.category)}</span>` : '<span class="text-slate-300">· ukjent</span>'}
+                            ${r.isDuplicate ? '<span class="text-rose-400 font-bold bg-rose-50 rounded-full px-1.5 py-px">duplikat</span>' : ''}
+                        </p>
+                    </div>
+                    <span class="row-amt text-sm font-black shrink-0 ${r.selected ? (dark ? 'text-slate-200' : 'text-slate-700') : (dark ? 'text-slate-600' : 'text-slate-300')}">
+                        ${fmt(r.amount)} kr
+                    </span>
+                </div>`).join('')}
+        </div>
+
+        <div class="p-5 pt-3 shrink-0">
+            <button id="_imp_confirm" class="w-full py-3.5 rounded-2xl text-sm font-bold transition-all bg-slate-100 text-slate-300"></button>
+        </div>`;
+
+    sheet.querySelector('#_imp_close').onclick = () => document.getElementById('importSheetOverlay')?.remove();
+    sheet.querySelector('#_imp_cat').onchange = e => { selectedCategory = e.target.value; };
+    sheet.querySelector('#_imp_buyer').onchange = e => { selectedBuyer = e.target.value; };
+
+    sheet.querySelector('#_imp_selall').onclick = () => {
+        rows.forEach((r, i) => { r.selected = true; updateRow(i); });
+        updateStats();
+    };
+    sheet.querySelector('#_imp_deselall').onclick = () => {
+        rows.forEach((r, i) => { r.selected = false; updateRow(i); });
+        updateStats();
+    };
+
+    sheet.querySelectorAll('.imp-toggle').forEach(btn => {
+        btn.onclick = () => {
+            const i = parseInt(btn.dataset.idx);
+            rows[i].selected ^= true;
+            updateRow(i);
+            updateStats();
+        };
+    });
+
+    updateStats(); // populate initial state
 }
 
 // ---- Duplicate detection ----
