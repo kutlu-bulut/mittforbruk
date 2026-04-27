@@ -11,8 +11,13 @@ import { showToast } from './ui.js';
 
 function parseNOKAmount(str) {
     if (!str || !str.trim()) return null;
-    const val = parseFloat(str.trim().replace(/\s/g, '').replace(',', '.'));
+    // Strip quotes, spaces, then replace Norwegian decimal comma
+    const val = parseFloat(str.trim().replace(/"/g, '').replace(/\s/g, '').replace(',', '.'));
     return isNaN(val) ? null : val;
+}
+
+function unquote(str) {
+    return (str || '').trim().replace(/^"|"$/g, '');
 }
 
 function isLikelyTransfer(desc) {
@@ -24,14 +29,26 @@ function isLikelyTransfer(desc) {
            d.startsWith('lån ');
 }
 
+function detectSeparator(header) {
+    if (header.includes('\t')) return '\t';
+    if (header.includes(';')) return ';';
+    return ',';
+}
+
 function parseCSV(text) {
-    const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+    // Strip UTF-8 BOM if present
+    text = text.replace(/^﻿/, '');
+    const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+    if (lines.length < 2) return [];
+
+    const sep = detectSeparator(lines[0]);
     const rows = [];
+
     for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split('\t');
+        const cols = lines[i].split(sep).map(unquote);
         if (cols.length < 4) continue;
-        const dato = (cols[0] || '').trim();
-        const beskrivelse = (cols[2] || '').trim();
+        const dato = cols[0];
+        const beskrivelse = cols[2];
         const ut = parseNOKAmount(cols[3]);
         const inn = parseNOKAmount(cols[4]);
         if (!ut && !inn) continue;
