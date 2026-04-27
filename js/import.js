@@ -60,6 +60,7 @@ function parseCSV(text) {
             amount: ut,
             isTransfer: isLikelyTransfer(beskrivelse),
             selected: !isLikelyTransfer(beskrivelse),
+            category: autoCategory(beskrivelse),
         });
     }
     return rows;
@@ -69,6 +70,58 @@ function escText(str) {
     return String(str)
         .replace(/&/g, '&amp;').replace(/</g, '&lt;')
         .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ---- Auto-categorizer ----
+
+const CAT_RULES = [
+    { cat: 'Mat', test: d =>
+        /rema|kiwi|meny|\bspar\b|coop|joker|bunnpris|extra|nærbu|eurospar|kolonial|adams matkasse|godtlevert/i.test(d) ||
+        /narvesen|7.?eleven|mix\b/i.test(d)
+    },
+    { cat: 'Restaurant', test: d =>
+        /mcdonalds|mcdonald|burger.?king|max.?burger|kfc|subway|dominos|pizz|sushi|restaurant|kro\b|café|cafe\b|bakeri|foodora|wolt|just.?eat|uber.?eats|starbucks|waynes|diner/i.test(d)
+    },
+    { cat: 'Transport', test: d =>
+        /circle.?k|shell|esso|statoil|uno.?x|\bst1\b|\bbest\b|bensinstasjon/i.test(d) ||
+        /easypark|apcoa|europark|parkeringshuset|autopay/i.test(d) ||
+        /\bruter\b|atb\b|skyss|kolumbus|\bvy\b|flytoget|nsb\b|entur/i.test(d) ||
+        /norwegian.?air|sas\b|wideroe|widerøe|\bflyr\b/i.test(d) ||
+        /\buber\b|\bbolt\b|taxify/i.test(d)
+    },
+    { cat: 'Bolig', test: d =>
+        /forsikring|gjensidige|tryg\b|if\b.{0,10}forsikring|jbf|codan/i.test(d) ||
+        /hafslund|tibber|fortum|lyse.?energi|fjordkraft|ustekveikja/i.test(d) ||
+        /fiber|altibox|telenor|telia|\bice\b|nextgentel|get\.no|viken.?fiber/i.test(d) ||
+        /verisure|sector.?alarm|nokas|avarn/i.test(d) ||
+        /husleie|kommunale|renovasjon|dnb.?livsforsikring/i.test(d)
+    },
+    { cat: 'Helse', test: d =>
+        /apotek|farmasiet|boots|vitusapotek|lloyds|legesenteret|tannlege|fysioterapi|optiker|brilleland/i.test(d)
+    },
+    { cat: 'Shopping', test: d =>
+        /\bh&m\b|h\.m\b|\bzara\b|nike|adidas|zalando|boozt|nelly\b|miinto/i.test(d) ||
+        /ikea|elkjøp|power\b|komplett|mediamarkt|clas.ohlson|biltema|jula\b/i.test(d) ||
+        /amazon|ebay|aliexpress|\bwish\b/i.test(d) ||
+        /postnord|bring\b/i.test(d) ||
+        /nille|normal\b|flying.tiger|lindex|cubus|dressmann|vero.moda|guttelus|carlings|weekday/i.test(d) ||
+        /lofavør|maxbo|byggmax|jernia|k-rauta/i.test(d) ||
+        /klarna/i.test(d)
+    },
+    { cat: 'Underholdning', test: d =>
+        /spotify|netflix|hbo|disney|viaplay|tv2.?sumo|nrk.?sumo|apple.?tv/i.test(d) ||
+        /google.?play|playstation|xbox|\bsteam\b|nintendo/i.test(d) ||
+        /norsk.?tipping|lotteri|bingo/i.test(d) ||
+        /sats\b|elixia|evo.?fitness|fresh.?fitness|treningssenter|3t\b/i.test(d) ||
+        /kino|cinema|ticketmaster|billettservice/i.test(d)
+    },
+];
+
+function autoCategory(desc) {
+    for (const rule of CAT_RULES) {
+        if (rule.test(desc)) return rule.cat;
+    }
+    return null;
 }
 
 // ---- Sheet entry point ----
@@ -181,7 +234,7 @@ function renderPreview(sheet, dark, rows) {
 
                 <div class="flex gap-2 mb-3">
                     <div class="flex-1">
-                        <p class="text-[10px] font-bold uppercase tracking-wide ${dark ? 'text-slate-400' : 'text-slate-400'} mb-1">Kategori</p>
+                        <p class="text-[10px] font-bold uppercase tracking-wide ${dark ? 'text-slate-400' : 'text-slate-400'} mb-1">Ukjent kategori</p>
                         <select id="_imp_cat" class="w-full text-sm font-bold rounded-xl px-3 py-2 border ${dark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-slate-50 border-slate-200'} outline-none">
                             ${categories.map(c => `<option value="${escText(c)}" ${c === selectedCategory ? 'selected' : ''}>${escText(c)}</option>`).join('')}
                         </select>
@@ -209,7 +262,11 @@ function renderPreview(sheet, dark, rows) {
                         </button>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm font-bold truncate ${r.selected ? (dark ? 'text-slate-100' : 'text-slate-900') : (dark ? 'text-slate-600' : 'text-slate-300')}">${escText(r.desc)}</p>
-                            <p class="text-[10px] ${dark ? 'text-slate-500' : 'text-slate-400'}">${escText(r.date)}${r.isTransfer ? ' <span class="text-amber-500 font-bold">· overføring</span>' : ''}</p>
+                            <p class="text-[10px] ${dark ? 'text-slate-500' : 'text-slate-400'} flex items-center gap-1.5 flex-wrap">
+                                <span>${escText(r.date)}</span>
+                                ${r.isTransfer ? '<span class="text-amber-500 font-bold">· overføring</span>' : ''}
+                                ${r.category ? `<span class="text-indigo-500 font-bold bg-indigo-50 rounded-full px-1.5 py-px">${escText(r.category)}</span>` : '<span class="text-slate-300">· ukjent</span>'}
+                            </p>
                         </div>
                         <span class="text-sm font-black shrink-0 ${r.selected ? (dark ? 'text-slate-200' : 'text-slate-700') : (dark ? 'text-slate-600' : 'text-slate-300')}">
                             ${r.amount.toLocaleString('nb-NO', {minimumFractionDigits:0, maximumFractionDigits:2})} kr
@@ -241,10 +298,18 @@ function renderPreview(sheet, dark, rows) {
 
 // ---- Write to Firestore ----
 
-async function doImport(rows, category, buyer) {
+async function doImport(rows, fallbackCategory, buyer) {
     const toImport = rows.filter(r => r.selected);
     if (!toImport.length) return;
     try {
+        // Create any new categories that don't exist yet
+        const known = new Set(state.categoriesCache || []);
+        const newCats = [...new Set(toImport.map(r => r.category).filter(Boolean).filter(c => !known.has(c)))];
+        for (const name of newCats) {
+            const { addDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+            await addDoc(collection(db, "households", state.currentHid, "categories"), { name });
+        }
+
         const batch = writeBatch(db);
         toImport.forEach(r => {
             const [y, m, d] = r.date.split('-').map(Number);
@@ -253,7 +318,7 @@ async function doImport(rows, category, buyer) {
                 store: r.desc,
                 desc: '',
                 price: r.amount,
-                category,
+                category: r.category || fallbackCategory,
                 buyer,
                 type: 'Behov',
                 rating: 0,
