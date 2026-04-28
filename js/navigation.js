@@ -26,9 +26,6 @@ window.switchTab = (t, preventScroll = false) => {
     const navBtn = document.getElementById('nav-' + navId);
     if (navBtn) navBtn.classList.add('nav-active');
 
-    const fab = document.getElementById('fabAdd');
-    if (fab) fab.classList.toggle('hidden', t === 'add');
-
     // Only show the full header (user name + budget bar) on the Hjem tab
     const headerBudget = document.getElementById('headerUserBudget');
     if (headerBudget) headerBudget.classList.toggle('hidden', t !== 'hjem');
