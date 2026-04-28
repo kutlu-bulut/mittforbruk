@@ -30,5 +30,9 @@ window.switchTab = (t, preventScroll = false) => {
     const headerBudget = document.getElementById('headerUserBudget');
     if (headerBudget) headerBudget.classList.toggle('hidden', t !== 'hjem');
 
+    // Show add-purchase button only on Hjem
+    const addBar = document.getElementById('addPurchaseBar');
+    if (addBar) addBar.classList.toggle('hidden', t !== 'hjem');
+
     if (!preventScroll) window.scrollTo(0, 0);
 };
