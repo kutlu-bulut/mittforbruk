@@ -481,6 +481,34 @@ async function renderHistorySheet(sheet, dark) {
 
     sheet.querySelector('#_ih_close').onclick = () => document.getElementById('importSheetOverlay')?.remove();
 
+    // Old imports section — purchases with empty desc and no importId
+    const oldImports = (state.allPurchases || []).filter(p => p.desc === '' && !p.importId);
+    if (oldImports.length > 0) {
+        const oldSection = document.createElement('div');
+        oldSection.className = `mt-4 p-4 rounded-2xl border ${dark ? 'bg-slate-700 border-slate-600' : 'bg-amber-50 border-amber-200'}`;
+        oldSection.innerHTML = `
+            <p class="text-xs font-bold ${dark ? 'text-slate-300' : 'text-amber-800'} mb-1">Gammel import (uten logg)</p>
+            <p class="text-xs ${dark ? 'text-slate-400' : 'text-amber-700'} mb-3">${oldImports.length} kjøp importert uten importlogg — sannsynligvis fra en tidligere import.</p>
+            <button id="_ih_del_old" class="w-full py-2 rounded-xl text-xs font-bold bg-rose-50 text-rose-500 border border-rose-100 active:opacity-70">
+                Slett alle (${oldImports.length} kjøp)
+            </button>
+        `;
+        sheet.querySelector('.overflow-y-auto').appendChild(oldSection);
+
+        oldSection.querySelector('#_ih_del_old').onclick = async () => {
+            if (!confirm(`Slette ${oldImports.length} kjøp uten importlogg?`)) return;
+            try {
+                const batch = writeBatch(db);
+                oldImports.forEach(p => batch.delete(doc(db, "households", state.currentHid, "purchases", p.id)));
+                await batch.commit();
+                showToast(`${oldImports.length} kjøp slettet`);
+                await renderHistorySheet(sheet, dark);
+            } catch (err) {
+                showToast('Feil: ' + err.message, 'error');
+            }
+        };
+    }
+
     sheet.querySelectorAll('.ih-del').forEach(btn => {
         btn.onclick = async () => {
             const importId = btn.dataset.imp;

@@ -9,9 +9,10 @@ const MONTH_NAMES = ['Januar','Februar','Mars','April','Mai','Juni','Juli','Augu
 
 let insightsYear  = new Date().getFullYear();
 let insightsMonth = new Date().getMonth();
+let insightsPerson = null; // null = all household members
 
 // ============================================================
-// Public entry point — called from app.js and month nav
+// Public entry point — called from app.js and month/person nav
 // ============================================================
 export function refreshInsightsView(year, month) {
     if (year  !== undefined) insightsYear  = year;
@@ -20,10 +21,16 @@ export function refreshInsightsView(year, month) {
     const all = state.allPurchases || [];
     const myName = state.currentUserData.name || 'Meg';
 
-    const purchases = all.filter(p => {
+    // Filter by month
+    let purchases = all.filter(p => {
         const d = new Date(p.createdAt);
         return d.getFullYear() === insightsYear && d.getMonth() === insightsMonth;
     });
+
+    // Filter by selected person
+    if (insightsPerson !== null) {
+        purchases = purchases.filter(p => (p.buyer || 'Ukjent') === insightsPerson);
+    }
 
     let total = 0, buyerSums = {}, catSums = {}, storeSums = {}, daySums = {};
     let myTotal = 0, myCount = 0, myBehov = 0, myLyst = 0, myCatSums = {};
@@ -57,58 +64,26 @@ export function refreshInsightsView(year, month) {
     const myLystPct  = 100 - myBehovPct;
 
     renderInsightsMonthNav(all);
-    updateDuellen(buyerSums);
-    renderMyMonthSection({ myTotal, myCount, myTopCat, myTopCatAmt, myBehovPct, myLystPct });
+    renderInsightsPersonNav();
+
+    if (insightsPerson !== null) {
+        renderDuelPersonal(insightsPerson, total, purchases.length);
+        const myEl = document.getElementById('myMonthSection');
+        if (myEl) myEl.innerHTML = '';
+    } else {
+        updateDuellen(buyerSums);
+        renderMyMonthSection({ myTotal, myCount, myTopCat, myTopCatAmt, myBehovPct, myLystPct });
+    }
+
     updateDailyInsights(total, insightsYear, insightsMonth);
     updateDailyChart(daySums, insightsYear, insightsMonth);
     updateCategoryBars(catSums);
     updateStoreBars(storeSums);
 }
 
-function renderMyMonthSection({ myTotal, myCount, myTopCat, myTopCatAmt, myBehovPct, myLystPct }) {
-    const el = document.getElementById('myMonthSection');
-    if (!el) return;
-
-    // Only show when there are 2+ members — solo users already see their total in the duel section
-    if (state.householdMembers.length <= 1 || myCount === 0) {
-        el.innerHTML = '';
-        return;
-    }
-
-    const me = state.currentUserData;
-    const myName = me.name || 'Meg';
-    const myColor = me.color || '#4f46e5';
-    const myAvatar = me.avatar || myName.charAt(0).toUpperCase();
-
-    el.innerHTML = `
-        <div class="px-2 mb-3"><h3 class="section-title">Din andel</h3></div>
-        <div class="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-12 h-12 rounded-full text-white flex items-center justify-center text-xl font-black shadow-md border-2 border-white flex-shrink-0" style="background:${escapeHtml(myColor)}">${escapeHtml(myAvatar)}</div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">${escapeHtml(myName)}</p>
-                    <p class="text-2xl font-black text-slate-900 leading-none">${myTotal.toLocaleString()} kr</p>
-                    <p class="text-xs text-slate-400 font-semibold mt-0.5">${myCount} kjøp</p>
-                </div>
-                ${myTopCat ? `<div class="text-right flex-shrink-0">
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Topp kategori</p>
-                    <p class="text-sm font-black text-slate-900">${escapeHtml(myTopCat)}</p>
-                    <p class="text-xs text-slate-400 font-semibold">${myTopCatAmt.toLocaleString()} kr</p>
-                </div>` : ''}
-            </div>
-            <div>
-                <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
-                    <span>Behov ${myBehovPct}%</span>
-                    <span>Lyst ${myLystPct}%</span>
-                </div>
-                <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden flex">
-                    <div class="h-full bg-indigo-400 rounded-full transition-all duration-700" style="width:${myBehovPct}%"></div>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
+// ============================================================
+// Month navigation
+// ============================================================
 function renderInsightsMonthNav(all) {
     const el = document.getElementById('insightsMonthNav');
     if (!el) return;
@@ -154,6 +129,126 @@ window.insightsNextMonth = () => {
     refreshInsightsView(y, m);
 };
 
+// ============================================================
+// Person selector
+// ============================================================
+function renderInsightsPersonNav() {
+    const el = document.getElementById('insightsPersonNav');
+    if (!el) return;
+
+    if (state.householdMembers.length <= 1) {
+        el.innerHTML = '';
+        return;
+    }
+
+    el.innerHTML = '';
+    const row = document.createElement('div');
+    row.className = 'flex gap-2 flex-wrap';
+
+    // "Alle" pill
+    const allBtn = document.createElement('button');
+    allBtn.className = `px-3 py-1.5 rounded-full text-xs font-bold transition-all ${insightsPerson === null ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-500 border border-slate-200'}`;
+    allBtn.textContent = 'Alle';
+    allBtn.onclick = () => { insightsPerson = null; refreshInsightsView(); };
+    row.appendChild(allBtn);
+
+    state.householdMembers.forEach(m => {
+        const name   = m.name   || 'Ukjent';
+        const color  = m.color  || '#4f46e5';
+        const avatar = m.avatar || name.charAt(0).toUpperCase();
+        const isSelected = insightsPerson === name;
+
+        const btn = document.createElement('button');
+        btn.className = `flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${isSelected ? 'shadow-sm text-white' : 'bg-white text-slate-500 border border-slate-200'}`;
+        if (isSelected) btn.style.backgroundColor = color;
+
+        const dot = document.createElement('span');
+        dot.className = 'w-4 h-4 rounded-full inline-flex items-center justify-center text-white font-black text-[9px] shrink-0';
+        dot.style.backgroundColor = isSelected ? 'rgba(255,255,255,0.3)' : color;
+        dot.textContent = avatar;
+
+        btn.appendChild(dot);
+        btn.appendChild(document.createTextNode(name));
+        btn.onclick = () => { insightsPerson = name; refreshInsightsView(); };
+        row.appendChild(btn);
+    });
+
+    el.appendChild(row);
+}
+
+// ============================================================
+// Personal view when a person is selected
+// ============================================================
+function renderDuelPersonal(personName, total, count) {
+    const container = document.getElementById('duelSection');
+    if (!container) return;
+
+    const member  = state.householdMembers.find(m => m.name === personName) || {};
+    const color   = member.color  || state.currentUserData.color  || '#4f46e5';
+    const avatar  = member.avatar || personName.charAt(0).toUpperCase();
+    const isMe    = personName === (state.currentUserData.name || 'Meg');
+
+    container.innerHTML = `
+        <div class="px-2 mb-3">
+            <h3 class="section-title">${escapeHtml(isMe ? 'Din måned' : personName + 's måned')}</h3>
+        </div>
+        <div class="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm text-center">
+            <div class="w-14 h-14 rounded-full text-white flex items-center justify-center text-2xl shadow-md border-2 border-white mx-auto mb-3" style="background:${escapeHtml(color)}">${escapeHtml(avatar)}</div>
+            <p class="text-2xl font-black text-slate-900">${total.toLocaleString()} kr</p>
+            <p class="text-xs font-semibold text-slate-400 mt-1">${count} kjøp denne måneden</p>
+        </div>
+    `;
+}
+
+// ============================================================
+// Personal "Din andel" card (shown in all-household view only)
+// ============================================================
+function renderMyMonthSection({ myTotal, myCount, myTopCat, myTopCatAmt, myBehovPct, myLystPct }) {
+    const el = document.getElementById('myMonthSection');
+    if (!el) return;
+
+    if (state.householdMembers.length <= 1 || myCount === 0) {
+        el.innerHTML = '';
+        return;
+    }
+
+    const me      = state.currentUserData;
+    const myName  = me.name   || 'Meg';
+    const myColor = me.color  || '#4f46e5';
+    const myAvatar = me.avatar || myName.charAt(0).toUpperCase();
+
+    el.innerHTML = `
+        <div class="px-2 mb-3"><h3 class="section-title">Din andel</h3></div>
+        <div class="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 rounded-full text-white flex items-center justify-center text-xl font-black shadow-md border-2 border-white flex-shrink-0" style="background:${escapeHtml(myColor)}">${escapeHtml(myAvatar)}</div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">${escapeHtml(myName)}</p>
+                    <p class="text-2xl font-black text-slate-900 leading-none">${myTotal.toLocaleString()} kr</p>
+                    <p class="text-xs text-slate-400 font-semibold mt-0.5">${myCount} kjøp</p>
+                </div>
+                ${myTopCat ? `<div class="text-right flex-shrink-0">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Topp kategori</p>
+                    <p class="text-sm font-black text-slate-900">${escapeHtml(myTopCat)}</p>
+                    <p class="text-xs text-slate-400 font-semibold">${myTopCatAmt.toLocaleString()} kr</p>
+                </div>` : ''}
+            </div>
+            <div>
+                <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                    <span>Behov ${myBehovPct}%</span>
+                    <span>Lyst ${myLystPct}%</span>
+                </div>
+                <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden flex">
+                    <div class="h-full bg-indigo-400 rounded-full transition-all duration-700" style="width:${myBehovPct}%"></div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// ============================================================
+// Daily chart
+// ============================================================
 function updateDailyChart(daySums, year, month) {
     const el = document.getElementById('dailyChart');
     if (!el) return;
@@ -205,7 +300,6 @@ export function updateDuellen(buyerSums) {
     const memberCount = state.householdMembers.length;
 
     if (memberCount <= 1) {
-        // Solo — vis personlig oversikt i stedet for duell
         const myName = state.currentUserData.name || 'Meg';
         const mySum = buyerSums[myName] || 0;
         container.innerHTML = `
@@ -220,12 +314,10 @@ export function updateDuellen(buyerSums) {
     }
 
     if (memberCount === 2) {
-        // Classic 1v1 duell
         renderDuel2(buyerSums);
         return;
     }
 
-    // 3+ — rangert liste
     renderDuelMulti(buyerSums);
 }
 
@@ -299,13 +391,12 @@ function renderDuel2(buyerSums) {
 function renderDuelMulti(buyerSums) {
     const container = document.getElementById('duelSection');
 
-    // Bygg rangert liste over alle medlemmer
     const rankings = state.householdMembers.map(m => ({
         name: m.name || 'Ukjent',
         avatar: m.avatar || (m.name || 'U').charAt(0).toUpperCase(),
         color: m.color || '#64748b',
         amount: buyerSums[m.name] || 0
-    })).sort((a, b) => a.amount - b.amount); // Lavest først = vinner
+    })).sort((a, b) => a.amount - b.amount);
 
     const rows = rankings.map((r, i) => {
         const medal = i === 0 && rankings.length > 1 ? '👑 ' : '';
@@ -339,7 +430,7 @@ export function updateDailyInsights(currentTotal, year, month) {
     const avg = currentTotal > 0 ? Math.round(currentTotal / daysElapsed) : 0;
     document.getElementById('avgPerDay').innerText = `${avg.toLocaleString()} kr`;
 
-    if (isCurrentMonth) {
+    if (isCurrentMonth && insightsPerson === null) {
         const diff     = state.currentBudget - currentTotal;
         const daysLeft = (daysInMonth - now.getDate()) + 1;
         if (diff > 0 && daysLeft > 0) {
