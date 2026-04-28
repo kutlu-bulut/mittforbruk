@@ -7,7 +7,7 @@ import { getBuyerColor } from './preferences.js';
 
 export function renderPurchaseCard(p, onClick) {
     const card = document.createElement('div');
-    card.className = "bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm active:scale-95 cursor-pointer transition-all hover:border-indigo-200";
+    card.className = "bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm active:scale-95 cursor-pointer transition-all hover:border-indigo-200";
     if (onClick) card.onclick = onClick;
 
     const bColor = getBuyerColor(p.buyer || 'Ukjent');
@@ -41,7 +41,7 @@ export function renderPurchaseCard(p, onClick) {
     dateChip.textContent = dateStr;
 
     const priceEl = document.createElement('p');
-    priceEl.className = "font-black text-lg text-slate-900";
+    priceEl.className = "font-black text-base text-slate-900";
     priceEl.textContent = (p.price || 0).toLocaleString() + " kr";
 
     rightCol.appendChild(dateChip);
@@ -52,20 +52,20 @@ export function renderPurchaseCard(p, onClick) {
     card.appendChild(topRow);
 
     const tagsRow = document.createElement('div');
-    tagsRow.className = "flex flex-wrap gap-2 mt-3";
+    tagsRow.className = "flex flex-wrap gap-1.5 mt-2";
 
     const typeChip = document.createElement('span');
-    typeChip.className = `text-[10px] font-black px-2 py-1 rounded-lg border uppercase ${(p.type || 'Behov') === 'Behov' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`;
+    typeChip.className = `text-[10px] font-black px-2 py-0.5 rounded-lg border uppercase ${(p.type || 'Behov') === 'Behov' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`;
     typeChip.textContent = p.type || 'Behov';
     tagsRow.appendChild(typeChip);
 
     const catChip = document.createElement('span');
-    catChip.className = "text-[10px] font-black px-2 py-1 rounded-lg bg-slate-50 text-slate-500 border border-slate-200 uppercase";
+    catChip.className = "text-[10px] font-black px-2 py-0.5 rounded-lg bg-slate-50 text-slate-500 border border-slate-200 uppercase";
     catChip.textContent = emojiStr + cName;
     tagsRow.appendChild(catChip);
 
     const buyerChip = document.createElement('span');
-    buyerChip.className = "text-[10px] font-black px-2 py-1 rounded-lg uppercase text-white shadow-sm";
+    buyerChip.className = "text-[10px] font-black px-2 py-0.5 rounded-lg uppercase text-white shadow-sm";
     buyerChip.style.backgroundColor = bColor;
     buyerChip.textContent = p.buyer || 'Ukjent';
     tagsRow.appendChild(buyerChip);
