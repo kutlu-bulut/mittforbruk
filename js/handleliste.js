@@ -337,18 +337,25 @@ function buildItemEl(item) {
     const el = document.createElement('div');
     el.dataset.id = item.id;
     el.className = [
-        'flex items-center gap-2 p-3 bg-white rounded-2xl border shadow-sm transition-all',
+        'flex items-center gap-2 p-2 bg-white rounded-xl border shadow-sm transition-all',
         item.checked ? 'border-slate-100 handleliste-item-checked' : 'border-slate-200',
     ].join(' ');
+
+    // Colored left border for group (unchecked only, no extra space)
+    if (!item.checked && item.group) {
+        const gc = getGroupColor(item.group);
+        el.style.borderLeftColor = gc.dot;
+        el.style.borderLeftWidth = '3px';
+    }
 
     // Drag handle (unchecked only)
     if (!item.checked) {
         const handle = document.createElement('div');
-        handle.className = 'drag-handle flex flex-col items-center gap-[3px] cursor-grab active:cursor-grabbing shrink-0 px-0.5 py-1.5 rounded-md active:bg-slate-100 transition-colors';
+        handle.className = 'drag-handle flex flex-col items-center gap-[3px] cursor-grab active:cursor-grabbing shrink-0 px-0.5 rounded-md active:bg-slate-100 transition-colors';
         handle.innerHTML = `
-            <div class="w-3.5 h-[2px] bg-slate-300 rounded-full"></div>
-            <div class="w-3.5 h-[2px] bg-slate-300 rounded-full"></div>
-            <div class="w-3.5 h-[2px] bg-slate-300 rounded-full"></div>
+            <div class="w-3 h-[2px] bg-slate-300 rounded-full"></div>
+            <div class="w-3 h-[2px] bg-slate-300 rounded-full"></div>
+            <div class="w-3 h-[2px] bg-slate-300 rounded-full"></div>
         `;
         el.appendChild(handle);
     }
@@ -356,11 +363,11 @@ function buildItemEl(item) {
     // Checkbox
     const checkbox = document.createElement('button');
     checkbox.className = [
-        'w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all',
+        'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all',
         item.checked ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300 active:border-indigo-400',
     ].join(' ');
     checkbox.innerHTML = item.checked
-        ? '<svg class="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>'
+        ? '<svg class="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>'
         : '';
     checkbox.onclick = () => window.toggleHandlelisteItem(item.id, !item.checked);
     el.appendChild(checkbox);
@@ -370,32 +377,24 @@ function buildItemEl(item) {
     textWrap.className = 'flex-1 min-w-0';
 
     const nameEl = document.createElement('span');
-    nameEl.className = `block font-bold text-sm ${item.checked ? 'text-slate-400 line-through' : 'text-slate-900'}`;
+    nameEl.className = `block font-bold text-sm leading-tight ${item.checked ? 'text-slate-400 line-through' : 'text-slate-900'}`;
     nameEl.textContent = item.name;
     textWrap.appendChild(nameEl);
 
-    if (!item.checked) {
-        // Group chip
-        const chip = document.createElement('button');
-        const chipColor = item.group ? getGroupColor(item.group) : null;
-        const chipDark = document.body.classList.contains('dark-mode');
-        chip.className = item.group
-            ? 'mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold rounded-full px-2 py-0.5 transition-colors'
-            : 'mt-0.5 inline-flex items-center gap-1 text-[10px] font-semibold text-slate-300 hover:text-slate-400 transition-colors';
-        if (item.group && chipColor) {
-            chip.style.color = chipDark ? chipColor.darkText : chipColor.text;
-            chip.style.backgroundColor = chipDark ? chipColor.darkBg : chipColor.bg;
-        }
-        chip.innerHTML = item.group
-            ? `<svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><circle cx="7" cy="7" r="1" fill="currentColor"/></svg>${escapeText(item.group)}`
-            : `<svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>gruppe`;
-        chip.onclick = (e) => { e.stopPropagation(); showGroupPicker(item.id); };
-        textWrap.appendChild(chip);
-    } else {
+    if (item.checked && item.addedBy) {
         const byEl = document.createElement('span');
         byEl.className = 'text-[10px] text-slate-400 font-medium';
-        byEl.textContent = item.addedBy || '';
+        byEl.textContent = item.addedBy;
         textWrap.appendChild(byEl);
+    }
+
+    if (!item.checked && !item.group) {
+        // Small tap target to assign a group — just an icon, no label
+        const chip = document.createElement('button');
+        chip.className = 'mt-0.5 inline-flex items-center text-[10px] text-slate-300 hover:text-slate-400 transition-colors';
+        chip.innerHTML = `<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>`;
+        chip.onclick = (e) => { e.stopPropagation(); showGroupPicker(item.id); };
+        textWrap.appendChild(chip);
     }
 
     el.appendChild(textWrap);
@@ -406,16 +405,16 @@ function buildItemEl(item) {
         qtyWrap.className = 'flex items-center gap-0.5 shrink-0';
 
         const minusBtn = document.createElement('button');
-        minusBtn.className = 'w-7 h-7 rounded-full flex items-center justify-center text-slate-400 active:text-indigo-600 active:bg-indigo-50 transition-colors text-lg font-bold leading-none';
+        minusBtn.className = 'w-6 h-6 rounded-full flex items-center justify-center text-slate-400 active:text-indigo-600 active:bg-indigo-50 transition-colors font-bold leading-none';
         minusBtn.textContent = '−';
         minusBtn.onclick = (e) => { e.stopPropagation(); window.updateHandlelisteQty(item.id, -1); };
 
         const qtyLabel = document.createElement('span');
-        qtyLabel.className = 'text-xs font-bold text-slate-700 min-w-[1.4rem] text-center';
+        qtyLabel.className = 'text-xs font-bold text-slate-700 min-w-[1.2rem] text-center';
         qtyLabel.textContent = String(item.quantity > 1 ? item.quantity : 1);
 
         const plusBtn = document.createElement('button');
-        plusBtn.className = 'w-7 h-7 rounded-full flex items-center justify-center text-slate-400 active:text-indigo-600 active:bg-indigo-50 transition-colors text-lg font-bold leading-none';
+        plusBtn.className = 'w-6 h-6 rounded-full flex items-center justify-center text-slate-400 active:text-indigo-600 active:bg-indigo-50 transition-colors font-bold leading-none';
         plusBtn.textContent = '+';
         plusBtn.onclick = (e) => { e.stopPropagation(); window.updateHandlelisteQty(item.id, 1); };
 
@@ -427,7 +426,7 @@ function buildItemEl(item) {
 
     // Delete button
     const delBtn = document.createElement('button');
-    delBtn.className = 'p-1.5 rounded-lg text-slate-300 active:text-rose-400 transition-colors shrink-0';
+    delBtn.className = 'p-1 rounded-lg text-slate-300 active:text-rose-400 transition-colors shrink-0';
     delBtn.innerHTML = '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>';
     delBtn.onclick = () => window.deleteHandlelisteItem(item.id);
     el.appendChild(delBtn);
