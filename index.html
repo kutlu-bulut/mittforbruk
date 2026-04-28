@@ -88,7 +88,7 @@
                 <span class="brand-text text-white">Hvor går pengene?</span>
                 <span class="absolute right-3 text-[9px] font-mono text-indigo-300 opacity-75">v19.15</span>
             </div>
-            <div class="px-5 pt-3 pb-3.5">
+            <div id="headerUserBudget" class="px-5 pt-3 pb-3.5">
                 <div class="flex justify-between items-center mb-3">
                     <div class="flex items-center gap-3">
                         <div id="headerAvatar" class="w-9 h-9 rounded-full flex items-center justify-center text-lg shadow-sm border-2 border-white" style="background: var(--user-color)">?</div>
@@ -352,25 +352,25 @@
                     <!-- List tabs -->
                     <div id="shoppingListTabs"></div>
                     <!-- Quick-add -->
-                    <div class="bg-white p-4 rounded-[2rem] border border-slate-200 shadow-sm space-y-3">
-                        <div class="flex gap-2 items-center">
+                    <div class="space-y-2">
+                        <div class="flex gap-2 items-center bg-white rounded-2xl border border-slate-200 shadow-sm px-3 py-2">
                             <div class="relative flex-1">
                                 <input type="text" id="handlelisteInput" placeholder="Legg til vare..." autocomplete="off"
-                                    class="w-full bg-slate-50 px-4 py-3 rounded-xl outline-none font-bold text-sm border border-slate-200">
+                                    class="w-full bg-transparent px-1 py-1.5 outline-none font-bold text-sm text-slate-800 placeholder-slate-300">
                                 <div id="handlelisteAutocomplete" class="store-autocomplete hidden"></div>
                             </div>
-                            <div class="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-2">
-                                <button onclick="document.getElementById('handlelisteQty').stepDown()" class="w-6 h-6 flex items-center justify-center text-slate-400 font-black text-lg leading-none active:scale-90 transition-all">−</button>
+                            <div class="flex items-center gap-0.5 border-l border-slate-200 pl-2">
+                                <button onclick="document.getElementById('handlelisteQty').stepDown()" class="w-5 h-5 flex items-center justify-center text-slate-400 font-black text-base leading-none active:scale-90 transition-all">−</button>
                                 <input type="number" id="handlelisteQty" value="1" min="1" max="99"
-                                    class="w-8 text-center bg-transparent font-black text-sm text-slate-700 outline-none">
-                                <button onclick="document.getElementById('handlelisteQty').stepUp()" class="w-6 h-6 flex items-center justify-center text-slate-400 font-black text-lg leading-none active:scale-90 transition-all">+</button>
+                                    class="w-7 text-center bg-transparent font-black text-sm text-slate-700 outline-none">
+                                <button onclick="document.getElementById('handlelisteQty').stepUp()" class="w-5 h-5 flex items-center justify-center text-slate-400 font-black text-base leading-none active:scale-90 transition-all">+</button>
                             </div>
-                            <button onclick="addHandlelisteItem()" class="bg-indigo-600 text-white px-4 py-3 rounded-xl font-bold text-sm active:scale-95 transition-all shadow-sm">
+                            <button onclick="addHandlelisteItem()" class="bg-indigo-600 text-white w-8 h-8 rounded-xl flex items-center justify-center active:scale-95 transition-all shadow-sm shrink-0">
                                 <i data-lucide="plus" class="w-4 h-4"></i>
                             </button>
                         </div>
                         <!-- Group selector (shown when groups exist) -->
-                        <div id="handlelisteGroupRow" class="hidden">
+                        <div id="handlelisteGroupRow" class="hidden px-1">
                             <div id="handlelisteGroupPills" class="flex flex-wrap gap-2 items-center"></div>
                         </div>
                     </div>
