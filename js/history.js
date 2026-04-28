@@ -2,8 +2,10 @@
 // Historikk — månedsliste og detaljevisning
 // ============================================================
 
+import { writeBatch, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { db } from './firebase.js';
 import { state } from './state.js';
-import { escapeHtml } from './ui.js';
+import { escapeHtml, showToast, showModal } from './ui.js';
 import { renderPurchaseCard } from './cards.js';
 
 export function updateHistory(purchases) {
@@ -69,6 +71,28 @@ export function updateHistory(purchases) {
     }
 }
 
+window.deleteMonth = async (key) => {
+    const m = state.groupedHistory[key];
+    if (!m) return;
+    const confirmed = await showModal(
+        `Slett alle ${m.items.length} kjøp fra ${m.label}?`,
+        { inputValue: null, confirmText: 'Slett', cancelText: 'Avbryt', dangerous: true }
+    );
+    if (!confirmed) return;
+
+    try {
+        const batch = writeBatch(db);
+        m.items.forEach(p => {
+            batch.delete(doc(db, "households", state.currentHid, "purchases", p.id));
+        });
+        await batch.commit();
+        showToast(`${m.items.length} kjøp slettet`);
+        window.switchTab('historikk');
+    } catch (e) {
+        showToast("Feil ved sletting: " + e.message, 'error');
+    }
+};
+
 window.openMonth = (key, preventScroll = false) => {
     state.currentOpenMonthKey = key;
     window.switchTab('historikkDetaljer', preventScroll);
@@ -76,21 +100,47 @@ window.openMonth = (key, preventScroll = false) => {
     const m = state.groupedHistory[key];
     document.getElementById('historikkDetaljerTitle').innerText = m.label;
 
-    let sumMe = 0, sumPartner = 0;
+    // Wire delete button
+    const deleteBtn = document.getElementById('btnDeleteMonth');
+    if (deleteBtn) {
+        deleteBtn.classList.remove('hidden');
+        deleteBtn.onclick = () => window.deleteMonth(key);
+        lucide.createIcons();
+    }
+
     const safeUserName = state.currentUserData.name || 'Meg';
+    const me = state.currentUserData;
     let pName = state.householdMembers.find(mem => mem.name !== safeUserName)?.name || 'Partner';
-    let myColor = state.currentUserData.color || '#4f46e5';
+    let myColor = me.color || '#4f46e5';
     let pColor = state.householdMembers.find(mem => mem.name !== safeUserName)?.color || '#f43f5e';
-    let catsObj = {};
+
+    let sumMe = 0, sumPartner = 0, catsObj = {};
+    let myCount = 0, myBehov = 0, myLyst = 0, myCatSums = {};
 
     m.items.forEach(p => {
-        if (p.buyer === safeUserName) sumMe += (p.price || 0);
-        else sumPartner += (p.price || 0);
-        catsObj[p.category || 'Annet'] = (catsObj[p.category || 'Annet'] || 0) + (p.price || 0);
+        const price = p.price || 0;
+        const cat = p.category || 'Annet';
+        catsObj[cat] = (catsObj[cat] || 0) + price;
+
+        if (p.buyer === safeUserName) {
+            sumMe += price;
+            myCount++;
+            myCatSums[cat] = (myCatSums[cat] || 0) + price;
+            if ((p.type || 'Behov') === 'Lyst') myLyst++; else myBehov++;
+        } else {
+            sumPartner += price;
+        }
     });
 
     const sortedCats = Object.entries(catsObj).sort((a, b) => b[1] - a[1]);
     const topCat = sortedCats.length > 0 ? sortedCats[0] : ["Ingen", 0];
+
+    let myTopCat = null, myTopCatAmt = 0;
+    for (const [c, amt] of Object.entries(myCatSums)) {
+        if (amt > myTopCatAmt) { myTopCatAmt = amt; myTopCat = c; }
+    }
+    const totalBL = myBehov + myLyst;
+    const myBehovPct = totalBL > 0 ? Math.round((myBehov / totalBL) * 100) : 0;
 
     const diff = state.currentBudget - m.total;
     const statusText = diff >= 0 ? `${diff.toLocaleString()} kr under budsjett` : `${Math.abs(diff).toLocaleString()} kr over budsjett`;
@@ -99,6 +149,7 @@ window.openMonth = (key, preventScroll = false) => {
     const summaryDiv = document.getElementById('historikkDetaljerSummary');
     summaryDiv.innerHTML = '';
 
+    // --- Household summary card ---
     const summaryCard = document.createElement('div');
     summaryCard.className = "bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm mb-4";
     summaryCard.innerHTML = `
@@ -124,6 +175,35 @@ window.openMonth = (key, preventScroll = false) => {
     `;
     summaryDiv.appendChild(summaryCard);
 
+    // --- Personal breakdown card (only for multi-member households) ---
+    if (state.householdMembers.length > 1 && myCount > 0) {
+        const myAvatar = me.avatar || safeUserName.charAt(0).toUpperCase();
+        const personalCard = document.createElement('div');
+        personalCard.className = "bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm mb-4";
+        personalCard.innerHTML = `
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Din andel</p>
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-full text-white flex items-center justify-center text-base font-black shadow-sm border-2 border-white flex-shrink-0" style="background:${escapeHtml(myColor)}">${escapeHtml(myAvatar)}</div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-xl font-black text-slate-900">${sumMe.toLocaleString()} kr</p>
+                    <p class="text-xs text-slate-400 font-semibold">${myCount} kjøp${myTopCat ? ` · topp: ${escapeHtml(myTopCat)}` : ''}</p>
+                </div>
+                ${myTopCat ? `<div class="text-right flex-shrink-0">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Topp kategori</p>
+                    <p class="text-xs font-black text-slate-900">${escapeHtml(myTopCat)}</p>
+                    <p class="text-[10px] text-slate-400 font-semibold">${myTopCatAmt.toLocaleString()} kr</p>
+                </div>` : ''}
+            </div>
+            <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                <span>Behov ${myBehovPct}%</span><span>Lyst ${100 - myBehovPct}%</span>
+            </div>
+            <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-full bg-indigo-400 rounded-full" style="width:${myBehovPct}%"></div>
+            </div>
+        `;
+        summaryDiv.appendChild(personalCard);
+    }
+
     const detailList = document.getElementById('historikkDetaljerList');
     detailList.innerHTML = '';
 
@@ -135,4 +215,8 @@ window.openMonth = (key, preventScroll = false) => {
     });
 };
 
-window.backToHistorikk = () => { window.switchTab('historikk'); };
+window.backToHistorikk = () => {
+    const deleteBtn = document.getElementById('btnDeleteMonth');
+    if (deleteBtn) deleteBtn.classList.add('hidden');
+    window.switchTab('historikk');
+};

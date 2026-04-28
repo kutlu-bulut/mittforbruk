@@ -18,6 +18,7 @@ export function refreshInsightsView(year, month) {
     if (month !== undefined) insightsMonth = month;
 
     const all = state.allPurchases || [];
+    const myName = state.currentUserData.name || 'Meg';
 
     const purchases = all.filter(p => {
         const d = new Date(p.createdAt);
@@ -25,6 +26,8 @@ export function refreshInsightsView(year, month) {
     });
 
     let total = 0, buyerSums = {}, catSums = {}, storeSums = {}, daySums = {};
+    let myTotal = 0, myCount = 0, myBehov = 0, myLyst = 0, myCatSums = {};
+
     purchases.forEach(p => {
         const price = p.price || 0;
         total += price;
@@ -36,14 +39,74 @@ export function refreshInsightsView(year, month) {
         catSums[cat]     = (catSums[cat]     || 0) + price;
         storeSums[store] = (storeSums[store] || 0) + price;
         daySums[day]     = (daySums[day]     || 0) + price;
+
+        if (buyer === myName) {
+            myTotal += price;
+            myCount++;
+            myCatSums[cat] = (myCatSums[cat] || 0) + price;
+            if ((p.type || 'Behov') === 'Lyst') myLyst++; else myBehov++;
+        }
     });
+
+    let myTopCat = null, myTopCatAmt = 0;
+    for (const [c, amt] of Object.entries(myCatSums)) {
+        if (amt > myTopCatAmt) { myTopCatAmt = amt; myTopCat = c; }
+    }
+    const totalBL = myBehov + myLyst;
+    const myBehovPct = totalBL > 0 ? Math.round((myBehov / totalBL) * 100) : 0;
+    const myLystPct  = 100 - myBehovPct;
 
     renderInsightsMonthNav(all);
     updateDuellen(buyerSums);
+    renderMyMonthSection({ myTotal, myCount, myTopCat, myTopCatAmt, myBehovPct, myLystPct });
     updateDailyInsights(total, insightsYear, insightsMonth);
     updateDailyChart(daySums, insightsYear, insightsMonth);
     updateCategoryBars(catSums);
     updateStoreBars(storeSums);
+}
+
+function renderMyMonthSection({ myTotal, myCount, myTopCat, myTopCatAmt, myBehovPct, myLystPct }) {
+    const el = document.getElementById('myMonthSection');
+    if (!el) return;
+
+    // Only show when there are 2+ members — solo users already see their total in the duel section
+    if (state.householdMembers.length <= 1 || myCount === 0) {
+        el.innerHTML = '';
+        return;
+    }
+
+    const me = state.currentUserData;
+    const myName = me.name || 'Meg';
+    const myColor = me.color || '#4f46e5';
+    const myAvatar = me.avatar || myName.charAt(0).toUpperCase();
+
+    el.innerHTML = `
+        <div class="px-2 mb-3"><h3 class="section-title">Din andel</h3></div>
+        <div class="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 rounded-full text-white flex items-center justify-center text-xl font-black shadow-md border-2 border-white flex-shrink-0" style="background:${escapeHtml(myColor)}">${escapeHtml(myAvatar)}</div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">${escapeHtml(myName)}</p>
+                    <p class="text-2xl font-black text-slate-900 leading-none">${myTotal.toLocaleString()} kr</p>
+                    <p class="text-xs text-slate-400 font-semibold mt-0.5">${myCount} kjøp</p>
+                </div>
+                ${myTopCat ? `<div class="text-right flex-shrink-0">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Topp kategori</p>
+                    <p class="text-sm font-black text-slate-900">${escapeHtml(myTopCat)}</p>
+                    <p class="text-xs text-slate-400 font-semibold">${myTopCatAmt.toLocaleString()} kr</p>
+                </div>` : ''}
+            </div>
+            <div>
+                <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                    <span>Behov ${myBehovPct}%</span>
+                    <span>Lyst ${myLystPct}%</span>
+                </div>
+                <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden flex">
+                    <div class="h-full bg-indigo-400 rounded-full transition-all duration-700" style="width:${myBehovPct}%"></div>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 function renderInsightsMonthNav(all) {
