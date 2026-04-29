@@ -406,16 +406,30 @@ function buildItemEl(item) {
                 input.select();
 
                 const save = () => {
+                    cleanup();
                     const newName = input.value.trim();
                     if (newName && newName !== item.name) {
                         updateDoc(doc(db, "households", state.currentHid, "handleliste", item.id), { name: newName })
                             .catch(err => showToast('Feil: ' + err.message, 'error'));
                     }
                 };
+
+                const handleOutside = (ev) => {
+                    if (!input.contains(ev.target) && ev.target !== input) input.blur();
+                };
+                const cleanup = () => {
+                    document.removeEventListener('touchstart', handleOutside);
+                    document.removeEventListener('mousedown', handleOutside);
+                };
+                setTimeout(() => {
+                    document.addEventListener('touchstart', handleOutside, { passive: true });
+                    document.addEventListener('mousedown', handleOutside);
+                }, 150);
+
                 input.onblur = save;
                 input.onkeydown = (ev) => {
                     if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
-                    if (ev.key === 'Escape') { input.replaceWith(nameEl); }
+                    if (ev.key === 'Escape') { cleanup(); input.replaceWith(nameEl); }
                 };
             };
         }

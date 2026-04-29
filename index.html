@@ -114,6 +114,13 @@
             </div>
         </header>
 
+        <!-- Pull-to-refresh indicator (PWA only) -->
+        <div id="ptrIndicator" class="fixed left-0 right-0 z-30 flex justify-center pointer-events-none" style="top:36px;opacity:0;transition:opacity 0.15s">
+            <div class="w-8 h-8 rounded-full bg-white border border-slate-200 shadow-md flex items-center justify-center">
+                <svg id="ptrIcon" class="w-4 h-4 text-indigo-400 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+            </div>
+        </div>
+
         <main class="p-4 max-w-md mx-auto pb-40 space-y-6">
 
             <!-- TAB: HJEM -->
