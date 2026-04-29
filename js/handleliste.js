@@ -378,61 +378,54 @@ function buildItemEl(item) {
 
     const isUrl = /^https?:\/\//i.test(item.name);
 
-    const nameEl = document.createElement(isUrl ? 'a' : 'span');
+    const nameEl = document.createElement('span');
     if (isUrl) {
         let host = item.name;
         try { host = new URL(item.name).hostname.replace(/^www\./, ''); } catch {}
-
-        nameEl.className = 'block font-bold text-sm leading-tight text-indigo-400 truncate cursor-pointer';
-        nameEl.setAttribute('href', item.name);
-        nameEl.setAttribute('target', '_blank');
-        nameEl.setAttribute('rel', 'noopener');
+        nameEl.className = 'block font-bold text-sm leading-tight text-indigo-400 truncate cursor-text';
         nameEl.innerHTML =
-            `<svg class="w-3 h-3 inline mr-1 mb-0.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>${escapeText(host)}`;
-        nameEl.onclick = (e) => e.stopPropagation();
+            `<svg class="w-3 h-3 inline mr-1 mb-0.5 shrink-0 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>${escapeText(host)}`;
     } else {
         nameEl.className = `block font-bold text-sm leading-tight ${item.checked ? 'text-slate-400 line-through' : 'text-slate-900 cursor-text'}`;
         nameEl.textContent = item.name;
+    }
 
-        if (!item.checked) {
-            nameEl.onclick = (e) => {
-                e.stopPropagation();
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.value = item.name;
-                input.className = 'block font-bold text-sm text-slate-900 bg-transparent outline-none border-b-2 border-indigo-400 w-full leading-tight';
-                nameEl.replaceWith(input);
-                input.focus();
-                input.select();
+    if (!item.checked) {
+        nameEl.onclick = (e) => {
+            e.stopPropagation();
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = item.name;
+            input.className = 'block font-bold text-sm bg-transparent outline-none border-b-2 border-indigo-400 w-full leading-tight text-slate-900';
+            nameEl.replaceWith(input);
+            input.focus();
+            input.select();
 
-                const save = () => {
-                    cleanup();
-                    const newName = input.value.trim();
-                    if (newName && newName !== item.name) {
-                        updateDoc(doc(db, "households", state.currentHid, "handleliste", item.id), { name: newName })
-                            .catch(err => showToast('Feil: ' + err.message, 'error'));
-                    }
-                };
-
-                const handleOutside = (ev) => {
-                    if (!input.contains(ev.target) && ev.target !== input) input.blur();
-                };
-                const cleanup = () => {
-                    document.removeEventListener('touchstart', handleOutside);
-                    document.removeEventListener('mousedown', handleOutside);
-                };
-                setTimeout(() => {
-                    document.addEventListener('touchstart', handleOutside, { passive: true });
-                    document.addEventListener('mousedown', handleOutside);
-                }, 150);
-
-                input.onblur = save;
-                input.onkeydown = (ev) => {
-                    if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
-                    if (ev.key === 'Escape') { cleanup(); input.replaceWith(nameEl); }
-                };
+            const save = () => {
+                cleanup();
+                const newName = input.value.trim();
+                if (newName && newName !== item.name) {
+                    updateDoc(doc(db, "households", state.currentHid, "handleliste", item.id), { name: newName })
+                        .catch(err => showToast('Feil: ' + err.message, 'error'));
+                }
             };
-        }
+            const handleOutside = (ev) => {
+                if (!input.contains(ev.target) && ev.target !== input) input.blur();
+            };
+            const cleanup = () => {
+                document.removeEventListener('touchstart', handleOutside);
+                document.removeEventListener('mousedown', handleOutside);
+            };
+            setTimeout(() => {
+                document.addEventListener('touchstart', handleOutside, { passive: true });
+                document.addEventListener('mousedown', handleOutside);
+            }, 150);
+            input.onblur = save;
+            input.onkeydown = (ev) => {
+                if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
+                if (ev.key === 'Escape') { cleanup(); input.replaceWith(nameEl); }
+            };
+        };
     }
     textWrap.appendChild(nameEl);
 
@@ -454,8 +447,20 @@ function buildItemEl(item) {
 
     el.appendChild(textWrap);
 
-    // Quantity controls (unchecked only)
-    if (!item.checked) {
+    // Open-link button for URL items (unchecked only)
+    if (isUrl && !item.checked) {
+        const linkBtn = document.createElement('a');
+        linkBtn.href = item.name;
+        linkBtn.target = '_blank';
+        linkBtn.rel = 'noopener';
+        linkBtn.className = 'p-1.5 rounded-lg text-indigo-400 active:text-indigo-600 transition-colors shrink-0';
+        linkBtn.innerHTML = '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+        linkBtn.onclick = (e) => e.stopPropagation();
+        el.appendChild(linkBtn);
+    }
+
+    // Quantity controls (unchecked, non-URL items only)
+    if (!item.checked && !isUrl) {
         const qtyWrap = document.createElement('div');
         qtyWrap.className = 'flex items-center gap-0.5 shrink-0';
 
