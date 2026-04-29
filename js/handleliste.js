@@ -376,34 +376,49 @@ function buildItemEl(item) {
     const textWrap = document.createElement('div');
     textWrap.className = 'flex-1 min-w-0';
 
-    const nameEl = document.createElement('span');
-    nameEl.className = `block font-bold text-sm leading-tight ${item.checked ? 'text-slate-400 line-through' : 'text-slate-900 cursor-text'}`;
-    nameEl.textContent = item.name;
+    const isUrl = /^https?:\/\//i.test(item.name);
 
-    if (!item.checked) {
-        nameEl.onclick = (e) => {
-            e.stopPropagation();
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.value = item.name;
-            input.className = 'block font-bold text-sm text-slate-900 bg-transparent outline-none border-b-2 border-indigo-400 w-full leading-tight';
-            nameEl.replaceWith(input);
-            input.focus();
-            input.select();
+    const nameEl = document.createElement(isUrl ? 'a' : 'span');
+    if (isUrl) {
+        let host = item.name;
+        try { host = new URL(item.name).hostname.replace(/^www\./, ''); } catch {}
 
-            const save = () => {
-                const newName = input.value.trim();
-                if (newName && newName !== item.name) {
-                    updateDoc(doc(db, "households", state.currentHid, "handleliste", item.id), { name: newName })
-                        .catch(err => showToast('Feil: ' + err.message, 'error'));
-                }
+        nameEl.className = 'block font-bold text-sm leading-tight text-indigo-400 truncate cursor-pointer';
+        nameEl.setAttribute('href', item.name);
+        nameEl.setAttribute('target', '_blank');
+        nameEl.setAttribute('rel', 'noopener');
+        nameEl.innerHTML =
+            `<svg class="w-3 h-3 inline mr-1 mb-0.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>${escapeText(host)}`;
+        nameEl.onclick = (e) => e.stopPropagation();
+    } else {
+        nameEl.className = `block font-bold text-sm leading-tight ${item.checked ? 'text-slate-400 line-through' : 'text-slate-900 cursor-text'}`;
+        nameEl.textContent = item.name;
+
+        if (!item.checked) {
+            nameEl.onclick = (e) => {
+                e.stopPropagation();
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = item.name;
+                input.className = 'block font-bold text-sm text-slate-900 bg-transparent outline-none border-b-2 border-indigo-400 w-full leading-tight';
+                nameEl.replaceWith(input);
+                input.focus();
+                input.select();
+
+                const save = () => {
+                    const newName = input.value.trim();
+                    if (newName && newName !== item.name) {
+                        updateDoc(doc(db, "households", state.currentHid, "handleliste", item.id), { name: newName })
+                            .catch(err => showToast('Feil: ' + err.message, 'error'));
+                    }
+                };
+                input.onblur = save;
+                input.onkeydown = (ev) => {
+                    if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
+                    if (ev.key === 'Escape') { input.replaceWith(nameEl); }
+                };
             };
-            input.onblur = save;
-            input.onkeydown = (ev) => {
-                if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
-                if (ev.key === 'Escape') { input.replaceWith(nameEl); }
-            };
-        };
+        }
     }
     textWrap.appendChild(nameEl);
 
