@@ -77,10 +77,11 @@ export function startApp() {
     document.getElementById('onboardingScreen').classList.add('hidden');
     document.getElementById('appContent').classList.remove('hidden');
 
-    // Switch to the user's preferred default tab (only on first launch)
+    // Restore last-visited tab on refresh; fall back to user's default tab preference
     if (!appStarted) {
         appStarted = true;
-        window.switchTab(state.currentUserData.defaultTab || 'hjem');
+        const savedTab = (() => { try { return sessionStorage.getItem('mittforbruk_tab'); } catch { return null; } })();
+        window.switchTab(savedTab || state.currentUserData.defaultTab || 'hjem');
     }
 
     document.getElementById('displayHid').innerText = state.currentHid;
