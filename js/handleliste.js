@@ -377,14 +377,27 @@ function buildItemEl(item) {
     textWrap.className = 'flex-1 min-w-0';
 
     const isUrl = /^https?:\/\//i.test(item.name);
+    let urlHost = '';
+    if (isUrl) {
+        try { urlHost = new URL(item.name).hostname.replace(/^www\./, ''); } catch { urlHost = item.name; }
+    }
 
     const nameEl = document.createElement('span');
     if (isUrl) {
-        let host = item.name;
-        try { host = new URL(item.name).hostname.replace(/^www\./, ''); } catch {}
-        nameEl.className = 'block font-bold text-sm leading-tight text-indigo-400 truncate cursor-text';
-        nameEl.innerHTML =
-            `<svg class="w-3 h-3 inline mr-1 mb-0.5 shrink-0 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>${escapeText(host)}`;
+        const displayText = item.pageTitle || urlHost;
+        nameEl.className = 'flex items-center gap-1.5 font-bold text-sm leading-tight text-indigo-500 min-w-0 cursor-text';
+
+        const fav = document.createElement('img');
+        fav.src = `https://www.google.com/s2/favicons?domain=${urlHost}&sz=32`;
+        fav.className = 'w-4 h-4 rounded shrink-0';
+        fav.onerror = () => { fav.style.display = 'none'; };
+
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'truncate';
+        titleSpan.textContent = displayText;
+
+        nameEl.appendChild(fav);
+        nameEl.appendChild(titleSpan);
     } else {
         nameEl.className = `block font-bold text-sm leading-tight ${item.checked ? 'text-slate-400 line-through' : 'text-slate-900 cursor-text'}`;
         nameEl.textContent = item.name;
@@ -428,6 +441,14 @@ function buildItemEl(item) {
         };
     }
     textWrap.appendChild(nameEl);
+
+    // Domain subtitle for URL items when we have a fetched page title
+    if (isUrl && item.pageTitle) {
+        const domainEl = document.createElement('span');
+        domainEl.className = 'block text-[10px] text-slate-400 font-medium leading-tight mt-0.5';
+        domainEl.textContent = urlHost;
+        textWrap.appendChild(domainEl);
+    }
 
     if (item.checked && item.addedBy) {
         const byEl = document.createElement('span');
@@ -999,7 +1020,7 @@ window.addHandlelisteItem = async () => {
         : listItemsUnchecked.reduce((m, i) => Math.max(m, i.sortOrder ?? 0), 0);
 
     try {
-        await addDoc(collection(db, "households", state.currentHid, "handleliste"), {
+        const itemRef = await addDoc(collection(db, "households", state.currentHid, "handleliste"), {
             name,
             quantity,
             checked:   false,
@@ -1010,6 +1031,14 @@ window.addHandlelisteItem = async () => {
             addedAt:   Date.now(),
         });
         await ensureProdukterExists(name);
+        // Background: fetch page title for URL items
+        if (/^https?:\/\//i.test(name)) {
+            fetchUrlMeta(name).then(meta => {
+                if (meta?.title) {
+                    updateDoc(doc(db, "households", state.currentHid, "handleliste", itemRef.id), { pageTitle: meta.title }).catch(() => {});
+                }
+            });
+        }
         input.value = '';
         if (qtyEl) qtyEl.value = 1;
         hideAutocomplete();
@@ -1149,6 +1178,20 @@ export function initHandlelisteAutocomplete() {
 
 function hideAutocomplete() {
     document.getElementById('handlelisteAutocomplete')?.classList.add('hidden');
+}
+
+// Fetch page title via microlink.io (best-effort, fire-and-forget)
+async function fetchUrlMeta(url) {
+    try {
+        const res = await fetch(
+            `https://api.microlink.io/?url=${encodeURIComponent(url)}&palette=false&audio=false&video=false&iframe=false`,
+            { signal: AbortSignal.timeout(8000) }
+        );
+        if (!res.ok) return null;
+        const json = await res.json();
+        if (json.status !== 'success') return null;
+        return { title: json.data?.title || null };
+    } catch { return null; }
 }
 
 // Safe text helper (no innerHTML with user data)

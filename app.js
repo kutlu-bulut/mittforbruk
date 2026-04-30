@@ -69,12 +69,19 @@ function updateBudgetBarColor(total) {
 // ============================================================
 // startApp — kalles fra auth.js når brukeren er innlogget
 // ============================================================
+let appStarted = false;
 export function startApp() {
     if (!state.currentHid) return;
 
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('onboardingScreen').classList.add('hidden');
     document.getElementById('appContent').classList.remove('hidden');
+
+    // Switch to the user's preferred default tab (only on first launch)
+    if (!appStarted) {
+        appStarted = true;
+        window.switchTab(state.currentUserData.defaultTab || 'hjem');
+    }
 
     document.getElementById('displayHid').innerText = state.currentHid;
 

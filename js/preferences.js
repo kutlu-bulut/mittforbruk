@@ -39,6 +39,38 @@ function getAvatarDisplay() {
     return name.charAt(0).toUpperCase();
 }
 
+export function renderDefaultTabSetting() {
+    const container = document.getElementById('defaultTabSetting');
+    if (!container) return;
+    const tabs = [
+        { id: 'hjem',         label: 'Hjem',         emoji: '🏠' },
+        { id: 'innsikt',      label: 'Innsikt',       emoji: '📊' },
+        { id: 'historikk',    label: 'Historikk',     emoji: '📋' },
+        { id: 'liste',        label: 'Liste',          emoji: '🛒' },
+        { id: 'innstillinger',label: 'Innstillinger', emoji: '⚙️' },
+    ];
+    const current = state.currentUserData.defaultTab || 'hjem';
+    container.innerHTML = '';
+    tabs.forEach(tab => {
+        const btn = document.createElement('button');
+        const active = current === tab.id;
+        btn.className = [
+            'flex-1 flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl font-bold transition-all',
+            active
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'bg-slate-50 text-slate-500 border border-slate-200 active:bg-slate-100',
+        ].join(' ');
+        btn.innerHTML = `<span class="text-base">${tab.emoji}</span><span class="text-[10px]">${tab.label}</span>`;
+        btn.onclick = () => window.setDefaultTab(tab.id);
+        container.appendChild(btn);
+    });
+}
+
+window.setDefaultTab = async (tab) => {
+    await updateDoc(doc(db, "users", auth.currentUser.uid), { defaultTab: tab });
+    showToast('Startside lagret!');
+};
+
 export function applyUserPreferences() {
     const isDark = !!state.currentUserData.darkMode;
     const safeName = state.currentUserData.name || 'Meg';
@@ -65,6 +97,8 @@ export function applyUserPreferences() {
     // Header avatar
     const headerAvatar = document.getElementById('headerAvatar');
     if (headerAvatar) headerAvatar.innerText = avatarDisplay;
+
+    renderDefaultTabSetting();
 }
 
 window.toggleDarkMode = async () => {

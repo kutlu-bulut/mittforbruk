@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hvor går pengene? v19.15</title>
+    <title>Hvor går pengene? v19.16</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -49,7 +49,7 @@
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                 <span class="text-[10px] text-indigo-300 font-medium">Ingen registrering nødvendig</span>
             </div>
-            <p class="text-[10px] text-indigo-400 font-mono mt-8">v19.15</p>
+            <p class="text-[10px] text-indigo-400 font-mono mt-8">v19.16</p>
         </div>
     </div>
 
@@ -86,7 +86,7 @@
         <header class="bg-white sticky top-0 z-40 border-b border-slate-200 shadow-sm">
             <div class="brand-bar flex items-center justify-center py-1.5 bg-indigo-600 relative">
                 <span class="brand-text text-white">Hvor går pengene?</span>
-                <span class="absolute right-3 text-[9px] font-mono text-indigo-300 opacity-75">v19.15</span>
+                <span class="absolute right-3 text-[9px] font-mono text-indigo-300 opacity-75">v19.16</span>
             </div>
             <div id="headerUserBudget" class="px-5 pt-3 pb-3.5">
                 <div class="flex justify-between items-center mb-3">
@@ -231,6 +231,15 @@
             <div id="sectionInnstillinger" class="tab-content animate-pop space-y-6 mt-2">
                 <div>
                     <div class="px-2 mb-3">
+                        <h3 class="section-title">Startside</h3>
+                    </div>
+                    <div class="bg-white p-4 rounded-[2rem] border border-slate-200 shadow-sm">
+                        <p class="text-xs text-slate-400 font-semibold mb-3">Velg hvilken fane som åpnes når appen starter.</p>
+                        <div id="defaultTabSetting" class="flex gap-1.5"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="px-2 mb-3">
                         <h3 class="section-title">Min profil</h3>
                     </div>
                     <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col items-center">
@@ -349,7 +358,7 @@
                 </div>
                 <div class="text-center pt-2 pb-4">
                     <button id="btnLogout" onclick="logout()" class="text-rose-500 font-bold text-xs uppercase active:opacity-50 transition-opacity">Logg ut</button>
-                    <p class="text-[10px] text-slate-300 font-mono mt-3">v19.15</p>
+                    <p class="text-[10px] text-slate-300 font-mono mt-3">v19.16</p>
                 </div>
             </div>
 
