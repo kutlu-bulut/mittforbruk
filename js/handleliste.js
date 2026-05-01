@@ -429,27 +429,6 @@ function buildItemEl(item) {
         textWrap.appendChild(noteEl);
     }
 
-    // Inline subitems mini-checklist (unchecked items only)
-    if (!item.checked && item.subitems && item.subitems.length > 0) {
-        const subList = document.createElement('div');
-        subList.className = 'mt-1.5 space-y-1';
-        item.subitems.forEach(sub => {
-            const row = document.createElement('div');
-            row.className = 'flex items-center gap-1.5';
-            const chk = document.createElement('button');
-            chk.className = `w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 transition-all ${sub.checked ? 'bg-indigo-500 border-indigo-500' : 'border-slate-300'}`;
-            chk.innerHTML = sub.checked ? '<svg class="w-2 h-2 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M20 6L9 17l-5-5"/></svg>' : '';
-            chk.onclick = (e) => { e.stopPropagation(); window.toggleSubitem(item.id, sub.id); };
-            const txt = document.createElement('span');
-            txt.className = `text-[11px] leading-tight truncate ${sub.checked ? 'text-slate-400 line-through' : 'text-slate-600'}`;
-            txt.textContent = sub.text;
-            row.appendChild(chk);
-            row.appendChild(txt);
-            subList.appendChild(row);
-        });
-        textWrap.appendChild(subList);
-    }
-
     // Assigned-to badge
     if (!item.checked && item.assignedTo) {
         const member = (state.householdMembers || []).find(m => m.name === item.assignedTo);
@@ -1279,6 +1258,7 @@ function showItemDetail(itemId) {
     notesSaveBtn.onclick = async () => {
         const notes = notesArea.value.trim();
         item.notes = notes;
+        suppressHold();
         await updateDoc(doc(db, "households", state.currentHid, "handleliste", itemId), { notes }).catch(() => {});
         showToast('Notat lagret!');
     };
@@ -1341,8 +1321,9 @@ function showItemDetail(itemId) {
         item.subitems = [...(item.subitems || []), newSub];
         refreshSubList();
         subInput.value = '';
-        subInput.focus();
+        suppressHold();
         await updateDoc(doc(db, "households", state.currentHid, "handleliste", itemId), { subitems: item.subitems }).catch(() => {});
+        subInput.focus();
     };
     subInput.addEventListener('keydown', e => { if (e.key === 'Enter') doAddSub(); });
     addSubBtn.onclick = doAddSub;
@@ -1369,7 +1350,7 @@ function showItemDetail(itemId) {
             const allActive = !item.assignedTo;
             allBtn.className = `px-4 py-2 rounded-xl text-sm font-bold transition-colors active:opacity-70 ${allActive ? 'bg-indigo-600 text-white' : (dark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600')}`;
             allBtn.textContent = 'Alle';
-            allBtn.onclick = async () => { item.assignedTo = null; refreshPills(); await updateDoc(doc(db, "households", state.currentHid, "handleliste", itemId), { assignedTo: null }).catch(() => {}); };
+            allBtn.onclick = async () => { item.assignedTo = null; refreshPills(); suppressHold(); await updateDoc(doc(db, "households", state.currentHid, "handleliste", itemId), { assignedTo: null }).catch(() => {}); };
             pillRow.appendChild(allBtn);
             members.forEach(m => {
                 const btn = document.createElement('button');
@@ -1381,7 +1362,7 @@ function showItemDetail(itemId) {
                     btn.className = `px-4 py-2 rounded-xl text-sm font-bold active:opacity-70 transition-colors ${dark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`;
                 }
                 btn.textContent = m.name;
-                btn.onclick = async () => { item.assignedTo = m.name; refreshPills(); await updateDoc(doc(db, "households", state.currentHid, "handleliste", itemId), { assignedTo: m.name }).catch(() => {}); };
+                btn.onclick = async () => { item.assignedTo = m.name; refreshPills(); suppressHold(); await updateDoc(doc(db, "households", state.currentHid, "handleliste", itemId), { assignedTo: m.name }).catch(() => {}); };
                 pillRow.appendChild(btn);
             });
         };
