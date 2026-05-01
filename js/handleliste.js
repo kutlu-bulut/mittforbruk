@@ -186,15 +186,6 @@ function renderHandleliste(items) {
         }
     });
 
-    // ---- "Ny gruppe" button ----
-    if (unchecked.length >= 0) {
-        const addGroupBtn = document.createElement('button');
-        addGroupBtn.className = 'flex items-center gap-1.5 text-xs font-semibold text-slate-400 active:text-indigo-500 px-2 py-2 mt-1 rounded-lg active:bg-indigo-50 transition-colors';
-        addGroupBtn.innerHTML = '<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> Ny gruppe';
-        addGroupBtn.onclick = () => showNewGroupSheet();
-        list.appendChild(addGroupBtn);
-    }
-
     // ---- Checked section ----
     if (checked.length > 0) {
         const divider = document.createElement('div');
@@ -227,51 +218,48 @@ function updateGroupPills() {
             .map(i => i.group)
     )].sort();
 
-    if (groups.length === 0) {
-        row.classList.add('hidden');
-        selectedAddGroup = '';
-        return;
-    }
-
+    // Always show the row
     row.classList.remove('hidden');
     pills.innerHTML = '';
 
     const dark = document.body.classList.contains('dark-mode');
 
-    // "Ingen gruppe" pill
-    const noneBtn = document.createElement('button');
-    noneBtn.className = selectedAddGroup === ''
-        ? 'hl-group-pill hl-group-pill-active'
-        : 'hl-group-pill hl-group-pill-inactive';
-    noneBtn.textContent = 'Ingen gruppe';
-    noneBtn.onclick = () => { selectedAddGroup = ''; updateGroupPills(); };
-    pills.appendChild(noneBtn);
+    if (groups.length > 0) {
+        // "Ingen gruppe" pill
+        const noneBtn = document.createElement('button');
+        noneBtn.className = selectedAddGroup === ''
+            ? 'hl-group-pill hl-group-pill-active'
+            : 'hl-group-pill hl-group-pill-inactive';
+        noneBtn.textContent = 'Ingen gruppe';
+        noneBtn.onclick = () => { selectedAddGroup = ''; updateGroupPills(); };
+        pills.appendChild(noneBtn);
 
-    // Existing group pills
-    groups.forEach(g => {
-        const btn = document.createElement('button');
-        const pillColor = getGroupColor(g);
-        if (selectedAddGroup === g) {
-            btn.className = 'hl-group-pill';
-            btn.style.backgroundColor = dark ? pillColor.darkBg : pillColor.bg;
-            btn.style.color = dark ? pillColor.darkText : pillColor.text;
-            btn.style.border = `1.5px solid ${pillColor.dot}`;
-        } else {
-            btn.className = 'hl-group-pill hl-group-pill-inactive';
-        }
-        btn.textContent = g;
-        btn.onclick = () => {
-            selectedAddGroup = selectedAddGroup === g ? '' : g;
-            updateGroupPills();
-        };
-        pills.appendChild(btn);
-    });
+        // Existing group pills
+        groups.forEach(g => {
+            const btn = document.createElement('button');
+            const pillColor = getGroupColor(g);
+            if (selectedAddGroup === g) {
+                btn.className = 'hl-group-pill';
+                btn.style.backgroundColor = dark ? pillColor.darkBg : pillColor.bg;
+                btn.style.color = dark ? pillColor.darkText : pillColor.text;
+                btn.style.border = `1.5px solid ${pillColor.dot}`;
+            } else {
+                btn.className = 'hl-group-pill hl-group-pill-inactive';
+            }
+            btn.textContent = g;
+            btn.onclick = () => {
+                selectedAddGroup = selectedAddGroup === g ? '' : g;
+                updateGroupPills();
+            };
+            pills.appendChild(btn);
+        });
+    }
 
-    // "+" new group pill
+    // "Ny gruppe" pill — always shown
     const newBtn = document.createElement('button');
     newBtn.className = 'hl-group-pill hl-group-pill-new';
-    newBtn.innerHTML = '<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> Ny';
-    newBtn.onclick = () => showNewGroupInput(pills, groups);
+    newBtn.innerHTML = '<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> Ny gruppe';
+    newBtn.onclick = () => showNewGroupSheet();
     pills.appendChild(newBtn);
 }
 
