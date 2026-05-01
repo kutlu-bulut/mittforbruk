@@ -47,6 +47,8 @@ function getGroupColor(groupName) {
 export function initHandlelisteListener() {
     if (!state.currentHid) return;
 
+    initSwipeNavigation();
+
     // No orderBy — sort in JS to avoid needing a composite index
     onSnapshot(
         collection(db, "households", state.currentHid, "handleliste"),
@@ -183,6 +185,15 @@ function renderHandleliste(items) {
             sortableInstances.push(instance);
         }
     });
+
+    // ---- "Ny gruppe" button ----
+    if (unchecked.length >= 0) {
+        const addGroupBtn = document.createElement('button');
+        addGroupBtn.className = 'flex items-center gap-1.5 text-xs font-semibold text-slate-400 active:text-indigo-500 px-2 py-2 mt-1 rounded-lg active:bg-indigo-50 transition-colors';
+        addGroupBtn.innerHTML = '<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> Ny gruppe';
+        addGroupBtn.onclick = () => showNewGroupSheet();
+        list.appendChild(addGroupBtn);
+    }
 
     // ---- Checked section ----
     if (checked.length > 0) {
@@ -735,6 +746,82 @@ function inlineRenameGroup(oldName, nameEl, itemIds) {
 }
 
 // ============================================================
+// Swipe navigation between lists
+// ============================================================
+
+let swipeInitialized = false;
+function initSwipeNavigation() {
+    if (swipeInitialized) return;
+    swipeInitialized = true;
+
+    const section = document.getElementById('sectionListe');
+    if (!section) return;
+
+    let startX = 0, startY = 0;
+
+    section.addEventListener('touchstart', e => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+    }, { passive: true });
+
+    section.addEventListener('touchend', e => {
+        const dx = e.changedTouches[0].clientX - startX;
+        const dy = e.changedTouches[0].clientY - startY;
+        // Must be clearly horizontal (dx > dy) and long enough
+        if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
+        const idx = listsCache.findIndex(l => l.id === selectedListId);
+        if (dx < 0 && idx < listsCache.length - 1) window.switchList(listsCache[idx + 1].id);
+        else if (dx > 0 && idx > 0) window.switchList(listsCache[idx - 1].id);
+    }, { passive: true });
+}
+
+// ============================================================
+// New group bottom sheet (from list view)
+// ============================================================
+
+function showNewGroupSheet() {
+    const dark = document.body.classList.contains('dark-mode');
+    document.getElementById('newGroupOverlay')?.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'newGroupOverlay';
+    overlay.className = 'fixed inset-0 z-50 flex items-end justify-center';
+    overlay.style.cssText = 'background:rgba(15,23,42,0.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)';
+
+    const sheet = document.createElement('div');
+    sheet.className = `w-full max-w-lg rounded-t-3xl p-5 shadow-2xl border-t ${dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`;
+    sheet.style.cssText = 'animation:slideUp 0.25s cubic-bezier(0.34,1.56,0.64,1)';
+
+    sheet.innerHTML = `
+        <h3 class="font-bold text-base ${dark ? 'text-slate-100' : 'text-slate-900'} mb-4">Ny gruppe</h3>
+        <input id="_ng_input" type="text" placeholder="Gruppenavn..." maxlength="30"
+            class="w-full px-4 py-3 rounded-xl text-sm font-bold border ${dark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'bg-slate-50 border-slate-200'} outline-none focus:border-indigo-400 mb-3">
+        <button id="_ng_confirm" class="w-full py-3 rounded-xl text-sm font-bold bg-indigo-600 text-white active:opacity-80">Opprett gruppe</button>
+        <div style="height:env(safe-area-inset-bottom,0px)"></div>`;
+
+    const close = () => overlay.remove();
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+    sheet.querySelector('#_ng_confirm').onclick = () => {
+        const name = sheet.querySelector('#_ng_input').value.trim();
+        if (!name) return;
+        selectedAddGroup = name;
+        updateGroupPills();
+        close();
+        document.getElementById('handlelisteInput')?.focus();
+        showToast(`Gruppe «${name}» valgt – legg til varer!`);
+    };
+    sheet.querySelector('#_ng_input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') sheet.querySelector('#_ng_confirm').click();
+        if (e.key === 'Escape') close();
+    });
+
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+    setTimeout(() => sheet.querySelector('#_ng_input')?.focus(), 300);
+}
+
+// ============================================================
 // List tabs
 // ============================================================
 
@@ -821,7 +908,17 @@ window.showListOptions = (listId) => {
 
 window.showNewListDialog = () => {
     document.getElementById('listMgmtOverlay')?.remove();
-    const EMOJIS = ['🛒','🏖️','🛍️','🏠','🎁','🐶','🌱','💊','🔧','📦','🎮','✈️'];
+    const EMOJIS = [
+        // Mat & dagligvarer
+        '🛒','🍎','🥦','🥩','🧀','🍞','🥛','🥚','🐟','🍗',
+        '🍕','🥗','🫙','🧃','☕','🧈','🧅','🧄','🍋','🫐',
+        // Hjem & husholdning
+        '🏠','🛍️','🧹','🧺','🪴','🧽','🔧','🪣','💡','🛏️',
+        // Helse, barn & fritid
+        '💊','🧴','👶','🎒','📚','🎨','🧸','🐾','🏋️','🎵',
+        // Reise & diverse
+        '✈️','🏖️','🚗','🎁','🐶','🌱','📦','🎮','🎓','🌸',
+    ];
     let pickedEmoji = '🛒';
     const dark = document.body.classList.contains('dark-mode');
 
