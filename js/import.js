@@ -24,9 +24,17 @@ function isLikelyTransfer(desc) {
     const d = (desc || '').toLowerCase().trim();
     return d.startsWith('til :') ||
            d.startsWith('fra :') ||
+           d.startsWith('til:') ||
+           d.startsWith('fra:') ||
            d === 'mobil overføring' ||
            d.includes('overføring') ||
-           d.startsWith('lån ');
+           d.startsWith('lån ') ||
+           d.startsWith('uttak') ||
+           d.includes('minibank') ||
+           d.includes('gebyr') ||
+           d.includes('renter') ||
+           /^straksbet/.test(d) ||
+           /^nettgiro til /i.test(d);
 }
 
 function detectSeparator(header) {
@@ -54,12 +62,12 @@ function parseCSV(text) {
         if (!ut && !inn) continue;
         if (!ut && inn) continue; // incoming money — not an expense
         if (!dato || !beskrivelse || !ut) continue;
+        if (isLikelyTransfer(beskrivelse)) continue; // skip internal transfers entirely
         rows.push({
             date: dato,
             desc: beskrivelse,
             amount: ut,
-            isTransfer: isLikelyTransfer(beskrivelse),
-            selected: !isLikelyTransfer(beskrivelse),
+            selected: true,
             category: autoCategory(beskrivelse),
         });
     }
@@ -296,7 +304,6 @@ function renderPreview(sheet, dark, rows) {
                         <p class="row-name text-sm font-bold truncate ${r.selected ? (dark ? 'text-slate-100' : 'text-slate-900') : (dark ? 'text-slate-600' : 'text-slate-300')}">${escText(r.desc)}</p>
                         <p class="text-[10px] ${dark ? 'text-slate-500' : 'text-slate-400'} flex items-center gap-1.5 flex-wrap">
                             <span>${escText(r.date)}</span>
-                            ${r.isTransfer ? '<span class="text-amber-500 font-bold">· overføring</span>' : ''}
                             ${r.category ? `<span class="text-indigo-500 font-bold bg-indigo-50 rounded-full px-1.5 py-px">${escText(r.category)}</span>` : '<span class="text-slate-300">· ukjent</span>'}
                             ${r.isDuplicate ? '<span class="text-rose-400 font-bold bg-rose-50 rounded-full px-1.5 py-px">duplikat</span>' : ''}
                         </p>
