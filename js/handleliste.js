@@ -1212,8 +1212,8 @@ export function initHandlelisteAutocomplete() {
 
         dropdown.innerHTML = '';
         matches.forEach(p => {
-            const inListActive  = handlelisteCache.find(i => i.name.toLowerCase() === p.name.toLowerCase() && !i.checked);
-            const inListChecked = handlelisteCache.find(i => i.name.toLowerCase() === p.name.toLowerCase() && i.checked);
+            const inListActive  = handlelisteCache.find(i => i.name.toLowerCase() === p.name.toLowerCase() && !i.checked  && (i.listId || 'main') === selectedListId);
+            const inListChecked = handlelisteCache.find(i => i.name.toLowerCase() === p.name.toLowerCase() &&  i.checked  && (i.listId || 'main') === selectedListId);
 
             const item = document.createElement('div');
             item.className = 'store-autocomplete-item flex items-center justify-between gap-2';
