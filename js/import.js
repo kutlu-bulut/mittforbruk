@@ -28,7 +28,10 @@ function isLikelyTransfer(desc) {
            d.startsWith('fra:') ||
            d === 'mobil overføring' ||
            d.includes('overføring') ||
-           d.startsWith('lån ') ||
+           d.includes('lån') ||        // boliglån, billån, avdrag lån, lån 12345…
+           d.includes('avdrag') ||     // loan instalments
+           d.includes('terminbeløp') ||
+           d.startsWith('nedbetaling') ||
            d.startsWith('uttak') ||
            d.includes('minibank') ||
            d.includes('gebyr') ||
