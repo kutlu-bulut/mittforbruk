@@ -18,7 +18,7 @@ let pendingRenderItems = null;
 let selectedAddGroup  = '';   // group pre-selected in the add form
 let suppressTimer     = null; // for suppressHold cleanup
 let groupOrderMemory  = [];   // stable group insertion order (never reordered by drag)
-let selectedListId    = 'main';
+let selectedListId    = (() => { try { return sessionStorage.getItem('mittforbruk_list') || 'main'; } catch { return 'main'; } })();
 let listsCache        = [{ id: 'main', name: 'Handleliste', emoji: '🛒', sortOrder: 0 }];
 
 // ---- Group color palette ----
@@ -90,6 +90,7 @@ export function initShoppingListsListener() {
         listsCache = (snap.data().lists || []).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
         if (listsCache.length === 0) listsCache = [{ id: 'main', name: 'Handleliste', emoji: '🛒', sortOrder: 0 }];
         if (!listsCache.find(l => l.id === selectedListId)) selectedListId = listsCache[0].id;
+        try { sessionStorage.setItem('mittforbruk_list', selectedListId); } catch {}
         renderHandleliste(handlelisteCache);
     }, err => console.error("ShoppingLists listener error:", err));
 }
@@ -369,7 +370,7 @@ function buildItemEl(item) {
     checkbox.innerHTML = item.checked
         ? '<svg class="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>'
         : '';
-    checkbox.onclick = () => window.toggleHandlelisteItem(item.id, !item.checked);
+    checkbox.onclick = (e) => { e.stopPropagation(); window.toggleHandlelisteItem(item.id, !item.checked); };
     el.appendChild(checkbox);
 
     // Text + meta
@@ -385,7 +386,7 @@ function buildItemEl(item) {
     const nameEl = document.createElement('span');
     if (isUrl) {
         const displayText = item.pageTitle || urlHost;
-        nameEl.className = 'flex items-center gap-1.5 font-bold text-sm leading-tight text-indigo-500 min-w-0 cursor-text';
+        nameEl.className = 'flex items-center gap-1.5 font-bold text-sm leading-tight text-indigo-500 min-w-0';
 
         const fav = document.createElement('img');
         fav.src = `https://www.google.com/s2/favicons?domain=${urlHost}&sz=32`;
@@ -399,46 +400,8 @@ function buildItemEl(item) {
         nameEl.appendChild(fav);
         nameEl.appendChild(titleSpan);
     } else {
-        nameEl.className = `block font-bold text-sm leading-tight ${item.checked ? 'text-slate-400 line-through' : 'text-slate-900 cursor-text'}`;
+        nameEl.className = `block font-bold text-sm leading-tight ${item.checked ? 'text-slate-400 line-through' : 'text-slate-900'}`;
         nameEl.textContent = item.name;
-    }
-
-    if (!item.checked) {
-        nameEl.onclick = (e) => {
-            e.stopPropagation();
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.value = item.name;
-            input.className = 'block font-bold text-sm bg-transparent outline-none border-b-2 border-indigo-400 w-full leading-tight text-slate-900';
-            nameEl.replaceWith(input);
-            input.focus();
-            input.select();
-
-            const save = () => {
-                cleanup();
-                const newName = input.value.trim();
-                if (newName && newName !== item.name) {
-                    updateDoc(doc(db, "households", state.currentHid, "handleliste", item.id), { name: newName })
-                        .catch(err => showToast('Feil: ' + err.message, 'error'));
-                }
-            };
-            const handleOutside = (ev) => {
-                if (!input.contains(ev.target) && ev.target !== input) input.blur();
-            };
-            const cleanup = () => {
-                document.removeEventListener('touchstart', handleOutside);
-                document.removeEventListener('mousedown', handleOutside);
-            };
-            setTimeout(() => {
-                document.addEventListener('touchstart', handleOutside, { passive: true });
-                document.addEventListener('mousedown', handleOutside);
-            }, 150);
-            input.onblur = save;
-            input.onkeydown = (ev) => {
-                if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
-                if (ev.key === 'Escape') { cleanup(); input.replaceWith(nameEl); }
-            };
-        };
     }
     textWrap.appendChild(nameEl);
 
@@ -544,22 +507,18 @@ function buildItemEl(item) {
         el.appendChild(qtyWrap);
     }
 
-    // Detail button (unchecked items — highlighted when item has extras)
-    if (!item.checked) {
-        const hasExtra = !!(item.notes || (item.subitems && item.subitems.length > 0) || item.assignedTo);
-        const detailBtn = document.createElement('button');
-        detailBtn.className = `p-1 rounded-lg transition-colors shrink-0 ${hasExtra ? 'text-indigo-400' : 'text-slate-300 active:text-slate-500'}`;
-        detailBtn.innerHTML = '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>';
-        detailBtn.onclick = (e) => { e.stopPropagation(); showItemDetail(item.id); };
-        el.appendChild(detailBtn);
-    }
-
     // Delete button
     const delBtn = document.createElement('button');
     delBtn.className = 'p-1 rounded-lg text-slate-300 active:text-rose-400 transition-colors shrink-0';
     delBtn.innerHTML = '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>';
-    delBtn.onclick = () => window.deleteHandlelisteItem(item.id);
+    delBtn.onclick = (e) => { e.stopPropagation(); window.deleteHandlelisteItem(item.id); };
     el.appendChild(delBtn);
+
+    // Tapping anywhere on an unchecked card opens the detail sheet
+    if (!item.checked) {
+        el.style.cursor = 'pointer';
+        el.onclick = () => showItemDetail(item.id);
+    }
 
     return el;
 }
@@ -836,6 +795,7 @@ function renderListTabs() {
 
 window.switchList = (id) => {
     selectedListId = id;
+    try { sessionStorage.setItem('mittforbruk_list', id); } catch {}
     selectedAddGroup = '';
     renderHandleliste(handlelisteCache);
 };
@@ -1268,12 +1228,25 @@ function showItemDetail(itemId) {
     titleWrap.className = 'flex-1 min-w-0 mr-3';
     const titleLabel = document.createElement('p');
     titleLabel.className = 'text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5';
-    titleLabel.textContent = 'Detaljer';
-    const titleEl = document.createElement('h3');
-    titleEl.className = `font-bold text-lg leading-tight ${dark ? 'text-slate-100' : 'text-slate-900'}`;
-    titleEl.textContent = item.pageTitle || item.name;
+    titleLabel.textContent = 'Navn';
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.value = item.name;
+    nameInput.className = [
+        'font-bold text-lg w-full outline-none border-b-2 border-transparent pb-0.5 transition-colors bg-transparent',
+        'focus:border-indigo-400',
+        dark ? 'text-slate-100' : 'text-slate-900',
+    ].join(' ');
+    nameInput.onblur = async () => {
+        const newName = nameInput.value.trim();
+        if (newName && newName !== item.name) {
+            item.name = newName;
+            await updateDoc(doc(db, "households", state.currentHid, "handleliste", itemId), { name: newName }).catch(() => {});
+        }
+    };
+    nameInput.onkeydown = (e) => { if (e.key === 'Enter') nameInput.blur(); };
     titleWrap.appendChild(titleLabel);
-    titleWrap.appendChild(titleEl);
+    titleWrap.appendChild(nameInput);
 
     const closeBtn = document.createElement('button');
     closeBtn.className = `w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${dark ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-400'} active:opacity-70`;
