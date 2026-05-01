@@ -457,8 +457,47 @@ function buildItemEl(item) {
         textWrap.appendChild(byEl);
     }
 
+    // Notes preview (unchecked only)
+    if (!item.checked && item.notes) {
+        const noteEl = document.createElement('p');
+        noteEl.className = 'text-[10px] text-slate-400 mt-0.5 leading-tight';
+        noteEl.style.cssText = 'display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden';
+        noteEl.textContent = item.notes;
+        textWrap.appendChild(noteEl);
+    }
+
+    // Inline subitems mini-checklist (unchecked items only)
+    if (!item.checked && item.subitems && item.subitems.length > 0) {
+        const subList = document.createElement('div');
+        subList.className = 'mt-1.5 space-y-1';
+        item.subitems.forEach(sub => {
+            const row = document.createElement('div');
+            row.className = 'flex items-center gap-1.5';
+            const chk = document.createElement('button');
+            chk.className = `w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 transition-all ${sub.checked ? 'bg-indigo-500 border-indigo-500' : 'border-slate-300'}`;
+            chk.innerHTML = sub.checked ? '<svg class="w-2 h-2 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M20 6L9 17l-5-5"/></svg>' : '';
+            chk.onclick = (e) => { e.stopPropagation(); window.toggleSubitem(item.id, sub.id); };
+            const txt = document.createElement('span');
+            txt.className = `text-[11px] leading-tight truncate ${sub.checked ? 'text-slate-400 line-through' : 'text-slate-600'}`;
+            txt.textContent = sub.text;
+            row.appendChild(chk);
+            row.appendChild(txt);
+            subList.appendChild(row);
+        });
+        textWrap.appendChild(subList);
+    }
+
+    // Assigned-to badge
+    if (!item.checked && item.assignedTo) {
+        const member = (state.householdMembers || []).find(m => m.name === item.assignedTo);
+        const badge = document.createElement('span');
+        badge.className = 'inline-block mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white';
+        badge.style.backgroundColor = member?.color || '#4f46e5';
+        badge.textContent = '→ ' + item.assignedTo;
+        textWrap.appendChild(badge);
+    }
+
     if (!item.checked && !item.group) {
-        // Small tap target to assign a group — just an icon, no label
         const chip = document.createElement('button');
         chip.className = 'mt-0.5 inline-flex items-center text-[10px] text-slate-300 hover:text-slate-400 transition-colors';
         chip.innerHTML = `<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>`;
@@ -503,6 +542,16 @@ function buildItemEl(item) {
         qtyWrap.appendChild(qtyLabel);
         qtyWrap.appendChild(plusBtn);
         el.appendChild(qtyWrap);
+    }
+
+    // Detail button (unchecked items — highlighted when item has extras)
+    if (!item.checked) {
+        const hasExtra = !!(item.notes || (item.subitems && item.subitems.length > 0) || item.assignedTo);
+        const detailBtn = document.createElement('button');
+        detailBtn.className = `p-1 rounded-lg transition-colors shrink-0 ${hasExtra ? 'text-indigo-400' : 'text-slate-300 active:text-slate-500'}`;
+        detailBtn.innerHTML = '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>';
+        detailBtn.onclick = (e) => { e.stopPropagation(); showItemDetail(item.id); };
+        el.appendChild(detailBtn);
     }
 
     // Delete button
@@ -777,6 +826,12 @@ function renderListTabs() {
                 Ny
             </button>
         </div>`;
+
+    // Scroll the active tab into view
+    requestAnimationFrame(() => {
+        const activeBtn = el.querySelector('button.bg-indigo-600');
+        if (activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    });
 }
 
 window.switchList = (id) => {
@@ -1179,6 +1234,217 @@ export function initHandlelisteAutocomplete() {
 function hideAutocomplete() {
     document.getElementById('handlelisteAutocomplete')?.classList.add('hidden');
 }
+
+// ============================================================
+// Item detail sheet
+// ============================================================
+
+function showItemDetail(itemId) {
+    const item = handlelisteCache.find(i => i.id === itemId);
+    if (!item) return;
+    document.getElementById('itemDetailOverlay')?.remove();
+
+    const dark = document.body.classList.contains('dark-mode');
+    const overlay = document.createElement('div');
+    overlay.id = 'itemDetailOverlay';
+    overlay.className = 'fixed inset-0 z-50 flex items-end justify-center';
+    overlay.style.cssText = 'background:rgba(15,23,42,0.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)';
+
+    const sheet = document.createElement('div');
+    sheet.className = [
+        'w-full max-w-lg rounded-t-3xl shadow-2xl border-t overflow-y-auto',
+        dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100',
+    ].join(' ');
+    sheet.style.cssText = 'max-height:85vh;animation:slideUp 0.25s cubic-bezier(0.34,1.56,0.64,1)';
+
+    const close = () => overlay.remove();
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+    // Header
+    const hdr = document.createElement('div');
+    hdr.className = 'flex items-start justify-between p-5 pb-4';
+
+    const titleWrap = document.createElement('div');
+    titleWrap.className = 'flex-1 min-w-0 mr-3';
+    const titleLabel = document.createElement('p');
+    titleLabel.className = 'text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5';
+    titleLabel.textContent = 'Detaljer';
+    const titleEl = document.createElement('h3');
+    titleEl.className = `font-bold text-lg leading-tight ${dark ? 'text-slate-100' : 'text-slate-900'}`;
+    titleEl.textContent = item.pageTitle || item.name;
+    titleWrap.appendChild(titleLabel);
+    titleWrap.appendChild(titleEl);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = `w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${dark ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-400'} active:opacity-70`;
+    closeBtn.innerHTML = '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+    closeBtn.onclick = close;
+
+    hdr.appendChild(titleWrap);
+    hdr.appendChild(closeBtn);
+    sheet.appendChild(hdr);
+
+    const body = document.createElement('div');
+    body.className = 'px-5 pb-5 space-y-5';
+
+    // ---- Notes ----
+    const notesLabel = document.createElement('p');
+    notesLabel.className = 'text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2';
+    notesLabel.textContent = 'Notater';
+    const notesArea = document.createElement('textarea');
+    notesArea.value = item.notes || '';
+    notesArea.placeholder = 'Legg til en merknad...';
+    notesArea.rows = 3;
+    notesArea.className = [
+        'w-full px-3 py-2.5 rounded-xl text-sm font-medium border outline-none resize-none transition-colors',
+        dark ? 'bg-slate-900 border-slate-600 text-slate-100 placeholder-slate-500 focus:border-indigo-400'
+             : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400',
+    ].join(' ');
+    const notesSaveBtn = document.createElement('button');
+    notesSaveBtn.className = 'mt-2 text-xs font-bold text-indigo-500 active:opacity-50 transition-opacity';
+    notesSaveBtn.textContent = 'Lagre notat';
+    notesSaveBtn.onclick = async () => {
+        const notes = notesArea.value.trim();
+        item.notes = notes;
+        await updateDoc(doc(db, "households", state.currentHid, "handleliste", itemId), { notes }).catch(() => {});
+        showToast('Notat lagret!');
+    };
+    const notesSection = document.createElement('div');
+    notesSection.appendChild(notesLabel);
+    notesSection.appendChild(notesArea);
+    notesSection.appendChild(notesSaveBtn);
+    body.appendChild(notesSection);
+
+    // ---- Sub-items (deleliste) ----
+    const subSection = document.createElement('div');
+    const subLabel = document.createElement('p');
+    subLabel.className = 'text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2';
+    subLabel.textContent = 'Deleliste';
+    subSection.appendChild(subLabel);
+
+    const subList = document.createElement('div');
+    subList.className = 'space-y-1.5 mb-3';
+    subSection.appendChild(subList);
+
+    const refreshSubList = () => {
+        subList.innerHTML = '';
+        (item.subitems || []).forEach(sub => {
+            const row = document.createElement('div');
+            row.className = 'flex items-center gap-2.5 py-0.5';
+            const chk = document.createElement('button');
+            chk.className = `w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${sub.checked ? 'bg-indigo-600 border-indigo-600' : (dark ? 'border-slate-500' : 'border-slate-300')}`;
+            chk.innerHTML = sub.checked ? '<svg class="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>' : '';
+            chk.onclick = () => { window.toggleSubitem(itemId, sub.id); sub.checked = !sub.checked; refreshSubList(); };
+            const txt = document.createElement('span');
+            txt.className = `flex-1 text-sm ${sub.checked ? (dark ? 'text-slate-500 line-through' : 'text-slate-400 line-through') : (dark ? 'text-slate-200' : 'text-slate-700')}`;
+            txt.textContent = sub.text;
+            const del = document.createElement('button');
+            del.className = 'text-slate-300 active:text-rose-400 transition-colors p-0.5';
+            del.innerHTML = '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+            del.onclick = () => { window.deleteSubitem(itemId, sub.id); item.subitems = (item.subitems || []).filter(s => s.id !== sub.id); refreshSubList(); };
+            row.appendChild(chk); row.appendChild(txt); row.appendChild(del);
+            subList.appendChild(row);
+        });
+    };
+    refreshSubList();
+
+    const addRow = document.createElement('div');
+    addRow.className = 'flex gap-2';
+    const subInput = document.createElement('input');
+    subInput.type = 'text';
+    subInput.placeholder = 'Legg til delelement...';
+    subInput.className = [
+        'flex-1 px-3 py-2.5 rounded-xl text-sm font-medium border outline-none transition-colors',
+        dark ? 'bg-slate-900 border-slate-600 text-slate-100 placeholder-slate-500 focus:border-indigo-400'
+             : 'bg-slate-50 border-slate-200 focus:border-indigo-400',
+    ].join(' ');
+    const addSubBtn = document.createElement('button');
+    addSubBtn.className = 'px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold active:opacity-80 shrink-0';
+    addSubBtn.textContent = 'Legg til';
+    const doAddSub = async () => {
+        const text = subInput.value.trim();
+        if (!text) return;
+        const newSub = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), text, checked: false };
+        item.subitems = [...(item.subitems || []), newSub];
+        refreshSubList();
+        subInput.value = '';
+        subInput.focus();
+        await updateDoc(doc(db, "households", state.currentHid, "handleliste", itemId), { subitems: item.subitems }).catch(() => {});
+    };
+    subInput.addEventListener('keydown', e => { if (e.key === 'Enter') doAddSub(); });
+    addSubBtn.onclick = doAddSub;
+    addRow.appendChild(subInput);
+    addRow.appendChild(addSubBtn);
+    subSection.appendChild(addRow);
+    body.appendChild(subSection);
+
+    // ---- Assigned to (2+ members only) ----
+    const members = state.householdMembers || [];
+    if (members.length > 1) {
+        const assignSection = document.createElement('div');
+        const assignLabel = document.createElement('p');
+        assignLabel.className = 'text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2';
+        assignLabel.textContent = 'Tildelt til';
+        assignSection.appendChild(assignLabel);
+
+        const pillRow = document.createElement('div');
+        pillRow.className = 'flex flex-wrap gap-2';
+
+        const refreshPills = () => {
+            pillRow.innerHTML = '';
+            const allBtn = document.createElement('button');
+            const allActive = !item.assignedTo;
+            allBtn.className = `px-4 py-2 rounded-xl text-sm font-bold transition-colors active:opacity-70 ${allActive ? 'bg-indigo-600 text-white' : (dark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600')}`;
+            allBtn.textContent = 'Alle';
+            allBtn.onclick = async () => { item.assignedTo = null; refreshPills(); await updateDoc(doc(db, "households", state.currentHid, "handleliste", itemId), { assignedTo: null }).catch(() => {}); };
+            pillRow.appendChild(allBtn);
+            members.forEach(m => {
+                const btn = document.createElement('button');
+                const active = item.assignedTo === m.name;
+                if (active) {
+                    btn.className = 'px-4 py-2 rounded-xl text-sm font-bold text-white active:opacity-70 transition-colors';
+                    btn.style.backgroundColor = m.color || '#4f46e5';
+                } else {
+                    btn.className = `px-4 py-2 rounded-xl text-sm font-bold active:opacity-70 transition-colors ${dark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`;
+                }
+                btn.textContent = m.name;
+                btn.onclick = async () => { item.assignedTo = m.name; refreshPills(); await updateDoc(doc(db, "households", state.currentHid, "handleliste", itemId), { assignedTo: m.name }).catch(() => {}); };
+                pillRow.appendChild(btn);
+            });
+        };
+        refreshPills();
+        assignSection.appendChild(pillRow);
+        body.appendChild(assignSection);
+    }
+
+    const safe = document.createElement('div');
+    safe.style.height = 'env(safe-area-inset-bottom, 0px)';
+    body.appendChild(safe);
+
+    sheet.appendChild(body);
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+}
+
+window.toggleSubitem = (itemId, subitemId) => {
+    const item = handlelisteCache.find(i => i.id === itemId);
+    if (!item || !item.subitems) return;
+    const subitems = item.subitems.map(s => s.id === subitemId ? { ...s, checked: !s.checked } : s);
+    return optimisticWrite(
+        () => { item.subitems = subitems; },
+        () => updateDoc(doc(db, "households", state.currentHid, "handleliste", itemId), { subitems })
+    );
+};
+
+window.deleteSubitem = (itemId, subitemId) => {
+    const item = handlelisteCache.find(i => i.id === itemId);
+    if (!item || !item.subitems) return;
+    const subitems = item.subitems.filter(s => s.id !== subitemId);
+    return optimisticWrite(
+        () => { item.subitems = subitems; },
+        () => updateDoc(doc(db, "households", state.currentHid, "handleliste", itemId), { subitems })
+    );
+};
 
 // Fetch page title via microlink.io (best-effort, fire-and-forget)
 async function fetchUrlMeta(url) {
