@@ -231,6 +231,54 @@ function renderPreview(sheet, dark, rows) {
     )];
 
     const fmt = n => n.toLocaleString('nb-NO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    let filterQuery = '';
+
+    function getVisible() {
+        const q = filterQuery.toLowerCase().trim();
+        if (!q) return rows.map((r, i) => ({ r, i }));
+        return rows.map((r, i) => ({ r, i })).filter(({ r }) =>
+            r.desc.toLowerCase().includes(q) ||
+            (r.category || '').toLowerCase().includes(q) ||
+            r.date.includes(q)
+        );
+    }
+
+    function rowHtml(r, i) {
+        return `
+            <div data-row="${i}" class="flex items-center gap-3 py-2.5 border-b ${dark ? 'border-slate-700' : 'border-slate-100'} last:border-0">
+                <button data-idx="${i}" class="imp-toggle w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${r.selected ? 'bg-indigo-600 border-indigo-600' : (dark ? 'border-slate-600' : 'border-slate-300')}">
+                    ${r.selected ? '<svg class="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>' : ''}
+                </button>
+                <div class="flex-1 min-w-0">
+                    <p class="row-name text-sm font-bold truncate ${r.selected ? (dark ? 'text-slate-100' : 'text-slate-900') : (dark ? 'text-slate-600' : 'text-slate-300')}">${escText(r.desc)}</p>
+                    <p class="text-[10px] ${dark ? 'text-slate-500' : 'text-slate-400'} flex items-center gap-1.5 flex-wrap">
+                        <span>${escText(r.date)}</span>
+                        ${r.category ? `<span class="text-indigo-500 font-bold bg-indigo-50 rounded-full px-1.5 py-px">${escText(r.category)}</span>` : '<span class="text-slate-300">· ukjent</span>'}
+                        ${r.isDuplicate ? '<span class="text-rose-400 font-bold bg-rose-50 rounded-full px-1.5 py-px">duplikat</span>' : ''}
+                    </p>
+                </div>
+                <span class="row-amt text-sm font-black shrink-0 ${r.selected ? (dark ? 'text-slate-200' : 'text-slate-700') : (dark ? 'text-slate-600' : 'text-slate-300')}">
+                    ${fmt(r.amount)} kr
+                </span>
+            </div>`;
+    }
+
+    function renderRows() {
+        const visible = getVisible();
+        const container = sheet.querySelector('#_imp_rows');
+        if (!container) return;
+        container.innerHTML = visible.length
+            ? visible.map(({ r, i }) => rowHtml(r, i)).join('')
+            : `<p class="text-center py-10 text-sm ${dark ? 'text-slate-500' : 'text-slate-400'}">Ingen treff for «${escText(filterQuery)}»</p>`;
+        container.querySelectorAll('.imp-toggle').forEach(btn => {
+            btn.onclick = () => {
+                const i = parseInt(btn.dataset.idx);
+                rows[i].selected ^= true;
+                updateRow(i);
+                updateStats();
+            };
+        });
+    }
 
     // Surgical updates — no scroll reset
     function updateStats() {
@@ -273,7 +321,13 @@ function renderPreview(sheet, dark, rows) {
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </button>
             </div>
-            <p id="_imp_stats" class="text-xs ${dark ? 'text-slate-400' : 'text-slate-500'} mb-4"></p>
+            <p id="_imp_stats" class="text-xs ${dark ? 'text-slate-400' : 'text-slate-500'} mb-3"></p>
+
+            <div class="relative mb-3">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none ${dark ? 'text-slate-500' : 'text-slate-400'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <input id="_imp_search" type="search" placeholder="Søk i transaksjoner..." autocomplete="off"
+                    class="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl border outline-none focus:border-indigo-400 transition-colors ${dark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-700 placeholder-slate-400'}">
+            </div>
 
             <div class="flex gap-2 mb-3">
                 <div class="flex-1">
@@ -297,25 +351,7 @@ function renderPreview(sheet, dark, rows) {
             </div>
         </div>
 
-        <div class="overflow-y-auto flex-1 px-5" id="_imp_rows">
-            ${rows.map((r, i) => `
-                <div data-row="${i}" class="flex items-center gap-3 py-2.5 border-b ${dark ? 'border-slate-700' : 'border-slate-100'} last:border-0">
-                    <button data-idx="${i}" class="imp-toggle w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${r.selected ? 'bg-indigo-600 border-indigo-600' : (dark ? 'border-slate-600' : 'border-slate-300')}">
-                        ${r.selected ? '<svg class="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>' : ''}
-                    </button>
-                    <div class="flex-1 min-w-0">
-                        <p class="row-name text-sm font-bold truncate ${r.selected ? (dark ? 'text-slate-100' : 'text-slate-900') : (dark ? 'text-slate-600' : 'text-slate-300')}">${escText(r.desc)}</p>
-                        <p class="text-[10px] ${dark ? 'text-slate-500' : 'text-slate-400'} flex items-center gap-1.5 flex-wrap">
-                            <span>${escText(r.date)}</span>
-                            ${r.category ? `<span class="text-indigo-500 font-bold bg-indigo-50 rounded-full px-1.5 py-px">${escText(r.category)}</span>` : '<span class="text-slate-300">· ukjent</span>'}
-                            ${r.isDuplicate ? '<span class="text-rose-400 font-bold bg-rose-50 rounded-full px-1.5 py-px">duplikat</span>' : ''}
-                        </p>
-                    </div>
-                    <span class="row-amt text-sm font-black shrink-0 ${r.selected ? (dark ? 'text-slate-200' : 'text-slate-700') : (dark ? 'text-slate-600' : 'text-slate-300')}">
-                        ${fmt(r.amount)} kr
-                    </span>
-                </div>`).join('')}
-        </div>
+        <div class="overflow-y-auto flex-1 px-5" id="_imp_rows"></div>
 
         <div class="p-5 pt-3 shrink-0">
             <button id="_imp_confirm" class="w-full py-3.5 rounded-2xl text-sm font-bold transition-all bg-slate-100 text-slate-300"></button>
@@ -325,25 +361,23 @@ function renderPreview(sheet, dark, rows) {
     sheet.querySelector('#_imp_cat').onchange = e => { selectedCategory = e.target.value; };
     sheet.querySelector('#_imp_buyer').onchange = e => { selectedBuyer = e.target.value; };
 
+    sheet.querySelector('#_imp_search').oninput = e => {
+        filterQuery = e.target.value;
+        renderRows();
+    };
+
+    // Velg alle / Fjern alle operate on currently visible (filtered) rows
     sheet.querySelector('#_imp_selall').onclick = () => {
-        rows.forEach((r, i) => { r.selected = true; updateRow(i); });
+        getVisible().forEach(({ r, i }) => { r.selected = true; updateRow(i); });
         updateStats();
     };
     sheet.querySelector('#_imp_deselall').onclick = () => {
-        rows.forEach((r, i) => { r.selected = false; updateRow(i); });
+        getVisible().forEach(({ r, i }) => { r.selected = false; updateRow(i); });
         updateStats();
     };
 
-    sheet.querySelectorAll('.imp-toggle').forEach(btn => {
-        btn.onclick = () => {
-            const i = parseInt(btn.dataset.idx);
-            rows[i].selected ^= true;
-            updateRow(i);
-            updateStats();
-        };
-    });
-
-    updateStats(); // populate initial state
+    renderRows();
+    updateStats();
 }
 
 // ---- Duplicate detection ----
