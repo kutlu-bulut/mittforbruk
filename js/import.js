@@ -28,12 +28,6 @@ function isLikelyTransfer(desc) {
            d.startsWith('fra:') ||
            d === 'mobil overføring' ||
            d.includes('overf') ||           // overføring, overføre (encoding-resilient)
-           d.includes('lån') ||        // lån (NFC normalised)
-           d.includes('lån'.normalize('NFD')) ||  // NFD decomposed å
-           /l[aå]n/i.test(d) ||        // fallback: "lan" or "lån" (encoding-resilient)
-           d.includes('avdrag') ||
-           d.includes('terminbel') ||       // terminbeløp (resilient)
-           d.startsWith('nedbetaling') ||
            d.startsWith('uttak') ||
            d.includes('minibank') ||
            d.includes('gebyr') ||
@@ -41,10 +35,22 @@ function isLikelyTransfer(desc) {
            /rente/i.test(d) ||              // catches garbled "rente" variants
            /^straksbet/.test(d) ||
            /^nettgiro til /i.test(d) ||
+           d.startsWith('dnb bank');
+}
+
+// Loan payments — shown in preview deselected with a 'lån' badge so the user
+// can choose to include them without them cluttering the default selection.
+function isLikelyLoanPayment(desc) {
+    const d = (desc || '').toLowerCase().trim();
+    return d.includes('lån') ||
+           d.includes('lån'.normalize('NFD')) ||
+           /l[aå]n/i.test(d) ||
+           d.includes('avdrag') ||
+           d.includes('terminbel') ||
+           d.startsWith('nedbetaling') ||
            d.includes('svea bank') ||
            d.includes('bank norwegian') ||
-           d.includes('sbanken') ||
-           d.startsWith('dnb bank');
+           d.includes('sbanken');
 }
 
 // Detects personal name transfers ("Hasan Bulut", "Vipps:Torunn Foss", etc.)
@@ -88,24 +94,27 @@ function parseCSV(text) {
 
         if (!ut && inn) {
             // Incoming transaction — shown as context to help detect internal transfers.
-            // Skip loan-related incoming (disbursements, repayments) to avoid false matches.
-            if (isLikelyTransfer(beskrivelse)) continue;
+            // Skip pure transfers and loan-related incoming to avoid false matches.
+            if (isLikelyTransfer(beskrivelse) || isLikelyLoanPayment(beskrivelse)) continue;
             rows.push({
                 date: dato, desc: beskrivelse, amount: inn,
                 selected: false, isIncoming: true,
-                category: null, isPossibleTransfer: false, isDuplicate: false, isInternalTransfer: false,
+                category: null, isPossibleTransfer: false, isDuplicate: false,
+                isInternalTransfer: false, isLoanPayment: false,
             });
             continue;
         }
 
         if (!ut) continue;
         if (isLikelyTransfer(beskrivelse)) continue;
-        const possibleTransfer = isLikelyPersonalTransfer(beskrivelse);
+        const isLoan = isLikelyLoanPayment(beskrivelse);
+        const possibleTransfer = !isLoan && isLikelyPersonalTransfer(beskrivelse);
         rows.push({
             date: dato, desc: beskrivelse, amount: ut,
-            selected: true, // amber badge is informational only — keep selected by default
+            selected: !isLoan, // loan payments deselected by default
             category: autoCategory(beskrivelse),
             isPossibleTransfer: possibleTransfer,
+            isLoanPayment: isLoan,
             isIncoming: false, isDuplicate: false, isInternalTransfer: false,
         });
     }
@@ -340,7 +349,7 @@ function renderPreview(sheet, dark, rows) {
                     <p class="text-[10px] ${dark ? 'text-slate-500' : 'text-slate-400'} flex items-center gap-1.5 flex-wrap">
                         <span>${escText(r.date)}</span>
                         ${r.category ? `<span class="text-indigo-500 font-bold bg-indigo-50 rounded-full px-1.5 py-px">${escText(r.category)}</span>` : '<span class="text-slate-300">· ukjent</span>'}
-                        ${r.isInternalTransfer ? '<span class="text-rose-500 font-bold bg-rose-50 rounded-full px-1.5 py-px">intern overf.</span>' : r.isPossibleTransfer ? '<span class="text-amber-500 font-bold bg-amber-50 rounded-full px-1.5 py-px">mulig overf.</span>' : r.isDuplicate ? '<span class="text-rose-400 font-bold bg-rose-50 rounded-full px-1.5 py-px">duplikat</span>' : ''}
+                        ${r.isLoanPayment ? '<span class="text-violet-500 font-bold bg-violet-50 rounded-full px-1.5 py-px">lån</span>' : r.isInternalTransfer ? '<span class="text-rose-500 font-bold bg-rose-50 rounded-full px-1.5 py-px">intern overf.</span>' : r.isPossibleTransfer ? '<span class="text-amber-500 font-bold bg-amber-50 rounded-full px-1.5 py-px">mulig overf.</span>' : r.isDuplicate ? '<span class="text-rose-400 font-bold bg-rose-50 rounded-full px-1.5 py-px">duplikat</span>' : ''}
                     </p>
                 </div>
                 <span class="row-amt text-sm font-black shrink-0 ${r.selected ? (dark ? 'text-slate-200' : 'text-slate-700') : (dark ? 'text-slate-600' : 'text-slate-300')}">
