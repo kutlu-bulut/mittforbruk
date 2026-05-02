@@ -84,17 +84,27 @@ function parseCSV(text) {
         const ut = parseNOKAmount(cols[3]);
         const inn = parseNOKAmount(cols[4]);
         if (!ut && !inn) continue;
-        if (!ut && inn) continue; // incoming money — not an expense
-        if (!dato || !beskrivelse || !ut) continue;
+        if (!dato || !beskrivelse) continue;
+
+        if (!ut && inn) {
+            // Incoming transaction — shown as context to help detect internal transfers
+            rows.push({
+                date: dato, desc: beskrivelse, amount: inn,
+                selected: false, isIncoming: true,
+                category: null, isPossibleTransfer: false, isDuplicate: false, isInternalTransfer: false,
+            });
+            continue;
+        }
+
+        if (!ut) continue;
         if (isLikelyTransfer(beskrivelse)) continue;
         const possibleTransfer = isLikelyPersonalTransfer(beskrivelse);
         rows.push({
-            date: dato,
-            desc: beskrivelse,
-            amount: ut,
-            selected: !possibleTransfer,
-            category: possibleTransfer ? null : autoCategory(beskrivelse),
+            date: dato, desc: beskrivelse, amount: ut,
+            selected: true, // amber badge is informational only — keep selected by default
+            category: autoCategory(beskrivelse),
             isPossibleTransfer: possibleTransfer,
+            isIncoming: false, isDuplicate: false, isInternalTransfer: false,
         });
     }
     return rows;
@@ -243,9 +253,9 @@ function renderFilePicker(sheet, dark) {
 
     const processText = (text) => {
         const rows = parseCSV(text);
-        if (!rows.length) { showToast('Ingen gyldige transaksjoner funnet', 'error'); return; }
+        if (!rows.filter(r => !r.isIncoming).length) { showToast('Ingen gyldige transaksjoner funnet', 'error'); return; }
         markDuplicates(rows);
-        // Pre-uncheck likely duplicates
+        // Pre-uncheck duplicates (isInternalTransfer already deselected in markDuplicates)
         rows.forEach(r => { if (r.isDuplicate) r.selected = false; });
         renderPreview(sheet, dark, rows);
     };
@@ -304,6 +314,20 @@ function renderPreview(sheet, dark, rows) {
     }
 
     function rowHtml(r, i) {
+        if (r.isIncoming) {
+            return `
+                <div data-row="${i}" class="flex items-center gap-3 py-2 border-b ${dark ? 'border-slate-700/50' : 'border-slate-100'} last:border-0 opacity-50">
+                    <div class="w-6 h-6 shrink-0"></div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm truncate ${dark ? 'text-slate-400' : 'text-slate-500'}">${escText(r.desc)}</p>
+                        <p class="text-[10px] ${dark ? 'text-slate-600' : 'text-slate-400'} flex items-center gap-1.5">
+                            <span>${escText(r.date)}</span>
+                            <span class="text-emerald-600 font-bold bg-emerald-50 rounded-full px-1.5 py-px">inn</span>
+                        </p>
+                    </div>
+                    <span class="text-sm font-black shrink-0 text-emerald-600">+${fmt(r.amount)} kr</span>
+                </div>`;
+        }
         return `
             <div data-row="${i}" class="flex items-center gap-3 py-2.5 border-b ${dark ? 'border-slate-700' : 'border-slate-100'} last:border-0">
                 <button data-idx="${i}" class="imp-toggle w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${r.selected ? 'bg-indigo-600 border-indigo-600' : (dark ? 'border-slate-600' : 'border-slate-300')}">
@@ -314,7 +338,7 @@ function renderPreview(sheet, dark, rows) {
                     <p class="text-[10px] ${dark ? 'text-slate-500' : 'text-slate-400'} flex items-center gap-1.5 flex-wrap">
                         <span>${escText(r.date)}</span>
                         ${r.category ? `<span class="text-indigo-500 font-bold bg-indigo-50 rounded-full px-1.5 py-px">${escText(r.category)}</span>` : '<span class="text-slate-300">· ukjent</span>'}
-                        ${r.isPossibleTransfer ? '<span class="text-amber-500 font-bold bg-amber-50 rounded-full px-1.5 py-px">mulig overf.</span>' : r.isDuplicate ? '<span class="text-rose-400 font-bold bg-rose-50 rounded-full px-1.5 py-px">duplikat</span>' : ''}
+                        ${r.isInternalTransfer ? '<span class="text-rose-500 font-bold bg-rose-50 rounded-full px-1.5 py-px">intern overf.</span>' : r.isPossibleTransfer ? '<span class="text-amber-500 font-bold bg-amber-50 rounded-full px-1.5 py-px">mulig overf.</span>' : r.isDuplicate ? '<span class="text-rose-400 font-bold bg-rose-50 rounded-full px-1.5 py-px">duplikat</span>' : ''}
                     </p>
                 </div>
                 <span class="row-amt text-sm font-black shrink-0 ${r.selected ? (dark ? 'text-slate-200' : 'text-slate-700') : (dark ? 'text-slate-600' : 'text-slate-300')}">
@@ -342,10 +366,11 @@ function renderPreview(sheet, dark, rows) {
 
     // Surgical updates — no scroll reset
     function updateStats() {
-        const sel = rows.filter(r => r.selected);
+        const outgoing = rows.filter(r => !r.isIncoming);
+        const sel = outgoing.filter(r => r.selected);
         const total = sel.reduce((s, r) => s + r.amount, 0);
         const statsEl = sheet.querySelector('#_imp_stats');
-        if (statsEl) statsEl.textContent = `${sel.length} av ${rows.length} valgt · ${fmt(total)} kr`;
+        if (statsEl) statsEl.textContent = `${sel.length} av ${outgoing.length} valgt · ${fmt(total)} kr`;
         const btn = sheet.querySelector('#_imp_confirm');
         if (!btn) return;
         const hasAny = sel.length > 0;
@@ -356,6 +381,7 @@ function renderPreview(sheet, dark, rows) {
 
     function updateRow(i) {
         const r = rows[i];
+        if (r.isIncoming) return;
         const toggleBtn = sheet.querySelector(`.imp-toggle[data-idx="${i}"]`);
         if (!toggleBtn) return;
         const row = toggleBtn.closest('[data-row]');
@@ -426,13 +452,13 @@ function renderPreview(sheet, dark, rows) {
         renderRows();
     };
 
-    // Velg alle / Fjern alle operate on currently visible (filtered) rows
+    // Velg alle / Fjern alle operate on currently visible outgoing rows only
     sheet.querySelector('#_imp_selall').onclick = () => {
-        getVisible().forEach(({ r, i }) => { r.selected = true; updateRow(i); });
+        getVisible().forEach(({ r, i }) => { if (!r.isIncoming) { r.selected = true; updateRow(i); } });
         updateStats();
     };
     sheet.querySelector('#_imp_deselall').onclick = () => {
-        getVisible().forEach(({ r, i }) => { r.selected = false; updateRow(i); });
+        getVisible().forEach(({ r, i }) => { if (!r.isIncoming) { r.selected = false; updateRow(i); } });
         updateStats();
     };
 
@@ -443,8 +469,9 @@ function renderPreview(sheet, dark, rows) {
 // ---- Duplicate detection ----
 
 function markDuplicates(rows) {
-    // Check against already-imported purchases
+    // Check against already-imported purchases (outgoing only)
     rows.forEach(r => {
+        if (r.isIncoming) return;
         const [y, m, d] = r.date.split('-').map(Number);
         const dayStart = new Date(y, m - 1, d).getTime();
         const dayEnd   = dayStart + 86400000;
@@ -459,19 +486,37 @@ function markDuplicates(rows) {
     // (e.g. a bank transfer note + the actual Vipps/card payment for the same purchase)
     const groups = {};
     rows.forEach((r, i) => {
-        if (r.isPossibleTransfer) return; // already handled
+        if (r.isIncoming || r.isPossibleTransfer) return;
         const key = r.date + '|' + r.amount;
         (groups[key] = groups[key] || []).push(i);
     });
     const hasPaymentPrefix = i => /^(vipps:|klarna:|loomisp:|zettle_:|nok\s+\d)/i.test(rows[i].desc);
     Object.values(groups).forEach(indices => {
         if (indices.length < 2) return;
-        // Keep the one with a payment-platform prefix; flag the rest as duplicates
         const sorted = [...indices].sort((a, b) =>
             (hasPaymentPrefix(b) ? 1 : 0) - (hasPaymentPrefix(a) ? 1 : 0)
         );
         sorted.slice(1).forEach(i => { rows[i].isDuplicate = true; });
     });
+
+    // Detect internal account transfers: outgoing matches an incoming on the same day (±1 day)
+    const incoming = rows.filter(r => r.isIncoming);
+    if (incoming.length) {
+        rows.forEach(r => {
+            if (r.isIncoming || r.isDuplicate) return;
+            const [y, m, d] = r.date.split('-').map(Number);
+            const dayMs = new Date(y, m - 1, d).getTime();
+            const matched = incoming.some(inc => {
+                const [iy, im, id2] = inc.date.split('-').map(Number);
+                const incMs = new Date(iy, im - 1, id2).getTime();
+                return Math.abs(inc.amount - r.amount) < 0.01 && Math.abs(incMs - dayMs) <= 86400000;
+            });
+            if (matched) {
+                r.isInternalTransfer = true;
+                r.selected = false;
+            }
+        });
+    }
 }
 
 // ---- Write to Firestore ----
