@@ -111,7 +111,7 @@ function parseCSV(text) {
         const possibleTransfer = !isLoan && isLikelyPersonalTransfer(beskrivelse);
         rows.push({
             date: dato, desc: beskrivelse, amount: ut,
-            selected: !isLoan, // loan payments deselected by default
+            selected: true, // selected by default; lån badge lets user deselect if unwanted
             category: autoCategory(beskrivelse),
             isPossibleTransfer: possibleTransfer,
             isLoanPayment: isLoan,
