@@ -27,21 +27,38 @@ function isLikelyTransfer(desc) {
            d.startsWith('til:') ||
            d.startsWith('fra:') ||
            d === 'mobil overføring' ||
-           d.includes('overføring') ||
-           d.includes('lån') ||
+           d.includes('overf') ||           // overføring, overføre (encoding-resilient)
+           d.includes('lån') ||        // lån (NFC normalised)
+           d.includes('lån'.normalize('NFD')) ||  // NFD decomposed å
+           /l[aå]n/i.test(d) ||        // fallback: "lan" or "lån" (encoding-resilient)
            d.includes('avdrag') ||
-           d.includes('terminbeløp') ||
+           d.includes('terminbel') ||       // terminbeløp (resilient)
            d.startsWith('nedbetaling') ||
            d.startsWith('uttak') ||
            d.includes('minibank') ||
            d.includes('gebyr') ||
-           /\brenter?\b/.test(d) ||        // "rente" and "renter" (interest charges)
+           /\brenter?\b/.test(d) ||
+           /rente/i.test(d) ||              // catches garbled "rente" variants
            /^straksbet/.test(d) ||
            /^nettgiro til /i.test(d) ||
-           d.includes('svea bank') ||       // consumer credit repayment
-           d.includes('bank norwegian') ||  // credit card payment
-           d.includes('sbanken') ||         // savings/bank transfer
-           d.startsWith('dnb bank');        // DNB bank transfer (not DNB Livsforsikring)
+           d.includes('svea bank') ||
+           d.includes('bank norwegian') ||
+           d.includes('sbanken') ||
+           d.startsWith('dnb bank');
+}
+
+// Detects personal name transfers ("Hasan Bulut", "Vipps:Torunn Foss", etc.)
+// Uses autoCategory as a guard — known merchants are never flagged.
+function isLikelyPersonalTransfer(desc) {
+    const looksLikeName = s => {
+        const parts = s.trim().split(/\s+/);
+        return parts.length >= 2 && parts.length <= 3 &&
+               parts.every(w => /^[A-ZÆØÅ][a-zæøåÀ-ž\-]{1,}$/.test(w)) &&
+               !autoCategory(s);
+    };
+    if (looksLikeName(desc)) return true;
+    const m = desc.match(/^vipps:(.+)$/i);
+    return m ? looksLikeName(m[1].trim()) : false;
 }
 
 function detectSeparator(header) {
@@ -69,13 +86,15 @@ function parseCSV(text) {
         if (!ut && !inn) continue;
         if (!ut && inn) continue; // incoming money — not an expense
         if (!dato || !beskrivelse || !ut) continue;
-        if (isLikelyTransfer(beskrivelse)) continue; // skip internal transfers entirely
+        if (isLikelyTransfer(beskrivelse)) continue;
+        const possibleTransfer = isLikelyPersonalTransfer(beskrivelse);
         rows.push({
             date: dato,
             desc: beskrivelse,
             amount: ut,
-            selected: true,
-            category: autoCategory(beskrivelse),
+            selected: !possibleTransfer,
+            category: possibleTransfer ? null : autoCategory(beskrivelse),
+            isPossibleTransfer: possibleTransfer,
         });
     }
     return rows;
@@ -242,9 +261,19 @@ function renderFilePicker(sheet, dark) {
     sheet.querySelector('#_imp_file').onchange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => processText(ev.target.result);
-        reader.readAsText(file, 'UTF-8');
+        const tryRead = (encoding, fallback) => {
+            const r = new FileReader();
+            r.onload = ev => {
+                // If UTF-8 produces replacement chars the file is likely Windows-1252/ISO-8859-1
+                if (fallback && ev.target.result.includes('�')) {
+                    tryRead(fallback, null);
+                } else {
+                    processText(ev.target.result);
+                }
+            };
+            r.readAsText(file, encoding);
+        };
+        tryRead('UTF-8', 'ISO-8859-1');
     };
 }
 
@@ -285,7 +314,7 @@ function renderPreview(sheet, dark, rows) {
                     <p class="text-[10px] ${dark ? 'text-slate-500' : 'text-slate-400'} flex items-center gap-1.5 flex-wrap">
                         <span>${escText(r.date)}</span>
                         ${r.category ? `<span class="text-indigo-500 font-bold bg-indigo-50 rounded-full px-1.5 py-px">${escText(r.category)}</span>` : '<span class="text-slate-300">· ukjent</span>'}
-                        ${r.isDuplicate ? '<span class="text-rose-400 font-bold bg-rose-50 rounded-full px-1.5 py-px">duplikat</span>' : ''}
+                        ${r.isPossibleTransfer ? '<span class="text-amber-500 font-bold bg-amber-50 rounded-full px-1.5 py-px">mulig overf.</span>' : r.isDuplicate ? '<span class="text-rose-400 font-bold bg-rose-50 rounded-full px-1.5 py-px">duplikat</span>' : ''}
                     </p>
                 </div>
                 <span class="row-amt text-sm font-black shrink-0 ${r.selected ? (dark ? 'text-slate-200' : 'text-slate-700') : (dark ? 'text-slate-600' : 'text-slate-300')}">
@@ -414,6 +443,7 @@ function renderPreview(sheet, dark, rows) {
 // ---- Duplicate detection ----
 
 function markDuplicates(rows) {
+    // Check against already-imported purchases
     rows.forEach(r => {
         const [y, m, d] = r.date.split('-').map(Number);
         const dayStart = new Date(y, m - 1, d).getTime();
@@ -423,6 +453,24 @@ function markDuplicates(rows) {
             p.createdAt >= dayStart && p.createdAt < dayEnd &&
             (p.store || '').toLowerCase() === r.desc.toLowerCase()
         );
+    });
+
+    // Detect same-day same-amount pairs within this CSV
+    // (e.g. a bank transfer note + the actual Vipps/card payment for the same purchase)
+    const groups = {};
+    rows.forEach((r, i) => {
+        if (r.isPossibleTransfer) return; // already handled
+        const key = r.date + '|' + r.amount;
+        (groups[key] = groups[key] || []).push(i);
+    });
+    const hasPaymentPrefix = i => /^(vipps:|klarna:|loomisp:|zettle_:|nok\s+\d)/i.test(rows[i].desc);
+    Object.values(groups).forEach(indices => {
+        if (indices.length < 2) return;
+        // Keep the one with a payment-platform prefix; flag the rest as duplicates
+        const sorted = [...indices].sort((a, b) =>
+            (hasPaymentPrefix(b) ? 1 : 0) - (hasPaymentPrefix(a) ? 1 : 0)
+        );
+        sorted.slice(1).forEach(i => { rows[i].isDuplicate = true; });
     });
 }
 
