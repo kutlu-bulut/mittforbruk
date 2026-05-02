@@ -87,7 +87,9 @@ function parseCSV(text) {
         if (!dato || !beskrivelse) continue;
 
         if (!ut && inn) {
-            // Incoming transaction — shown as context to help detect internal transfers
+            // Incoming transaction — shown as context to help detect internal transfers.
+            // Skip loan-related incoming (disbursements, repayments) to avoid false matches.
+            if (isLikelyTransfer(beskrivelse)) continue;
             rows.push({
                 date: dato, desc: beskrivelse, amount: inn,
                 selected: false, isIncoming: true,
