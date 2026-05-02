@@ -77,8 +77,8 @@ export function refreshInsightsView(year, month) {
 
     updateDailyInsights(total, insightsYear, insightsMonth);
     updateDailyChart(daySums, insightsYear, insightsMonth);
-    updateCategoryBars(catSums);
-    updateStoreBars(storeSums);
+    updateCategoryBars(catSums, purchases);
+    updateStoreBars(storeSums, purchases);
 }
 
 // ============================================================
@@ -447,9 +447,75 @@ export function updateDailyInsights(currentTotal, year, month) {
 }
 
 // ============================================================
+// Drilldown sheet — shows individual purchases for a bar row
+// ============================================================
+function getMemberColor(name) {
+    const m = state.householdMembers.find(m => m.name === name);
+    return m?.color || state.currentUserData.color || '#4f46e5';
+}
+
+function showDrilldownSheet(title, color, items) {
+    document.getElementById('insightsDrillOverlay')?.remove();
+    const dark = document.body.classList.contains('dark-mode');
+    const fmt  = n => n.toLocaleString('nb-NO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    const total = items.reduce((s, p) => s + (p.price || 0), 0);
+    const multi = state.householdMembers.length > 1;
+    const sorted = [...items].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+    const overlay = document.createElement('div');
+    overlay.id = 'insightsDrillOverlay';
+    overlay.className = 'fixed inset-0 z-50 flex flex-col items-center justify-end';
+    overlay.style.cssText = 'background:rgba(15,23,42,0.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)';
+
+    const sheet = document.createElement('div');
+    sheet.className = `w-full max-w-lg rounded-t-3xl shadow-2xl border-t flex flex-col ${dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`;
+    sheet.style.cssText = 'animation:slideUp 0.25s cubic-bezier(0.34,1.56,0.64,1);max-height:85vh';
+
+    const rows = sorted.map(p => {
+        const dateStr = new Date(p.createdAt).toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' });
+        const buyer   = p.buyer || 'Ukjent';
+        const desc    = p.desc  || '';
+        const bColor  = getMemberColor(buyer);
+        return `
+            <div class="flex items-center gap-3 py-2.5 border-b ${dark ? 'border-slate-700' : 'border-slate-100'} last:border-0">
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-bold truncate ${dark ? 'text-slate-100' : 'text-slate-900'}">${escapeHtml(p.store || 'Ukjent')}</p>
+                    <p class="text-[10px] ${dark ? 'text-slate-500' : 'text-slate-400'} flex items-center gap-1.5 flex-wrap mt-0.5">
+                        <span>${escapeHtml(dateStr)}</span>
+                        ${multi ? `<span class="font-bold" style="color:${escapeHtml(bColor)}">${escapeHtml(buyer)}</span>` : ''}
+                        ${desc ? `<span class="truncate max-w-[120px]">${escapeHtml(desc)}</span>` : ''}
+                    </p>
+                </div>
+                <span class="text-sm font-black shrink-0 ${dark ? 'text-slate-200' : 'text-slate-700'}">${fmt(p.price || 0)} kr</span>
+            </div>`;
+    }).join('');
+
+    sheet.innerHTML = `
+        <div class="p-5 pb-3 shrink-0">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-3 h-3 rounded-full shrink-0" style="background:${escapeHtml(color)}"></div>
+                    <h3 class="font-bold text-base ${dark ? 'text-slate-100' : 'text-slate-900'}">${escapeHtml(title)}</h3>
+                </div>
+                <button id="_dd_close" class="w-9 h-9 rounded-full flex items-center justify-center ${dark ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-400'} active:opacity-70">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <p class="text-2xl font-black ${dark ? 'text-slate-100' : 'text-slate-900'}">${fmt(total)} kr</p>
+            <p class="text-xs ${dark ? 'text-slate-400' : 'text-slate-500'} mt-0.5">${items.length} kjøp · ${MONTH_NAMES[insightsMonth]} ${insightsYear}</p>
+        </div>
+        <div class="overflow-y-auto flex-1 px-5 pb-5">${rows}</div>`;
+
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    sheet.querySelector('#_dd_close').onclick = () => overlay.remove();
+}
+
+// ============================================================
 // Kategori-barer
 // ============================================================
-export function updateCategoryBars(catSums) {
+export function updateCategoryBars(catSums, purchases = []) {
     const container = document.getElementById('categoryBars');
     if (!container) return;
     container.innerHTML = '';
@@ -464,11 +530,11 @@ export function updateCategoryBars(catSums) {
 
     entries.forEach(([name, amount], i) => {
         const emojiStr = categoryEmojis[name] ? categoryEmojis[name] + " " : "";
-        const pct = maxVal > 0 ? (amount / maxVal) * 100 : 0;
+        const pct   = maxVal > 0 ? (amount / maxVal) * 100 : 0;
         const color = profileColors[i % profileColors.length];
 
         const row = document.createElement('div');
-        row.className = "space-y-1";
+        row.className = "space-y-1 rounded-xl cursor-pointer active:opacity-60 transition-opacity";
 
         const labelRow = document.createElement('div');
         labelRow.className = "flex justify-between items-center";
@@ -477,12 +543,18 @@ export function updateCategoryBars(catSums) {
         label.className = "text-sm font-semibold text-slate-700";
         label.textContent = emojiStr + name;
 
+        const valueWrap = document.createElement('div');
+        valueWrap.className = "flex items-center gap-1 shrink-0";
+
         const value = document.createElement('span');
         value.className = "text-sm font-bold text-slate-900";
         value.textContent = amount.toLocaleString() + " kr";
 
+        valueWrap.appendChild(value);
+        valueWrap.insertAdjacentHTML('beforeend', '<svg class="w-3 h-3 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>');
+
         labelRow.appendChild(label);
-        labelRow.appendChild(value);
+        labelRow.appendChild(valueWrap);
 
         const track = document.createElement('div');
         track.className = "cat-bar-track";
@@ -496,6 +568,11 @@ export function updateCategoryBars(catSums) {
         row.appendChild(labelRow);
         row.appendChild(track);
         container.appendChild(row);
+
+        row.onclick = () => {
+            const items = purchases.filter(p => (p.category || 'Annet') === name);
+            showDrilldownSheet(emojiStr + name, color, items);
+        };
 
         requestAnimationFrame(() => {
             setTimeout(() => { fill.style.width = pct + '%'; }, i * 80);
@@ -556,12 +633,70 @@ function renderBars(container, entries, colors) {
     });
 }
 
-export function updateStoreBars(storeSums) {
+export function updateStoreBars(storeSums, purchases = []) {
     const container = document.getElementById('storeBars');
     if (!container) return;
+    container.innerHTML = '';
+
     const storeColors = ["#f97316", "#06b6d4", "#8b5cf6", "#f43f5e", "#10b981", "#f59e0b", "#6366f1", "#ec4899"];
     const entries = Object.entries(storeSums).sort((a, b) => b[1] - a[1]);
-    renderBars(container, entries, storeColors);
+
+    if (entries.length === 0) {
+        container.innerHTML = '<p class="text-sm text-slate-400 font-semibold text-center py-4">Ingen data ennå</p>';
+        return;
+    }
+
+    const maxVal = entries[0][1];
+
+    entries.forEach(([name, amount], i) => {
+        const pct   = maxVal > 0 ? (amount / maxVal) * 100 : 0;
+        const color = storeColors[i % storeColors.length];
+
+        const row = document.createElement('div');
+        row.className = "space-y-1 rounded-xl cursor-pointer active:opacity-60 transition-opacity";
+
+        const labelRow = document.createElement('div');
+        labelRow.className = "flex justify-between items-center";
+
+        const label = document.createElement('span');
+        label.className = "text-sm font-semibold text-slate-700";
+        label.textContent = name;
+
+        const valueWrap = document.createElement('div');
+        valueWrap.className = "flex items-center gap-1 shrink-0";
+
+        const value = document.createElement('span');
+        value.className = "text-sm font-bold text-slate-900";
+        value.textContent = amount.toLocaleString() + " kr";
+
+        valueWrap.appendChild(value);
+        valueWrap.insertAdjacentHTML('beforeend', '<svg class="w-3 h-3 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>');
+
+        labelRow.appendChild(label);
+        labelRow.appendChild(valueWrap);
+
+        const track = document.createElement('div');
+        track.className = "cat-bar-track";
+
+        const fill = document.createElement('div');
+        fill.className = "cat-bar-fill";
+        fill.style.backgroundColor = color;
+        fill.style.width = '0%';
+
+        track.appendChild(fill);
+        row.appendChild(labelRow);
+        row.appendChild(track);
+        container.appendChild(row);
+
+        row.onclick = () => {
+            const items = purchases.filter(p => (p.store || 'Ukjent') === name);
+            showDrilldownSheet(name, color, items);
+        };
+
+        requestAnimationFrame(() => {
+            setTimeout(() => { fill.style.width = pct + '%'; }, i * 80);
+        });
+    });
 }
 
 export function updateProfileStoreBars(myStoreSums) {
