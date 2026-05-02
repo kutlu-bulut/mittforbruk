@@ -28,16 +28,20 @@ function isLikelyTransfer(desc) {
            d.startsWith('fra:') ||
            d === 'mobil overføring' ||
            d.includes('overføring') ||
-           d.includes('lån') ||        // boliglån, billån, avdrag lån, lån 12345…
-           d.includes('avdrag') ||     // loan instalments
+           d.includes('lån') ||
+           d.includes('avdrag') ||
            d.includes('terminbeløp') ||
            d.startsWith('nedbetaling') ||
            d.startsWith('uttak') ||
            d.includes('minibank') ||
            d.includes('gebyr') ||
-           d.includes('renter') ||
+           /\brenter?\b/.test(d) ||        // "rente" and "renter" (interest charges)
            /^straksbet/.test(d) ||
-           /^nettgiro til /i.test(d);
+           /^nettgiro til /i.test(d) ||
+           d.includes('svea bank') ||       // consumer credit repayment
+           d.includes('bank norwegian') ||  // credit card payment
+           d.includes('sbanken') ||         // savings/bank transfer
+           d.startsWith('dnb bank');        // DNB bank transfer (not DNB Livsforsikring)
 }
 
 function detectSeparator(header) {
@@ -88,27 +92,41 @@ function escText(str) {
 const CAT_RULES = [
     { cat: 'Mat', test: d =>
         /rema|kiwi|meny|\bspar\b|coop|joker|bunnpris|extra|nærbu|eurospar|kolonial|adams matkasse|godtlevert/i.test(d) ||
-        /narvesen|7.?eleven|mix\b/i.test(d)
+        /narvesen|7.?eleven|mix\b/i.test(d) ||
+        (/\bobs\b/i.test(d) && !/bygg/i.test(d)) ||     // Coop Obs supermarket (not Obs Bygg hardware)
+        /frukt\b|grønnsak|krokstad.kjøtt/i.test(d) ||   // fruit shops, veg, butcher
+        /bakeland|morgenlevering|dinter:/i.test(d) ||    // food delivery / bakery
+        /vendcomaticas/i.test(d) ||                      // vending machines
+        /butikkdri/i.test(d) ||                          // norsk butikkdrift (convenience stores)
+        /^(mat|matvarer|sahur)$/i.test(d.trim())         // plain "Mat" / "Sahur" description
     },
     { cat: 'Restaurant', test: d =>
-        /mcdonalds|mcdonald|burger.?king|max.?burger|kfc|subway|dominos|pizz|sushi|restaurant|kro\b|café|cafe\b|bakeri|foodora|wolt|just.?eat|uber.?eats|starbucks|waynes|diner/i.test(d)
+        /mcdonalds|mcdonald|mcdassiden|\bmcd\b|\bbk\b|burger.?king|max.?burger|kfc|subway|dominos|pizz|sushi|restaurant|kro\b|café|cafe\b|bakeri|foodora|wolt|just.?eat|uber.?eats|starbucks|waynes|diner/i.test(d) ||
+        /snappy|egon\b|pincho|lucky.?bowl|liang.?juan|big.bite|trollgrill|jordbaerpiken|la.baguette/i.test(d) ||
+        /loomisp:/i.test(d)                              // Loomisp payment terminal (cafés/restaurants)
     },
     { cat: 'Transport', test: d =>
-        /circle.?k|shell|esso|statoil|uno.?x|\bst1\b|\bbest\b|bensinstasjon/i.test(d) ||
-        /easypark|apcoa|europark|parkeringshuset|autopay/i.test(d) ||
+        /circle.?k|shell|esso|statoil|uno.?x|\bst1\b|\bbest\b|bensinstasjon|drivstoff/i.test(d) ||
+        /easypark|apcoa|europark|parkeringshuset|autopay|onepark|bane.nor/i.test(d) ||
         /\bruter\b|atb\b|skyss|kolumbus|\bvy\b|flytoget|nsb\b|entur/i.test(d) ||
         /norwegian.?air|sas\b|wideroe|widerøe|\bflyr\b/i.test(d) ||
-        /\buber\b|\bbolt\b|taxify/i.test(d)
+        /\buber\b|\bbolt\b|taxify/i.test(d) ||
+        /bilvask|fjellinjen/i.test(d) ||
+        /^tog$/i.test(d.trim())                          // plain "Tog" description
     },
     { cat: 'Bolig', test: d =>
         /forsikring|gjensidige|tryg\b|if\b.{0,10}forsikring|jbf|codan/i.test(d) ||
-        /hafslund|tibber|fortum|lyse.?energi|fjordkraft|ustekveikja/i.test(d) ||
-        /fiber|altibox|telenor|telia|\bice\b|nextgentel|get\.no|viken.?fiber/i.test(d) ||
+        /hafslund|tibber|fortum|lyse.?energi|fjordkraft|ustekveikja|glitre.nett/i.test(d) ||
+        /fiber|altibox|telenor|telia|\bice\b|nextgentel|get\.no|viken.?fiber|talkmore/i.test(d) ||
         /verisure|sector.?alarm|nokas|avarn/i.test(d) ||
-        /husleie|kommunale|renovasjon|dnb.?livsforsikring/i.test(d)
+        /husleie|kommunal|\bkommune\b|renovasjon|dnb.?livsforsikring|renovasjonsselskapet/i.test(d)
     },
     { cat: 'Helse', test: d =>
-        /apotek|farmasiet|boots|vitusapotek|lloyds|legesenteret|tannlege|fysioterapi|optiker|brilleland/i.test(d)
+        /apotek|farmasiet|boots|vitusapotek|lloyds|legesenteret|legehus|tannlege|fysioterapi|optiker|brilleland/i.test(d) ||
+        /hudlege|legeklinikk|legepraksis|ultralyd/i.test(d) ||
+        /hårstud|frisør|frisur|haircut|klippesalong|solstudio|\.spa\b|harmony.spa|cut.n.go/i.test(d) ||
+        /sunkost|\bvita\b/i.test(d) ||
+        /^(hår|klipp|tannbørste|luftrenser)$/i.test(d.trim())
     },
     { cat: 'Shopping', test: d =>
         /\bh&m\b|h\.m\b|\bzara\b|nike|adidas|zalando|boozt|nelly\b|miinto/i.test(d) ||
@@ -116,15 +134,28 @@ const CAT_RULES = [
         /amazon|ebay|aliexpress|\bwish\b/i.test(d) ||
         /postnord|bring\b/i.test(d) ||
         /nille|normal\b|flying.tiger|lindex|cubus|dressmann|vero.moda|guttelus|carlings|weekday/i.test(d) ||
-        /lofavør|maxbo|byggmax|jernia|k-rauta/i.test(d) ||
-        /klarna/i.test(d)
+        /lofavør|maxbo|byggmax|jernia|k-rauta|bauhaus|obs.bygg|megaflis|rusta/i.test(d) ||
+        /klarna|shopify|qliro|avarda/i.test(d) ||
+        /\bmango\b|polarn|gina.tricot|\bmorris\b|skeidar|møbelringen|bohus|diversity/i.test(d) ||
+        /musti|zoo.markedet|dyrehandel/i.test(d) ||
+        /barnas.hus|sprell|partyland|barneskatter|extra.leker/i.test(d) ||
+        /norli\b|ark\.no/i.test(d) ||
+        /unisport|intersport|g-sport|stadion/i.test(d) ||
+        /europris|\bprice\b/i.test(d) ||
+        /\btemu\b|finnubrukt|gull.funn|haraldsson|nettbutikk/i.test(d) ||
+        /clas.ohl|\bboys\b|\bkappa\b/i.test(d) ||
+        /\bposten\b/i.test(d) ||
+        /^(teppe|laminat|kitchen|møbler)$/i.test(d.trim())
     },
     { cat: 'Underholdning', test: d =>
         /spotify|netflix|hbo|disney|viaplay|tv2.?sumo|nrk.?sumo|apple.?tv/i.test(d) ||
         /google.?play|playstation|xbox|\bsteam\b|nintendo/i.test(d) ||
-        /norsk.?tipping|lotteri|bingo/i.test(d) ||
+        /norsk.?tipping|lotteri|\bbingo\b|traakka.bingo|tråkka.bingo/i.test(d) ||
         /sats\b|elixia|evo.?fitness|fresh.?fitness|treningssenter|3t\b/i.test(d) ||
-        /kino|cinema|ticketmaster|billettservice/i.test(d)
+        /kino|cinema|ticketmaster|billettservice|odeon/i.test(d) ||
+        /youtube|tv.?2.?no|drammens.tidende/i.test(d) ||
+        /\bpadel\b|matchi\b|bowling/i.test(d) ||
+        /minitopia/i.test(d)
     },
 ];
 
