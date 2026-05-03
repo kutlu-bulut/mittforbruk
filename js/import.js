@@ -20,6 +20,44 @@ function unquote(str) {
     return (str || '').trim().replace(/^"|"$/g, '');
 }
 
+// Extract the 11-digit Norwegian account number from the CSV header section
+function extractAccountNumber(text) {
+    const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+    for (const line of lines.slice(0, 15)) {
+        const cols = line.split(/[;\t]/).map(s => unquote(s));
+        // Look for "Kontonummer" label row
+        if (/^kontonummer$/i.test(cols[0]) && cols[1]) {
+            const num = cols[1].replace(/[\.\s-]/g, '');
+            if (/^\d{11}$/.test(num)) return num;
+        }
+        // Fallback: any column that is exactly 11 digits (with optional dots/spaces)
+        for (const col of cols) {
+            const clean = col.replace(/[\.\s-]/g, '');
+            if (/^\d{11}$/.test(clean)) return clean;
+        }
+    }
+    return null;
+}
+
+function formatAccountNumber(num) {
+    return num && num.length === 11
+        ? `${num.slice(0, 4)}.${num.slice(4, 6)}.${num.slice(6)}`
+        : (num || '');
+}
+
+function getAccountOwner(num) {
+    try { return JSON.parse(localStorage.getItem('mf_acct_owners') || '{}')[num] || null; }
+    catch { return null; }
+}
+
+function saveAccountOwner(num, owner) {
+    try {
+        const m = JSON.parse(localStorage.getItem('mf_acct_owners') || '{}');
+        if (owner) m[num] = owner; else delete m[num];
+        localStorage.setItem('mf_acct_owners', JSON.stringify(m));
+    } catch {}
+}
+
 function isLikelyTransfer(desc) {
     const d = (desc || '').toLowerCase().trim();
     return d.startsWith('til :') ||
@@ -267,7 +305,8 @@ function renderFilePicker(sheet, dark) {
         markDuplicates(rows);
         // Pre-uncheck duplicates (isInternalTransfer already deselected in markDuplicates)
         rows.forEach(r => { if (r.isDuplicate) r.selected = false; });
-        renderPreview(sheet, dark, rows);
+        const accountNumber = extractAccountNumber(text);
+        renderPreview(sheet, dark, rows, accountNumber);
     };
 
     sheet.querySelector('#_imp_close').onclick = () => document.getElementById('importSheetOverlay')?.remove();
@@ -299,16 +338,18 @@ function renderFilePicker(sheet, dark) {
 
 // ---- Step 2: preview + import ----
 
-function renderPreview(sheet, dark, rows) {
+function renderPreview(sheet, dark, rows, accountNumber = null) {
     const categories = state.categoriesCache?.length
         ? state.categoriesCache
         : ['Mat', 'Shopping', 'Transport', 'Bolig', 'Annet'];
 
     let selectedCategory = categories[0];
-    let selectedBuyer = state.currentUserData?.name || 'Meg';
-    const buyerOptions = [...new Set(
-        (state.householdMembers || []).map(m => m.name).filter(Boolean).concat([selectedBuyer])
-    )];
+    const memberNames = (state.householdMembers || []).map(m => m.name).filter(Boolean);
+    // Pre-select from saved account mapping, fall back to current user
+    const savedOwner = accountNumber ? getAccountOwner(accountNumber) : null;
+    let selectedBuyer = savedOwner || state.currentUserData?.name || memberNames[0] || 'Meg';
+    // Always include Felles for shared/joint accounts
+    const buyerOptions = [...new Set([...memberNames, selectedBuyer, 'Felles'])];
 
     const fmt = n => n.toLocaleString('nb-NO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
     let filterQuery = '';
@@ -412,7 +453,10 @@ function renderPreview(sheet, dark, rows) {
     sheet.innerHTML = `
         <div class="p-5 pb-2 shrink-0">
             <div class="flex items-center justify-between mb-1">
-                <h3 class="font-bold text-base ${dark ? 'text-slate-100' : 'text-slate-900'}">Forhåndsvisning</h3>
+                <div>
+                    <h3 class="font-bold text-base ${dark ? 'text-slate-100' : 'text-slate-900'}">Forhåndsvisning</h3>
+                    ${accountNumber ? `<p class="text-[10px] font-mono ${dark ? 'text-slate-500' : 'text-slate-400'}">konto ${escText(formatAccountNumber(accountNumber))}</p>` : ''}
+                </div>
                 <button id="_imp_close" class="w-9 h-9 rounded-full flex items-center justify-center ${dark ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-400'} active:opacity-70">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </button>
@@ -433,7 +477,7 @@ function renderPreview(sheet, dark, rows) {
                     </select>
                 </div>
                 <div class="flex-1">
-                    <p class="text-[10px] font-bold uppercase tracking-wide ${dark ? 'text-slate-400' : 'text-slate-400'} mb-1">Kjøper</p>
+                    <p class="text-[10px] font-bold uppercase tracking-wide ${dark ? 'text-slate-400' : 'text-slate-400'} mb-1">Kontoeier</p>
                     <select id="_imp_buyer" class="w-full text-sm font-bold rounded-xl px-3 py-2 border ${dark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-slate-50 border-slate-200'} outline-none">
                         ${buyerOptions.map(b => `<option value="${escText(b)}" ${b === selectedBuyer ? 'selected' : ''}>${escText(b)}</option>`).join('')}
                     </select>
@@ -455,7 +499,10 @@ function renderPreview(sheet, dark, rows) {
 
     sheet.querySelector('#_imp_close').onclick = () => document.getElementById('importSheetOverlay')?.remove();
     sheet.querySelector('#_imp_cat').onchange = e => { selectedCategory = e.target.value; };
-    sheet.querySelector('#_imp_buyer').onchange = e => { selectedBuyer = e.target.value; };
+    sheet.querySelector('#_imp_buyer').onchange = e => {
+        selectedBuyer = e.target.value;
+        if (accountNumber) saveAccountOwner(accountNumber, selectedBuyer);
+    };
 
     sheet.querySelector('#_imp_search').oninput = e => {
         filterQuery = e.target.value;
