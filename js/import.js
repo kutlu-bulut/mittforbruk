@@ -382,9 +382,12 @@ function renderPreview(sheet, dark, rows) {
         accountOwners[num] = getAccountOwner(num) || defaultBuyer;
     });
 
-    // Stamp r.buyer on every row so doImport can use per-row buyers
+    // Stamp r.buyer on every row so doImport can use per-row buyers.
+    // Loan rows always go to Felles regardless of account owner.
     rows.forEach(r => {
-        r.buyer = r.accountNumber ? (accountOwners[r.accountNumber] || defaultBuyer) : defaultBuyer;
+        r.buyer = r.isLoanPayment ? 'Felles'
+            : r.accountNumber ? (accountOwners[r.accountNumber] || defaultBuyer)
+            : defaultBuyer;
     });
 
     const fmt = n => n.toLocaleString('nb-NO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
@@ -569,7 +572,7 @@ function renderPreview(sheet, dark, rows) {
         singleBuyerEl.onchange = e => {
             defaultBuyer = e.target.value;
             if (accountNumbers[0]) saveAccountOwner(accountNumbers[0], defaultBuyer);
-            rows.forEach(r => { r.buyer = r.accountNumber ? (accountOwners[r.accountNumber] || defaultBuyer) : defaultBuyer; });
+            rows.forEach(r => { if (!r.isLoanPayment) r.buyer = r.accountNumber ? (accountOwners[r.accountNumber] || defaultBuyer) : defaultBuyer; });
         };
     }
 
@@ -580,7 +583,7 @@ function renderPreview(sheet, dark, rows) {
             const owner = e.target.value;
             accountOwners[num] = owner;
             saveAccountOwner(num, owner);
-            rows.forEach(r => { if (r.accountNumber === num) r.buyer = owner; });
+            rows.forEach(r => { if (r.accountNumber === num && !r.isLoanPayment) r.buyer = owner; });
         };
     });
 
