@@ -330,6 +330,7 @@ function renderDuel2(buyerSums) {
 
     const mySum = buyerSums[myName] || 0;
     const otherSum = buyerSums[otherName] || 0;
+    const fellesSum = buyerSums['Felles'] || 0;
     const total = mySum + otherSum;
 
     const myAvatar = me.avatar || myName.charAt(0).toUpperCase();
@@ -384,6 +385,12 @@ function renderDuel2(buyerSums) {
                 </div>
             </div>
             ${verdict ? `<p class="text-center text-xs font-bold text-slate-400 mt-3">${verdict}</p>` : ''}
+            ${fellesSum > 0 ? `
+            <div class="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 px-1">
+                <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-sm font-black text-slate-500 shrink-0">🏠</div>
+                <span class="flex-1 text-sm font-bold text-slate-500">Felles</span>
+                <span class="text-sm font-black text-slate-700">${fellesSum.toLocaleString()} kr</span>
+            </div>` : ''}
         </div>
     `;
 }
@@ -391,12 +398,16 @@ function renderDuel2(buyerSums) {
 function renderDuelMulti(buyerSums) {
     const container = document.getElementById('duelSection');
 
-    const rankings = state.householdMembers.map(m => ({
-        name: m.name || 'Ukjent',
-        avatar: m.avatar || (m.name || 'U').charAt(0).toUpperCase(),
-        color: m.color || '#64748b',
-        amount: buyerSums[m.name] || 0
-    })).sort((a, b) => a.amount - b.amount);
+    const fellesSum = buyerSums['Felles'] || 0;
+    const rankings = [
+        ...state.householdMembers.map(m => ({
+            name: m.name || 'Ukjent',
+            avatar: m.avatar || (m.name || 'U').charAt(0).toUpperCase(),
+            color: m.color || '#64748b',
+            amount: buyerSums[m.name] || 0
+        })),
+        ...(fellesSum > 0 ? [{ name: 'Felles', avatar: '🏠', color: '#94a3b8', amount: fellesSum }] : [])
+    ].sort((a, b) => a.amount - b.amount);
 
     const rows = rankings.map((r, i) => {
         const medal = i === 0 && rankings.length > 1 ? '👑 ' : '';
