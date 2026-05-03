@@ -46,6 +46,7 @@ function isLikelyLoanPayment(desc) {
            d.includes('avdrag') ||
            d.includes('terminbel') ||
            d.startsWith('nedbetaling') ||
+           /\brenter?\b/.test(d) ||
            d.includes('svea bank') ||
            d.includes('bank norwegian') ||
            d.includes('sbanken');
