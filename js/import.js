@@ -31,8 +31,6 @@ function isLikelyTransfer(desc) {
            d.startsWith('uttak') ||
            d.includes('minibank') ||
            d.includes('gebyr') ||
-           /\brenter?\b/.test(d) ||
-           /rente/i.test(d) ||              // catches garbled "rente" variants
            /^straksbet/.test(d) ||
            /^nettgiro til /i.test(d) ||
            d.startsWith('dnb bank');
