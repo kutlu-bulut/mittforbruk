@@ -118,11 +118,25 @@ function parseCSV(text) {
 
     const sep = detectSeparator(lines[0]);
     const rows = [];
+    let currentAccountNumber = null;
 
-    for (let i = 1; i < lines.length; i++) {
+    for (let i = 0; i < lines.length; i++) {
         const cols = lines[i].split(sep).map(unquote);
+
+        // Detect account header lines (Kontonummer;XXXXXXXXXXX) — update current account
+        if (/^kontonummer$/i.test(cols[0])) {
+            if (cols[1]) {
+                const num = cols[1].replace(/[\.\s-]/g, '');
+                if (/^\d{11}$/.test(num)) currentAccountNumber = num;
+            }
+            continue;
+        }
+
         if (cols.length < 4) continue;
         const dato = cols[0];
+        // Skip column-header rows (Dato;Rentedato;...)
+        if (/^dato$/i.test(dato)) continue;
+
         const beskrivelse = cols[2];
         const ut = parseNOKAmount(cols[3]);
         const inn = parseNOKAmount(cols[4]);
@@ -138,6 +152,7 @@ function parseCSV(text) {
                 selected: false, isIncoming: true,
                 category: null, isPossibleTransfer: false, isDuplicate: false,
                 isInternalTransfer: false, isLoanPayment: false,
+                accountNumber: currentAccountNumber,
             });
             continue;
         }
@@ -148,11 +163,12 @@ function parseCSV(text) {
         const possibleTransfer = !isLoan && isLikelyPersonalTransfer(beskrivelse);
         rows.push({
             date: dato, desc: beskrivelse, amount: ut,
-            selected: true, // selected by default; lån badge lets user deselect if unwanted
+            selected: true,
             category: autoCategory(beskrivelse),
             isPossibleTransfer: possibleTransfer,
             isLoanPayment: isLoan,
             isIncoming: false, isDuplicate: false, isInternalTransfer: false,
+            accountNumber: currentAccountNumber,
         });
     }
     return rows;
@@ -303,10 +319,8 @@ function renderFilePicker(sheet, dark) {
         const rows = parseCSV(text);
         if (!rows.filter(r => !r.isIncoming).length) { showToast('Ingen gyldige transaksjoner funnet', 'error'); return; }
         markDuplicates(rows);
-        // Pre-uncheck duplicates (isInternalTransfer already deselected in markDuplicates)
         rows.forEach(r => { if (r.isDuplicate) r.selected = false; });
-        const accountNumber = extractAccountNumber(text);
-        renderPreview(sheet, dark, rows, accountNumber);
+        renderPreview(sheet, dark, rows);
     };
 
     sheet.querySelector('#_imp_close').onclick = () => document.getElementById('importSheetOverlay')?.remove();
@@ -338,18 +352,29 @@ function renderFilePicker(sheet, dark) {
 
 // ---- Step 2: preview + import ----
 
-function renderPreview(sheet, dark, rows, accountNumber = null) {
+function renderPreview(sheet, dark, rows) {
     const categories = state.categoriesCache?.length
         ? state.categoriesCache
         : ['Mat', 'Shopping', 'Transport', 'Bolig', 'Annet'];
 
     let selectedCategory = categories[0];
     const memberNames = (state.householdMembers || []).map(m => m.name).filter(Boolean);
-    // Pre-select from saved account mapping, fall back to current user
-    const savedOwner = accountNumber ? getAccountOwner(accountNumber) : null;
-    let selectedBuyer = savedOwner || state.currentUserData?.name || memberNames[0] || 'Meg';
-    // Always include Felles for shared/joint accounts
-    const buyerOptions = [...new Set([...memberNames, selectedBuyer, 'Felles'])];
+    let defaultBuyer = state.currentUserData?.name || memberNames[0] || 'Meg';
+    const buyerOptions = [...new Set([...memberNames, defaultBuyer, 'Felles'].filter(Boolean))];
+
+    // Collect unique account numbers from rows (preserving order of first appearance)
+    const accountNumbers = [...new Set(rows.filter(r => r.accountNumber).map(r => r.accountNumber))];
+
+    // Per-account owner map — initialised from localStorage saved values
+    const accountOwners = {};
+    accountNumbers.forEach(num => {
+        accountOwners[num] = getAccountOwner(num) || defaultBuyer;
+    });
+
+    // Stamp r.buyer on every row so doImport can use per-row buyers
+    rows.forEach(r => {
+        r.buyer = r.accountNumber ? (accountOwners[r.accountNumber] || defaultBuyer) : defaultBuyer;
+    });
 
     const fmt = n => n.toLocaleString('nb-NO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
     let filterQuery = '';
@@ -427,7 +452,7 @@ function renderPreview(sheet, dark, rows, accountNumber = null) {
         const hasAny = sel.length > 0;
         btn.textContent = hasAny ? `Importer ${sel.length} kjøp` : 'Velg minst ett kjøp';
         btn.className = `w-full py-3.5 rounded-2xl text-sm font-bold transition-all ${hasAny ? 'bg-indigo-600 text-white active:opacity-80' : (dark ? 'bg-slate-700 text-slate-500' : 'bg-slate-100 text-slate-300')}`;
-        btn.onclick = hasAny ? () => doImport(rows, selectedCategory, selectedBuyer) : null;
+        btn.onclick = hasAny ? () => doImport(rows, selectedCategory, defaultBuyer) : null;
     }
 
     function updateRow(i) {
@@ -449,14 +474,54 @@ function renderPreview(sheet, dark, rows, accountNumber = null) {
         }
     }
 
+    // Build category + owner controls HTML (layout differs for 0/1 vs 2+ accounts)
+    function buildOwnerControlsHtml() {
+        const catSelect = `
+            <div class="flex-1">
+                <p class="text-[10px] font-bold uppercase tracking-wide ${dark ? 'text-slate-400' : 'text-slate-400'} mb-1">Ukjent kategori</p>
+                <select id="_imp_cat" class="w-full text-sm font-bold rounded-xl px-3 py-2 border ${dark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-slate-50 border-slate-200'} outline-none">
+                    ${categories.map(c => `<option value="${escText(c)}" ${c === selectedCategory ? 'selected' : ''}>${escText(c)}</option>`).join('')}
+                </select>
+            </div>`;
+
+        if (accountNumbers.length > 1) {
+            // Multiple accounts: category full-width, then per-account owner rows
+            const acctRows = accountNumbers.map(num => `
+                <div class="flex items-center gap-2">
+                    <span class="text-[11px] font-mono shrink-0 w-28 ${dark ? 'text-slate-400' : 'text-slate-500'}">${escText(formatAccountNumber(num))}</span>
+                    <select data-acct="${escText(num)}" class="imp-acct-buyer flex-1 text-xs font-bold rounded-lg px-2 py-1.5 border ${dark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-slate-50 border-slate-200'} outline-none">
+                        ${buyerOptions.map(b => `<option value="${escText(b)}" ${b === accountOwners[num] ? 'selected' : ''}>${escText(b)}</option>`).join('')}
+                    </select>
+                </div>`).join('');
+            return `
+                <div class="flex gap-2 mb-2">${catSelect}</div>
+                <div class="mb-3">
+                    <p class="text-[10px] font-bold uppercase tracking-wide ${dark ? 'text-slate-400' : 'text-slate-400'} mb-1.5">Kontoeier per konto</p>
+                    <div class="flex flex-col gap-1.5">${acctRows}</div>
+                </div>`;
+        }
+
+        // Single account or no account: side-by-side layout
+        const ownerLabel = accountNumbers.length === 1
+            ? `konto ${escText(formatAccountNumber(accountNumbers[0]))}`
+            : 'Kontoeier';
+        return `
+            <div class="flex gap-2 mb-3">
+                ${catSelect}
+                <div class="flex-1">
+                    <p class="text-[10px] font-bold uppercase tracking-wide ${dark ? 'text-slate-400' : 'text-slate-400'} mb-1">${ownerLabel}</p>
+                    <select id="_imp_buyer" class="w-full text-sm font-bold rounded-xl px-3 py-2 border ${dark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-slate-50 border-slate-200'} outline-none">
+                        ${buyerOptions.map(b => `<option value="${escText(b)}" ${b === defaultBuyer ? 'selected' : ''}>${escText(b)}</option>`).join('')}
+                    </select>
+                </div>
+            </div>`;
+    }
+
     // Initial full render (once only)
     sheet.innerHTML = `
         <div class="p-5 pb-2 shrink-0">
             <div class="flex items-center justify-between mb-1">
-                <div>
-                    <h3 class="font-bold text-base ${dark ? 'text-slate-100' : 'text-slate-900'}">Forhåndsvisning</h3>
-                    ${accountNumber ? `<p class="text-[10px] font-mono ${dark ? 'text-slate-500' : 'text-slate-400'}">konto ${escText(formatAccountNumber(accountNumber))}</p>` : ''}
-                </div>
+                <h3 class="font-bold text-base ${dark ? 'text-slate-100' : 'text-slate-900'}">Forhåndsvisning</h3>
                 <button id="_imp_close" class="w-9 h-9 rounded-full flex items-center justify-center ${dark ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-400'} active:opacity-70">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </button>
@@ -469,20 +534,7 @@ function renderPreview(sheet, dark, rows, accountNumber = null) {
                     class="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl border outline-none focus:border-indigo-400 transition-colors ${dark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-700 placeholder-slate-400'}">
             </div>
 
-            <div class="flex gap-2 mb-3">
-                <div class="flex-1">
-                    <p class="text-[10px] font-bold uppercase tracking-wide ${dark ? 'text-slate-400' : 'text-slate-400'} mb-1">Ukjent kategori</p>
-                    <select id="_imp_cat" class="w-full text-sm font-bold rounded-xl px-3 py-2 border ${dark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-slate-50 border-slate-200'} outline-none">
-                        ${categories.map(c => `<option value="${escText(c)}" ${c === selectedCategory ? 'selected' : ''}>${escText(c)}</option>`).join('')}
-                    </select>
-                </div>
-                <div class="flex-1">
-                    <p class="text-[10px] font-bold uppercase tracking-wide ${dark ? 'text-slate-400' : 'text-slate-400'} mb-1">Kontoeier</p>
-                    <select id="_imp_buyer" class="w-full text-sm font-bold rounded-xl px-3 py-2 border ${dark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-slate-50 border-slate-200'} outline-none">
-                        ${buyerOptions.map(b => `<option value="${escText(b)}" ${b === selectedBuyer ? 'selected' : ''}>${escText(b)}</option>`).join('')}
-                    </select>
-                </div>
-            </div>
+            ${buildOwnerControlsHtml()}
 
             <div class="flex gap-3 mb-1">
                 <button id="_imp_selall" class="text-[11px] font-bold text-indigo-500 active:opacity-70">Velg alle</button>
@@ -499,10 +551,27 @@ function renderPreview(sheet, dark, rows, accountNumber = null) {
 
     sheet.querySelector('#_imp_close').onclick = () => document.getElementById('importSheetOverlay')?.remove();
     sheet.querySelector('#_imp_cat').onchange = e => { selectedCategory = e.target.value; };
-    sheet.querySelector('#_imp_buyer').onchange = e => {
-        selectedBuyer = e.target.value;
-        if (accountNumber) saveAccountOwner(accountNumber, selectedBuyer);
-    };
+
+    // Single-account or no-account buyer selector
+    const singleBuyerEl = sheet.querySelector('#_imp_buyer');
+    if (singleBuyerEl) {
+        singleBuyerEl.onchange = e => {
+            defaultBuyer = e.target.value;
+            if (accountNumbers[0]) saveAccountOwner(accountNumbers[0], defaultBuyer);
+            rows.forEach(r => { r.buyer = r.accountNumber ? (accountOwners[r.accountNumber] || defaultBuyer) : defaultBuyer; });
+        };
+    }
+
+    // Multi-account per-account buyer selectors
+    sheet.querySelectorAll('.imp-acct-buyer').forEach(sel => {
+        sel.onchange = e => {
+            const num = sel.dataset.acct;
+            const owner = e.target.value;
+            accountOwners[num] = owner;
+            saveAccountOwner(num, owner);
+            rows.forEach(r => { if (r.accountNumber === num) r.buyer = owner; });
+        };
+    });
 
     sheet.querySelector('#_imp_search').oninput = e => {
         filterQuery = e.target.value;
@@ -578,7 +647,7 @@ function markDuplicates(rows) {
 
 // ---- Write to Firestore ----
 
-async function doImport(rows, fallbackCategory, buyer) {
+async function doImport(rows, fallbackCategory, fallbackBuyer) {
     const toImport = rows.filter(r => r.selected);
     if (!toImport.length) return;
     try {
@@ -600,6 +669,7 @@ async function doImport(rows, fallbackCategory, buyer) {
             const [y, m, d] = r.date.split('-').map(Number);
             const createdAt = new Date(y, m - 1, d, 12, 0, 0).getTime();
             const category = r.category || fallbackCategory;
+            const buyer = r.buyer || fallbackBuyer;
             totalAmount += r.amount;
             usedCategories.add(category);
             batch.set(doc(collection(db, "households", state.currentHid, "purchases")), {
@@ -617,6 +687,8 @@ async function doImport(rows, fallbackCategory, buyer) {
         await batch.commit();
 
         // Save import record to settings/importHistory
+        const buyers = [...new Set(toImport.map(r => r.buyer || fallbackBuyer).filter(Boolean))];
+        const histBuyer = buyers.length === 1 ? buyers[0] : (buyers.length > 1 ? 'Felles' : fallbackBuyer);
 
         const histRef = doc(db, "households", state.currentHid, "settings", "importHistory");
         const histSnap = await getDoc(histRef);
@@ -627,7 +699,7 @@ async function doImport(rows, fallbackCategory, buyer) {
                 importedAt,
                 count: toImport.length,
                 totalAmount,
-                buyer,
+                buyer: histBuyer,
                 categories: [...usedCategories],
             }]
         });
