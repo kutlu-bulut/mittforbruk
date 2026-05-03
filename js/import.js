@@ -175,7 +175,7 @@ function parseCSV(text) {
         rows.push({
             date: dato, desc: beskrivelse, amount: ut,
             selected: true,
-            category: autoCategory(beskrivelse),
+            category: isLoan ? 'Lån' : autoCategory(beskrivelse),
             isPossibleTransfer: possibleTransfer,
             isLoanPayment: isLoan,
             isIncoming: false, isDuplicate: false, isInternalTransfer: false,
