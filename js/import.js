@@ -120,11 +120,16 @@ function parseCSV(text) {
     const rows = [];
     let currentAccountNumber = null;
 
+    // Detect format: "Transaksjonsdato;Kontonummer;..." has account number per row (col 1).
+    // Older section-based exports have separate "Kontonummer;XXXXXXXXXXX" header rows.
+    const firstCols = lines[0].split(sep).map(unquote);
+    const perRowAccount = /^kontonummer$/i.test(firstCols[1]);
+
     for (let i = 0; i < lines.length; i++) {
         const cols = lines[i].split(sep).map(unquote);
 
-        // Detect account header lines (Kontonummer;XXXXXXXXXXX) — update current account
-        if (/^kontonummer$/i.test(cols[0])) {
+        // Section-based format: standalone "Kontonummer;XXXXXXXXXXX" row
+        if (!perRowAccount && /^kontonummer$/i.test(cols[0])) {
             if (cols[1]) {
                 const num = cols[1].replace(/[\.\s-]/g, '');
                 if (/^\d{11}$/.test(num)) currentAccountNumber = num;
@@ -134,8 +139,14 @@ function parseCSV(text) {
 
         if (cols.length < 4) continue;
         const dato = cols[0];
-        // Skip column-header rows (Dato;Rentedato;...)
-        if (/^dato$/i.test(dato)) continue;
+        // Skip column-header rows (Dato;Rentedato;... or Transaksjonsdato;Kontonummer;...)
+        if (/^(dato|transaksjonsdato)$/i.test(dato)) continue;
+
+        // Per-row format: account number is in col 1 for every data row
+        if (perRowAccount && cols[1]) {
+            const num = cols[1].replace(/[\.\s-]/g, '');
+            if (/^\d{11}$/.test(num)) currentAccountNumber = num;
+        }
 
         const beskrivelse = cols[2];
         const ut = parseNOKAmount(cols[3]);
