@@ -829,29 +829,32 @@ function renderListsOverview() {
     const cards = listsCache.map(list => {
         const total     = handlelisteCache.filter(i => (i.listId || 'main') === list.id).length;
         const remaining = handlelisteCache.filter(i => (i.listId || 'main') === list.id && !i.checked).length;
-        const countText = total === 0 ? 'Tom liste'
-            : remaining === 0 ? `${total} vare${total !== 1 ? 'r' : ''} – alt i kurven ✓`
-            : `${remaining} av ${total} vare${total !== 1 ? 'r' : ''} gjenstår`;
+        const done      = total - remaining;
+        const countChip = total === 0
+            ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${dark ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-400'}">Tom</span>`
+            : remaining === 0
+                ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">Alt klart ✓</span>`
+                : `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${dark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-500'}">${remaining} gjenstår</span>`;
 
         return `
             <button onclick="window.openList('${escapeText(list.id)}')"
-                class="w-full flex items-center gap-3 p-4 rounded-2xl border shadow-sm active:opacity-70 transition-opacity text-left
+                class="w-full flex items-center gap-4 p-4 rounded-2xl border shadow-sm active:scale-[0.98] transition-all text-left
                     ${dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}">
-                <span class="text-2xl shrink-0">${list.emoji || '📋'}</span>
+                <span class="text-3xl shrink-0">${list.emoji || '📋'}</span>
                 <div class="flex-1 min-w-0">
-                    <p class="font-bold text-sm truncate ${dark ? 'text-slate-100' : 'text-slate-900'}">${escapeText(list.name)}</p>
-                    <p class="text-xs ${dark ? 'text-slate-400' : 'text-slate-400'} mt-0.5">${countText}</p>
+                    <p class="font-bold text-base truncate ${dark ? 'text-slate-100' : 'text-slate-900'}">${escapeText(list.name)}</p>
+                    <div class="mt-1">${countChip}</div>
                 </div>
-                <svg class="w-4 h-4 shrink-0 ${dark ? 'text-slate-600' : 'text-slate-300'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+                <svg class="w-5 h-5 shrink-0 ${dark ? 'text-slate-600' : 'text-slate-300'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
             </button>`;
     }).join('');
 
     overviewEl.innerHTML = cards + `
         <button onclick="window.showNewListDialog()"
-            class="w-full flex items-center gap-3 p-4 rounded-2xl border-2 border-dashed active:opacity-70 transition-opacity
+            class="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-dashed active:scale-[0.98] transition-all
                 ${dark ? 'border-slate-700 text-slate-500' : 'border-slate-200 text-slate-400'}">
-            <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-            <span class="font-bold text-sm">Ny liste</span>
+            <span class="text-3xl shrink-0 opacity-50">➕</span>
+            <span class="font-bold text-base">Ny liste</span>
         </button>`;
 }
 
@@ -865,7 +868,11 @@ function renderDetailNav() {
 
     const dark        = document.body.classList.contains('dark-mode');
     const currentList = listsCache.find(l => l.id === selectedListId);
-    const btnCls      = `flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs font-bold ${dark ? 'text-slate-400 active:bg-slate-700' : 'text-slate-400 active:bg-slate-100'} transition-colors`;
+
+    // Chip styles
+    const backChip = `flex items-center gap-1.5 pl-2.5 pr-3.5 py-2 rounded-full text-sm font-bold shadow-sm transition-all active:scale-95 ${dark ? 'bg-slate-700 text-indigo-400 border border-slate-600' : 'bg-white text-indigo-600 border border-indigo-100'}`;
+    const navChip  = `flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-bold shadow-sm transition-all active:scale-95 ${dark ? 'bg-slate-700 text-slate-300 border border-slate-600' : 'bg-white text-slate-500 border border-slate-200'}`;
+    const menuChip = `w-9 h-9 rounded-full flex items-center justify-center shadow-sm transition-all active:scale-95 ${dark ? 'bg-slate-700 text-slate-400 border border-slate-600' : 'bg-white text-slate-500 border border-slate-200'}`;
 
     if (selectedGroupFilter === null) {
         // Groups overview: ← Lister | list name | ··· | prev/next lists
@@ -873,24 +880,24 @@ function renderDetailNav() {
         const prev = idx > 0 ? listsCache[idx - 1] : null;
         const next = idx < listsCache.length - 1 ? listsCache[idx + 1] : null;
         const prevBtn = prev
-            ? `<button onclick="window.switchList('${escapeText(prev.id)}')" class="${btnCls}"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>${escapeText(prev.name)}</button>`
-            : `<div class="w-16"></div>`;
+            ? `<button onclick="window.switchList('${escapeText(prev.id)}')" class="${navChip}"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>${escapeText(prev.name)}</button>`
+            : `<div></div>`;
         const nextBtn = next
-            ? `<button onclick="window.switchList('${escapeText(next.id)}')" class="${btnCls}">${escapeText(next.name)}<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></button>`
-            : `<div class="w-16"></div>`;
+            ? `<button onclick="window.switchList('${escapeText(next.id)}')" class="${navChip}">${escapeText(next.name)}<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></button>`
+            : `<div></div>`;
         navEl.innerHTML = `
-            <div class="flex items-center justify-between mb-1">
-                <button onclick="window.backToLists()" class="flex items-center gap-1 px-2 py-1.5 rounded-xl text-sm font-bold ${dark ? 'text-indigo-400 active:bg-slate-700' : 'text-indigo-500 active:bg-indigo-50'} transition-colors">
+            <div class="flex items-center justify-between mb-2">
+                <button onclick="window.backToLists()" class="${backChip}">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>Lister
                 </button>
                 <span class="font-bold text-sm ${dark ? 'text-slate-100' : 'text-slate-900'}">${currentList?.emoji || ''} ${escapeText(currentList?.name || '')}</span>
-                <button onclick="window.showListOptions('${escapeText(selectedListId)}')" class="w-8 h-8 rounded-xl flex items-center justify-center ${dark ? 'text-slate-400 active:bg-slate-700' : 'text-slate-400 active:bg-slate-100'} transition-colors">
+                <button onclick="window.showListOptions('${escapeText(selectedListId)}')" class="${menuChip}">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
                 </button>
             </div>
             ${listsCache.length > 1 ? `<div class="flex items-center justify-between">${prevBtn}${nextBtn}</div>` : ''}`;
     } else {
-        // Group detail: ← list name | group name | prev/next groups
+        // Group detail: ← list name | group chip | prev/next groups
         const listItems = handlelisteCache.filter(i => (i.listId || 'main') === selectedListId);
         const groups = [...new Set(listItems.filter(i => !i.checked).map(i => i.group || ''))].sort((a, b) => {
             if (a === '' && b !== '') return 1;
@@ -903,19 +910,29 @@ function renderDetailNav() {
         const prevG = gIdx > 0 ? allGroups[gIdx - 1] : null;
         const nextG = gIdx < allGroups.length - 1 ? allGroups[gIdx + 1] : null;
         const gLabel = g => g === '__checked__' ? 'Lagt i kurven' : g === '' ? 'Uten gruppe' : g;
+
+        // Colored chip for the current group name
+        const gc = (selectedGroupFilter && selectedGroupFilter !== '__checked__') ? getGroupColor(selectedGroupFilter) : null;
+        const groupChipStyle = gc
+            ? `background:${dark ? gc.darkBg : gc.bg};color:${dark ? gc.darkText : gc.text};border:1.5px solid ${gc.dot}`
+            : ``;
+        const groupChipCls = gc
+            ? 'px-3 py-1.5 rounded-full text-sm font-bold shadow-sm'
+            : `px-3 py-1.5 rounded-full text-sm font-bold shadow-sm ${dark ? 'bg-slate-700 text-slate-300 border border-slate-600' : 'bg-white text-slate-600 border border-slate-200'}`;
+
         const prevBtn = prevG !== null
-            ? `<button onclick="window.openGroup('${escapeText(prevG)}')" class="${btnCls}"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>${escapeText(gLabel(prevG))}</button>`
-            : `<div class="w-16"></div>`;
+            ? `<button onclick="window.openGroup('${escapeText(prevG)}')" class="${navChip}"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>${escapeText(gLabel(prevG))}</button>`
+            : `<div></div>`;
         const nextBtn = nextG !== null
-            ? `<button onclick="window.openGroup('${escapeText(nextG)}')" class="${btnCls}">${escapeText(gLabel(nextG))}<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></button>`
-            : `<div class="w-16"></div>`;
+            ? `<button onclick="window.openGroup('${escapeText(nextG)}')" class="${navChip}">${escapeText(gLabel(nextG))}<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></button>`
+            : `<div></div>`;
         navEl.innerHTML = `
-            <div class="flex items-center justify-between mb-1">
-                <button onclick="window.backToGroups()" class="flex items-center gap-1 px-2 py-1.5 rounded-xl text-sm font-bold ${dark ? 'text-indigo-400 active:bg-slate-700' : 'text-indigo-500 active:bg-indigo-50'} transition-colors">
+            <div class="flex items-center justify-between mb-2">
+                <button onclick="window.backToGroups()" class="${backChip}">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>${escapeText(currentList?.emoji || '')} ${escapeText(currentList?.name || '')}
                 </button>
-                <span class="font-bold text-sm ${dark ? 'text-slate-100' : 'text-slate-900'}">${escapeText(gLabel(selectedGroupFilter))}</span>
-                <div class="w-8"></div>
+                <span class="${groupChipCls}" style="${groupChipStyle}">${escapeText(gLabel(selectedGroupFilter))}</span>
+                <div class="w-9"></div>
             </div>
             ${allGroups.length > 1 ? `<div class="flex items-center justify-between">${prevBtn}${nextBtn}</div>` : ''}`;
     }
@@ -965,40 +982,35 @@ function renderGroupsOverview(listItems) {
         const label = groupName || 'Uten gruppe';
 
         const btn = document.createElement('button');
-        btn.className = `w-full flex items-center gap-3 p-4 rounded-2xl border shadow-sm active:opacity-70 transition-opacity text-left ${dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`;
+        btn.className = `w-full flex items-center gap-4 p-4 rounded-2xl border shadow-sm active:scale-[0.98] transition-all text-left ${dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`;
+        if (color) {
+            btn.style.borderLeftColor = color.dot;
+            btn.style.borderLeftWidth = '4px';
+        }
         btn.onclick = () => window.openGroup(groupName);
 
-        const iconBg = color
-            ? (dark ? color.darkBg : color.bg)
-            : (dark ? '#1e293b' : '#f1f5f9');
-        const labelColor = color ? (dark ? color.darkText : color.text) : '';
+        const nameBg  = color ? (dark ? color.darkBg  : color.bg)   : (dark ? '#1e293b' : '#f1f5f9');
+        const nameClr = color ? (dark ? color.darkText : color.text) : (dark ? '#94a3b8' : '#64748b');
+        const countBg = color ? (dark ? color.darkBg  : color.bg)   : (dark ? '#334155' : '#f1f5f9');
 
         btn.innerHTML = `
-            <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background:${iconBg}">
-                ${color
-                    ? `<div class="w-3 h-3 rounded-full" style="background:${color.dot}"></div>`
-                    : `<svg class="w-4 h-4 ${dark ? 'text-slate-500' : 'text-slate-400'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>`}
-            </div>
             <div class="flex-1 min-w-0">
-                <p class="font-bold text-sm truncate" style="${labelColor ? `color:${labelColor}` : `color:${dark ? '#f1f5f9' : '#0f172a'}`}">${escapeText(label)}</p>
-                <p class="text-xs ${dark ? 'text-slate-400' : 'text-slate-400'} mt-0.5">${groupItems.length} vare${groupItems.length !== 1 ? 'r' : ''}</p>
+                <p class="font-bold text-base truncate" style="color:${color ? nameClr : (dark ? '#f1f5f9' : '#0f172a')}">${escapeText(label)}</p>
             </div>
+            <span class="text-xs font-bold px-2.5 py-1 rounded-full shrink-0" style="background:${countBg};color:${nameClr}">${groupItems.length} vare${groupItems.length !== 1 ? 'r' : ''}</span>
             <svg class="w-4 h-4 shrink-0 ${dark ? 'text-slate-600' : 'text-slate-300'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>`;
         list.appendChild(btn);
     });
 
     if (checked.length > 0) {
         const btn = document.createElement('button');
-        btn.className = `w-full flex items-center gap-3 p-4 rounded-2xl border shadow-sm active:opacity-70 transition-opacity text-left opacity-60 ${dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`;
+        btn.className = `w-full flex items-center gap-4 p-4 rounded-2xl border shadow-sm active:scale-[0.98] transition-all text-left ${dark ? 'bg-slate-800 border-slate-700 opacity-70' : 'bg-white border-slate-200 opacity-60'}`;
         btn.onclick = () => window.openGroup('__checked__');
         btn.innerHTML = `
-            <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${dark ? 'bg-slate-700' : 'bg-slate-100'}">
-                <svg class="w-4 h-4 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            </div>
             <div class="flex-1 min-w-0">
-                <p class="font-bold text-sm ${dark ? 'text-slate-300' : 'text-slate-600'}">Lagt i kurven</p>
-                <p class="text-xs ${dark ? 'text-slate-400' : 'text-slate-400'} mt-0.5">${checked.length} vare${checked.length !== 1 ? 'r' : ''}</p>
+                <p class="font-bold text-base ${dark ? 'text-slate-300' : 'text-slate-500'}">✓ Lagt i kurven</p>
             </div>
+            <span class="text-xs font-bold px-2.5 py-1 rounded-full shrink-0 ${dark ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-400'}">${checked.length} vare${checked.length !== 1 ? 'r' : ''}</span>
             <svg class="w-4 h-4 shrink-0 ${dark ? 'text-slate-600' : 'text-slate-300'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>`;
         list.appendChild(btn);
     }
