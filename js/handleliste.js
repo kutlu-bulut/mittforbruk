@@ -21,6 +21,7 @@ let groupOrderMemory  = [];   // stable group insertion order (never reordered b
 let selectedListId    = (() => { try { return sessionStorage.getItem('mittforbruk_list') || 'main'; } catch { return 'main'; } })();
 let listsCache        = [{ id: 'main', name: 'Handleliste', emoji: '🛒', sortOrder: 0 }];
 let viewMode          = 'overview'; // 'overview' | 'detail'
+let selectedGroupFilter = null;    // null = groups overview, string = group name, '' = ungrouped, '__checked__' = checked items
 
 // ---- Group color palette ----
 const GROUP_COLORS = [
@@ -130,20 +131,33 @@ function renderHandleliste(items) {
     // Filter to the active list (items without listId belong to 'main')
     const listItems = items.filter(i => (i.listId || 'main') === selectedListId);
 
+    // Groups overview — show group cards instead of flat item list
+    if (selectedGroupFilter === null) {
+        renderGroupsOverview(listItems);
+        return;
+    }
+
+    // Group detail — filter to selected group
+    const isCurvedView = selectedGroupFilter === '__checked__';
+    const scopedItems = isCurvedView
+        ? listItems.filter(i => i.checked)
+        : listItems.filter(i => (i.group || '') === selectedGroupFilter);
+
     // Tear down old SortableJS instances before rebuilding DOM
     sortableInstances.forEach(s => { try { s.destroy(); } catch (_) {} });
     sortableInstances = [];
 
     list.innerHTML = '';
 
-    const unchecked = sortedItems(listItems.filter(i => !i.checked));
-    const checked   = sortedItems(listItems.filter(i => i.checked));
+    const unchecked = isCurvedView ? [] : sortedItems(scopedItems.filter(i => !i.checked));
+    const checked   = sortedItems(scopedItems.filter(i => i.checked));
 
     if (emptyState) {
-        emptyState.classList.toggle('hidden', listItems.length > 0);
-        const currentList = listsCache.find(l => l.id === selectedListId);
+        emptyState.classList.toggle('hidden', scopedItems.length > 0);
         const nameEl = emptyState.querySelector('p.font-bold');
-        if (nameEl) nameEl.textContent = (currentList?.name || 'Handlelisten') + ' er tom';
+        if (nameEl) nameEl.textContent = isCurvedView ? 'Ingen varer i kurven'
+            : selectedGroupFilter ? `Ingen varer i «${selectedGroupFilter}»`
+            : 'Ingen varer uten gruppe';
     }
     if (unchecked.length === 0 && checked.length === 0) {
         updateGroupPills();
@@ -152,51 +166,25 @@ function renderHandleliste(items) {
 
     updateGroupPills();
 
-    // ---- Group unchecked items ----
-    // Preserve group order by first appearance (respects sortOrder within each group)
-    const groupMap   = new Map(); // groupName → [items]
-    const groupOrder = [];        // insertion order of groups
-    unchecked.forEach(item => {
-        const g = item.group || '';
-        if (!groupMap.has(g)) { groupMap.set(g, []); groupOrder.push(g); }
-        groupMap.get(g).push(item);
-    });
-
-    const hasNamedGroups = groupOrder.some(g => g !== '');
-
-    groupOrder.forEach(groupName => {
-        const groupItems = groupMap.get(groupName);
-        const section = document.createElement('div');
-        section.className = 'mb-3';
-
-        // Group header
-        if (groupName || hasNamedGroups) {
-            section.appendChild(buildGroupHeader(groupName, groupItems));
-        }
-
-        // Items container — this is the SortableJS target
+    // ---- Items (flat list — group header not needed in group detail view) ----
+    if (unchecked.length > 0) {
         const container = document.createElement('div');
         container.className = 'space-y-2';
-        container.dataset.group = groupName;
-
-        groupItems.forEach(item => container.appendChild(buildItemEl(item)));
-        section.appendChild(container);
-        list.appendChild(section);
-
-        // Init SortableJS
+        container.dataset.group = isCurvedView ? '' : selectedGroupFilter;
+        unchecked.forEach(item => container.appendChild(buildItemEl(item)));
+        list.appendChild(container);
         if (typeof Sortable !== 'undefined') {
-            const instance = Sortable.create(container, {
-                group:       'handleliste-items', // shared group = cross-list drag allowed
+            sortableInstances.push(Sortable.create(container, {
+                group:       'handleliste-items',
                 handle:      '.drag-handle',
                 animation:   150,
                 ghostClass:  'sortable-ghost',
                 chosenClass: 'sortable-chosen',
                 dragClass:   'sortable-drag',
                 onEnd:       handleDragEnd,
-            });
-            sortableInstances.push(instance);
+            }));
         }
-    });
+    }
 
     // ---- Checked section ----
     if (checked.length > 0) {
@@ -873,47 +861,153 @@ function renderDetailNav() {
     const navEl = document.getElementById('shoppingListTabs');
     if (!navEl) return;
 
-    const dark    = document.body.classList.contains('dark-mode');
-    const current = listsCache.find(l => l.id === selectedListId);
-    const idx     = listsCache.findIndex(l => l.id === selectedListId);
-    const prev    = idx > 0 ? listsCache[idx - 1] : null;
-    const next    = idx < listsCache.length - 1 ? listsCache[idx + 1] : null;
+    const dark        = document.body.classList.contains('dark-mode');
+    const currentList = listsCache.find(l => l.id === selectedListId);
+    const btnCls      = `flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs font-bold ${dark ? 'text-slate-400 active:bg-slate-700' : 'text-slate-400 active:bg-slate-100'} transition-colors`;
 
-    const prevBtn = prev
-        ? `<button onclick="window.switchList('${escapeText(prev.id)}')"
-               class="flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs font-bold ${dark ? 'text-slate-400 active:bg-slate-700' : 'text-slate-400 active:bg-slate-100'} transition-colors">
-               <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
-               ${escapeText(prev.name)}
-           </button>`
-        : `<div class="w-16"></div>`;
+    if (selectedGroupFilter === null) {
+        // Groups overview: ← Lister | list name | ··· | prev/next lists
+        const idx  = listsCache.findIndex(l => l.id === selectedListId);
+        const prev = idx > 0 ? listsCache[idx - 1] : null;
+        const next = idx < listsCache.length - 1 ? listsCache[idx + 1] : null;
+        const prevBtn = prev
+            ? `<button onclick="window.switchList('${escapeText(prev.id)}')" class="${btnCls}"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>${escapeText(prev.name)}</button>`
+            : `<div class="w-16"></div>`;
+        const nextBtn = next
+            ? `<button onclick="window.switchList('${escapeText(next.id)}')" class="${btnCls}">${escapeText(next.name)}<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></button>`
+            : `<div class="w-16"></div>`;
+        navEl.innerHTML = `
+            <div class="flex items-center justify-between mb-1">
+                <button onclick="window.backToLists()" class="flex items-center gap-1 px-2 py-1.5 rounded-xl text-sm font-bold ${dark ? 'text-indigo-400 active:bg-slate-700' : 'text-indigo-500 active:bg-indigo-50'} transition-colors">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>Lister
+                </button>
+                <span class="font-bold text-sm ${dark ? 'text-slate-100' : 'text-slate-900'}">${currentList?.emoji || ''} ${escapeText(currentList?.name || '')}</span>
+                <button onclick="window.showListOptions('${escapeText(selectedListId)}')" class="w-8 h-8 rounded-xl flex items-center justify-center ${dark ? 'text-slate-400 active:bg-slate-700' : 'text-slate-400 active:bg-slate-100'} transition-colors">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+                </button>
+            </div>
+            ${listsCache.length > 1 ? `<div class="flex items-center justify-between">${prevBtn}${nextBtn}</div>` : ''}`;
+    } else {
+        // Group detail: ← list name | group name | prev/next groups
+        const listItems = handlelisteCache.filter(i => (i.listId || 'main') === selectedListId);
+        const groups = [...new Set(listItems.filter(i => !i.checked).map(i => i.group || ''))].sort((a, b) => {
+            if (a === '' && b !== '') return 1;
+            if (a !== '' && b === '') return -1;
+            return a.localeCompare(b, 'nb');
+        });
+        const hasChecked = listItems.some(i => i.checked);
+        const allGroups = hasChecked ? [...groups, '__checked__'] : groups;
+        const gIdx  = allGroups.indexOf(selectedGroupFilter);
+        const prevG = gIdx > 0 ? allGroups[gIdx - 1] : null;
+        const nextG = gIdx < allGroups.length - 1 ? allGroups[gIdx + 1] : null;
+        const gLabel = g => g === '__checked__' ? 'Lagt i kurven' : g === '' ? 'Uten gruppe' : g;
+        const prevBtn = prevG !== null
+            ? `<button onclick="window.openGroup('${escapeText(prevG)}')" class="${btnCls}"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>${escapeText(gLabel(prevG))}</button>`
+            : `<div class="w-16"></div>`;
+        const nextBtn = nextG !== null
+            ? `<button onclick="window.openGroup('${escapeText(nextG)}')" class="${btnCls}">${escapeText(gLabel(nextG))}<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></button>`
+            : `<div class="w-16"></div>`;
+        navEl.innerHTML = `
+            <div class="flex items-center justify-between mb-1">
+                <button onclick="window.backToGroups()" class="flex items-center gap-1 px-2 py-1.5 rounded-xl text-sm font-bold ${dark ? 'text-indigo-400 active:bg-slate-700' : 'text-indigo-500 active:bg-indigo-50'} transition-colors">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>${escapeText(currentList?.emoji || '')} ${escapeText(currentList?.name || '')}
+                </button>
+                <span class="font-bold text-sm ${dark ? 'text-slate-100' : 'text-slate-900'}">${escapeText(gLabel(selectedGroupFilter))}</span>
+                <div class="w-8"></div>
+            </div>
+            ${allGroups.length > 1 ? `<div class="flex items-center justify-between">${prevBtn}${nextBtn}</div>` : ''}`;
+    }
+}
 
-    const nextBtn = next
-        ? `<button onclick="window.switchList('${escapeText(next.id)}')"
-               class="flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs font-bold ${dark ? 'text-slate-400 active:bg-slate-700' : 'text-slate-400 active:bg-slate-100'} transition-colors">
-               ${escapeText(next.name)}
-               <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
-           </button>`
-        : `<div class="w-16"></div>`;
+// ============================================================
+// Groups overview — list of groups as cards
+// ============================================================
 
-    navEl.innerHTML = `
-        <div class="flex items-center justify-between mb-1">
-            <button onclick="window.backToLists()"
-                class="flex items-center gap-1 px-2 py-1.5 rounded-xl text-sm font-bold ${dark ? 'text-indigo-400 active:bg-slate-700' : 'text-indigo-500 active:bg-indigo-50'} transition-colors">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
-                Lister
-            </button>
-            <span class="font-bold text-sm ${dark ? 'text-slate-100' : 'text-slate-900'}">${current?.emoji || ''} ${escapeText(current?.name || '')}</span>
-            <button onclick="window.showListOptions('${escapeText(selectedListId)}')"
-                class="w-8 h-8 rounded-xl flex items-center justify-center ${dark ? 'text-slate-400 active:bg-slate-700' : 'text-slate-400 active:bg-slate-100'} transition-colors">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
-            </button>
-        </div>
-        ${listsCache.length > 1 ? `<div class="flex items-center justify-between">${prevBtn}${nextBtn}</div>` : ''}`;
+function renderGroupsOverview(listItems) {
+    const list = document.getElementById('handlelisteList');
+    const emptyState = document.getElementById('handlelisteEmpty');
+    if (!list) return;
+
+    sortableInstances.forEach(s => { try { s.destroy(); } catch (_) {} });
+    sortableInstances = [];
+
+    const dark = document.body.classList.contains('dark-mode');
+    const unchecked = listItems.filter(i => !i.checked);
+    const checked   = listItems.filter(i => i.checked);
+
+    // Collect groups from unchecked items (sorted: named groups A-Z, then ungrouped)
+    const groupMap = new Map();
+    unchecked.forEach(item => {
+        const g = item.group || '';
+        if (!groupMap.has(g)) groupMap.set(g, []);
+        groupMap.get(g).push(item);
+    });
+    const sortedGroups = [...groupMap.keys()].sort((a, b) => {
+        if (a === '' && b !== '') return 1;
+        if (a !== '' && b === '') return -1;
+        return a.localeCompare(b, 'nb');
+    });
+
+    if (emptyState) {
+        emptyState.classList.toggle('hidden', listItems.length > 0);
+        const currentList = listsCache.find(l => l.id === selectedListId);
+        const nameEl = emptyState.querySelector('p.font-bold');
+        if (nameEl) nameEl.textContent = (currentList?.name || 'Handlelisten') + ' er tom';
+    }
+
+    list.innerHTML = '';
+
+    sortedGroups.forEach(groupName => {
+        const groupItems = groupMap.get(groupName);
+        const color = groupName ? getGroupColor(groupName) : null;
+        const label = groupName || 'Uten gruppe';
+
+        const btn = document.createElement('button');
+        btn.className = `w-full flex items-center gap-3 p-4 rounded-2xl border shadow-sm active:opacity-70 transition-opacity text-left ${dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`;
+        btn.onclick = () => window.openGroup(groupName);
+
+        const iconBg = color
+            ? (dark ? color.darkBg : color.bg)
+            : (dark ? '#1e293b' : '#f1f5f9');
+        const labelColor = color ? (dark ? color.darkText : color.text) : '';
+
+        btn.innerHTML = `
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background:${iconBg}">
+                ${color
+                    ? `<div class="w-3 h-3 rounded-full" style="background:${color.dot}"></div>`
+                    : `<svg class="w-4 h-4 ${dark ? 'text-slate-500' : 'text-slate-400'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>`}
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="font-bold text-sm truncate" style="${labelColor ? `color:${labelColor}` : `color:${dark ? '#f1f5f9' : '#0f172a'}`}">${escapeText(label)}</p>
+                <p class="text-xs ${dark ? 'text-slate-400' : 'text-slate-400'} mt-0.5">${groupItems.length} vare${groupItems.length !== 1 ? 'r' : ''}</p>
+            </div>
+            <svg class="w-4 h-4 shrink-0 ${dark ? 'text-slate-600' : 'text-slate-300'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>`;
+        list.appendChild(btn);
+    });
+
+    if (checked.length > 0) {
+        const btn = document.createElement('button');
+        btn.className = `w-full flex items-center gap-3 p-4 rounded-2xl border shadow-sm active:opacity-70 transition-opacity text-left opacity-60 ${dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`;
+        btn.onclick = () => window.openGroup('__checked__');
+        btn.innerHTML = `
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${dark ? 'bg-slate-700' : 'bg-slate-100'}">
+                <svg class="w-4 h-4 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="font-bold text-sm ${dark ? 'text-slate-300' : 'text-slate-600'}">Lagt i kurven</p>
+                <p class="text-xs ${dark ? 'text-slate-400' : 'text-slate-400'} mt-0.5">${checked.length} vare${checked.length !== 1 ? 'r' : ''}</p>
+            </div>
+            <svg class="w-4 h-4 shrink-0 ${dark ? 'text-slate-600' : 'text-slate-300'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>`;
+        list.appendChild(btn);
+    }
+
+    updateGroupPills();
 }
 
 window.openList = (id) => {
     selectedListId = id;
     viewMode = 'detail';
+    selectedGroupFilter = null;
     try { sessionStorage.setItem('mittforbruk_list', id); } catch {}
     selectedAddGroup = '';
     renderHandleliste(handlelisteCache);
@@ -921,6 +1015,7 @@ window.openList = (id) => {
 
 window.backToLists = () => {
     viewMode = 'overview';
+    selectedGroupFilter = null;
     selectedAddGroup = '';
     renderHandleliste(handlelisteCache);
 };
@@ -928,7 +1023,20 @@ window.backToLists = () => {
 window.switchList = (id) => {
     selectedListId = id;
     viewMode = 'detail';
+    selectedGroupFilter = null;
     try { sessionStorage.setItem('mittforbruk_list', id); } catch {}
+    selectedAddGroup = '';
+    renderHandleliste(handlelisteCache);
+};
+
+window.openGroup = (groupName) => {
+    selectedGroupFilter = groupName;
+    selectedAddGroup = (groupName === '__checked__' || groupName === null) ? '' : groupName;
+    renderHandleliste(handlelisteCache);
+};
+
+window.backToGroups = () => {
+    selectedGroupFilter = null;
     selectedAddGroup = '';
     renderHandleliste(handlelisteCache);
 };
