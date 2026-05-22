@@ -20,6 +20,7 @@ let suppressTimer     = null; // for suppressHold cleanup
 let groupOrderMemory  = [];   // stable group insertion order (never reordered by drag)
 let selectedListId    = (() => { try { return sessionStorage.getItem('mittforbruk_list') || 'main'; } catch { return 'main'; } })();
 let listsCache        = [{ id: 'main', name: 'Handleliste', emoji: '🛒', sortOrder: 0 }];
+let viewMode          = 'overview'; // 'overview' | 'detail'
 
 // ---- Group color palette ----
 const GROUP_COLORS = [
@@ -109,11 +110,22 @@ function sortedItems(items) {
 }
 
 function renderHandleliste(items) {
+    if (viewMode === 'overview') {
+        renderListsOverview();
+        return;
+    }
+
     const list = document.getElementById('handlelisteList');
     const emptyState = document.getElementById('handlelisteEmpty');
     if (!list) return;
 
-    renderListTabs();
+    // Show detail, clear overview
+    const overviewEl = document.getElementById('listsOverviewContent');
+    const detailEl   = document.getElementById('listDetailContent');
+    if (overviewEl) overviewEl.innerHTML = '';
+    if (detailEl)   detailEl.classList.remove('hidden');
+
+    renderDetailNav();
 
     // Filter to the active list (items without listId belong to 'main')
     const listItems = items.filter(i => (i.listId || 'main') === selectedListId);
@@ -810,45 +822,112 @@ function showNewGroupSheet() {
 }
 
 // ============================================================
-// List tabs
+// Overview — list of lists
 // ============================================================
 
-function renderListTabs() {
-    const el = document.getElementById('shoppingListTabs');
-    if (!el) return;
+function renderListsOverview() {
+    const navEl      = document.getElementById('shoppingListTabs');
+    const overviewEl = document.getElementById('listsOverviewContent');
+    const detailEl   = document.getElementById('listDetailContent');
+    if (!overviewEl) return;
 
-    const tabs = listsCache.map(list => {
-        const active = list.id === selectedListId;
-        const onclick = active
-            ? `window.showListOptions('${list.id}')`
-            : `window.switchList('${list.id}')`;
+    if (navEl)    navEl.innerHTML = '';
+    if (detailEl) detailEl.classList.add('hidden');
+
+    const dark = document.body.classList.contains('dark-mode');
+
+    const cards = listsCache.map(list => {
+        const total     = handlelisteCache.filter(i => (i.listId || 'main') === list.id).length;
+        const remaining = handlelisteCache.filter(i => (i.listId || 'main') === list.id && !i.checked).length;
+        const countText = total === 0 ? 'Tom liste'
+            : remaining === 0 ? `${total} vare${total !== 1 ? 'r' : ''} – alt i kurven ✓`
+            : `${remaining} av ${total} vare${total !== 1 ? 'r' : ''} gjenstår`;
+
         return `
-            <button onclick="${onclick}" class="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold transition-colors whitespace-nowrap
-                ${active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200 active:bg-slate-50'}">
-                ${list.emoji ? `<span>${escapeText(list.emoji)}</span>` : ''}
-                <span>${escapeText(list.name)}</span>
-                ${active ? `<svg class="w-3 h-3 opacity-60 ml-0.5" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>` : ''}
+            <button onclick="window.openList('${escapeText(list.id)}')"
+                class="w-full flex items-center gap-3 p-4 rounded-2xl border shadow-sm active:opacity-70 transition-opacity text-left
+                    ${dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}">
+                <span class="text-2xl shrink-0">${list.emoji || '📋'}</span>
+                <div class="flex-1 min-w-0">
+                    <p class="font-bold text-sm truncate ${dark ? 'text-slate-100' : 'text-slate-900'}">${escapeText(list.name)}</p>
+                    <p class="text-xs ${dark ? 'text-slate-400' : 'text-slate-400'} mt-0.5">${countText}</p>
+                </div>
+                <svg class="w-4 h-4 shrink-0 ${dark ? 'text-slate-600' : 'text-slate-300'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
             </button>`;
     }).join('');
 
-    el.innerHTML = `
-        <div class="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
-            ${tabs}
-            <button onclick="window.showNewListDialog()" class="shrink-0 flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-bold text-slate-400 border border-dashed border-slate-300 bg-white active:bg-slate-50 transition-colors whitespace-nowrap">
-                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-                Ny
-            </button>
-        </div>`;
-
-    // Scroll the active tab into view
-    requestAnimationFrame(() => {
-        const activeBtn = el.querySelector('button.bg-indigo-600');
-        if (activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    });
+    overviewEl.innerHTML = cards + `
+        <button onclick="window.showNewListDialog()"
+            class="w-full flex items-center gap-3 p-4 rounded-2xl border-2 border-dashed active:opacity-70 transition-opacity
+                ${dark ? 'border-slate-700 text-slate-500' : 'border-slate-200 text-slate-400'}">
+            <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            <span class="font-bold text-sm">Ny liste</span>
+        </button>`;
 }
+
+// ============================================================
+// Detail nav bar
+// ============================================================
+
+function renderDetailNav() {
+    const navEl = document.getElementById('shoppingListTabs');
+    if (!navEl) return;
+
+    const dark    = document.body.classList.contains('dark-mode');
+    const current = listsCache.find(l => l.id === selectedListId);
+    const idx     = listsCache.findIndex(l => l.id === selectedListId);
+    const prev    = idx > 0 ? listsCache[idx - 1] : null;
+    const next    = idx < listsCache.length - 1 ? listsCache[idx + 1] : null;
+
+    const prevBtn = prev
+        ? `<button onclick="window.switchList('${escapeText(prev.id)}')"
+               class="flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs font-bold ${dark ? 'text-slate-400 active:bg-slate-700' : 'text-slate-400 active:bg-slate-100'} transition-colors">
+               <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+               ${escapeText(prev.name)}
+           </button>`
+        : `<div class="w-16"></div>`;
+
+    const nextBtn = next
+        ? `<button onclick="window.switchList('${escapeText(next.id)}')"
+               class="flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs font-bold ${dark ? 'text-slate-400 active:bg-slate-700' : 'text-slate-400 active:bg-slate-100'} transition-colors">
+               ${escapeText(next.name)}
+               <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+           </button>`
+        : `<div class="w-16"></div>`;
+
+    navEl.innerHTML = `
+        <div class="flex items-center justify-between mb-1">
+            <button onclick="window.backToLists()"
+                class="flex items-center gap-1 px-2 py-1.5 rounded-xl text-sm font-bold ${dark ? 'text-indigo-400 active:bg-slate-700' : 'text-indigo-500 active:bg-indigo-50'} transition-colors">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+                Lister
+            </button>
+            <span class="font-bold text-sm ${dark ? 'text-slate-100' : 'text-slate-900'}">${current?.emoji || ''} ${escapeText(current?.name || '')}</span>
+            <button onclick="window.showListOptions('${escapeText(selectedListId)}')"
+                class="w-8 h-8 rounded-xl flex items-center justify-center ${dark ? 'text-slate-400 active:bg-slate-700' : 'text-slate-400 active:bg-slate-100'} transition-colors">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+            </button>
+        </div>
+        ${listsCache.length > 1 ? `<div class="flex items-center justify-between">${prevBtn}${nextBtn}</div>` : ''}`;
+}
+
+window.openList = (id) => {
+    selectedListId = id;
+    viewMode = 'detail';
+    try { sessionStorage.setItem('mittforbruk_list', id); } catch {}
+    selectedAddGroup = '';
+    renderHandleliste(handlelisteCache);
+};
+
+window.backToLists = () => {
+    viewMode = 'overview';
+    selectedAddGroup = '';
+    renderHandleliste(handlelisteCache);
+};
 
 window.switchList = (id) => {
     selectedListId = id;
+    viewMode = 'detail';
     try { sessionStorage.setItem('mittforbruk_list', id); } catch {}
     selectedAddGroup = '';
     renderHandleliste(handlelisteCache);
