@@ -2,7 +2,17 @@
 
 :root {
     --user-color: #4f46e5;
+    --t-primary:  #4f46e5;
+    --t-primary-dim: #3730a3;
+    --t-primary-bg:  #eef2ff;
+    --t-primary-muted: #818cf8;
 }
+
+body.theme-rose    { --t-primary: #f43f5e; --t-primary-dim: #be123c; --t-primary-bg: #fff1f2; --t-primary-muted: #fb7185; }
+body.theme-emerald { --t-primary: #10b981; --t-primary-dim: #059669; --t-primary-bg: #ecfdf5; --t-primary-muted: #34d399; }
+body.theme-amber   { --t-primary: #f59e0b; --t-primary-dim: #d97706; --t-primary-bg: #fffbeb; --t-primary-muted: #fbbf24; }
+body.theme-violet  { --t-primary: #7c3aed; --t-primary-dim: #6d28d9; --t-primary-bg: #f5f3ff; --t-primary-muted: #a78bfa; }
+body.theme-sky     { --t-primary: #0ea5e9; --t-primary-dim: #0284c7; --t-primary-bg: #f0f9ff; --t-primary-muted: #38bdf8; }
 
 /* Hide login screen immediately for returning logged-in users */
 html.auth-cached #loginScreen { display: none; }
@@ -87,7 +97,7 @@ header .brand-bar {
 }
 
 .hl-group-pill-active {
-    background-color: #4f46e5;
+    background-color: var(--t-primary);
     color: #fff;
 }
 
@@ -172,9 +182,13 @@ body.dark-mode {
     border-color: #334155;
 }
 
+.bg-indigo-600 {
+    background-color: var(--t-primary) !important;
+}
+
 .dark-mode .bg-indigo-600 {
-    background-color: #3730a3;
-    border-color: #312e81;
+    background-color: var(--t-primary-dim) !important;
+    border-color: var(--t-primary-dim) !important;
 }
 
 .dark-mode .text-slate-600 {
@@ -209,8 +223,8 @@ body.dark-mode {
 }
 
 .nav-bar {
-    background-color: #4f46e5 !important;
-    border-color: #4f46e5 !important;
+    background-color: var(--t-primary) !important;
+    border-color: var(--t-primary) !important;
     padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
 }
 
@@ -229,8 +243,8 @@ body.dark-mode {
 }
 
 .dark-mode .nav-bar {
-    background-color: #3730a3 !important;
-    border-color: #3730a3 !important;
+    background-color: var(--t-primary-dim) !important;
+    border-color: var(--t-primary-dim) !important;
 }
 
 .dark-mode .nav-btn {
@@ -567,8 +581,10 @@ body.dark-mode {
 .dark-mode .text-amber-500 { color: #fbbf24 !important; }
 
 /* Indigo text (titles, labels, active states) */
-.dark-mode .text-indigo-600 { color: #818cf8 !important; }
-.dark-mode .text-indigo-500 { color: #818cf8 !important; }
+.text-indigo-600 { color: var(--t-primary) !important; }
+.text-indigo-500 { color: var(--t-primary) !important; }
+.dark-mode .text-indigo-600 { color: var(--t-primary-muted) !important; }
+.dark-mode .text-indigo-500 { color: var(--t-primary-muted) !important; }
 .dark-mode .border-indigo-200 { border-color: #4338ca; }
 .dark-mode .border-indigo-100 { border-color: #312e81; }
 .dark-mode .border-indigo-400 { border-color: #6366f1; }
@@ -593,3 +609,33 @@ body.dark-mode {
 .dark-mode .shadow-inner {
     box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
 }
+
+/* ============================================================
+   Theme Picker
+   ============================================================ */
+.theme-swatch {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
+.theme-swatch.active {
+    border-color: #94a3b8;
+    transform: scale(1.18);
+}
+
+.theme-swatch:active {
+    transform: scale(0.92);
+}
+
+/* ============================================================
+   Indigo bg-50 and active:bg theming
+   ============================================================ */
+.bg-indigo-50 { background-color: var(--t-primary-bg) !important; }
+.active\:bg-indigo-50:active { background-color: var(--t-primary-bg) !important; }
+.border-indigo-500 { border-color: var(--t-primary) !important; }
+.border-indigo-600 { border-color: var(--t-primary) !important; }

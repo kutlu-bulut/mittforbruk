@@ -82,12 +82,14 @@ export function applyUserPreferences() {
     if (dot) dot.style.left = isDark ? '28px' : '4px';
 
     const btn = document.getElementById('darkModeBtn');
-    if (btn) btn.style.backgroundColor = isDark ? '#4f46e5' : '#cbd5e1';
+    if (btn) btn.style.backgroundColor = isDark ? 'var(--t-primary)' : '#cbd5e1';
 
     const nameInput = document.getElementById('profileNameInput');
     if (nameInput) nameInput.value = safeName;
 
     document.documentElement.style.setProperty('--user-color', safeColor);
+
+    applyTheme(state.currentUserData.theme || '');
 
     // Profile avatar
     const avatarDisplay = getAvatarDisplay();
@@ -99,10 +101,48 @@ export function applyUserPreferences() {
     if (headerAvatar) headerAvatar.innerText = avatarDisplay;
 
     renderDefaultTabSetting();
+    renderThemePicker();
+}
+
+export function applyTheme(theme) {
+    ['rose', 'emerald', 'amber', 'violet', 'sky'].forEach(t => document.body.classList.remove('theme-' + t));
+    if (theme) document.body.classList.add('theme-' + theme);
+}
+
+export function renderThemePicker() {
+    const container = document.getElementById('themePickerGrid');
+    if (!container) return;
+
+    const themes = [
+        { id: '',        label: 'Indigo',  color: '#4f46e5' },
+        { id: 'rose',    label: 'Rose',    color: '#f43f5e' },
+        { id: 'emerald', label: 'Grønn',   color: '#10b981' },
+        { id: 'amber',   label: 'Amber',   color: '#f59e0b' },
+        { id: 'violet',  label: 'Violet',  color: '#7c3aed' },
+        { id: 'sky',     label: 'Himmel',  color: '#0ea5e9' },
+    ];
+
+    const current = state.currentUserData.theme || '';
+    container.innerHTML = '';
+
+    themes.forEach(theme => {
+        const btn = document.createElement('button');
+        btn.className = 'flex flex-col items-center gap-1.5';
+        btn.innerHTML = `
+            <div class="theme-swatch ${current === theme.id ? 'active' : ''}" style="background:${theme.color}"></div>
+            <span class="text-[10px] font-bold text-slate-400">${theme.label}</span>`;
+        btn.onclick = () => window.setTheme(theme.id);
+        container.appendChild(btn);
+    });
 }
 
 window.toggleDarkMode = async () => {
     await updateDoc(doc(db, "users", auth.currentUser.uid), { darkMode: !state.currentUserData.darkMode });
+};
+
+window.setTheme = async (theme) => {
+    await updateDoc(doc(db, "users", auth.currentUser.uid), { theme });
+    showToast('Tema lagret!');
 };
 
 window.updateProfile = async () => {
