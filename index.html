@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hvor går pengene? v19.36</title>
+    <title>Hvor går pengene? v19.37</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -49,7 +49,7 @@
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                 <span class="text-[10px] text-indigo-300 font-medium">Ingen registrering nødvendig</span>
             </div>
-            <p class="text-[10px] text-indigo-400 font-mono mt-8">v19.36</p>
+            <p class="text-[10px] text-indigo-400 font-mono mt-8">v19.37</p>
         </div>
     </div>
 
@@ -86,7 +86,7 @@
         <header class="bg-white sticky top-0 z-40 border-b border-slate-200 shadow-sm">
             <div class="brand-bar flex items-center justify-center py-1.5 bg-indigo-600 relative">
                 <span class="brand-text text-white">Hvor går pengene?</span>
-                <span class="absolute right-3 text-[9px] font-mono text-indigo-300 opacity-75">v19.36</span>
+                <span class="absolute right-3 text-[9px] font-mono text-indigo-300 opacity-75">v19.37</span>
             </div>
             <div id="headerUserBudget" class="px-5 pt-3 pb-3.5">
                 <div class="flex justify-between items-center mb-3">
@@ -362,7 +362,7 @@
                 </div>
                 <div class="text-center pt-2 pb-4">
                     <button id="btnLogout" onclick="logout()" class="text-rose-500 font-bold text-xs uppercase active:opacity-50 transition-opacity">Logg ut</button>
-                    <p class="text-[10px] text-slate-300 font-mono mt-3">v19.36</p>
+                    <p class="text-[10px] text-slate-300 font-mono mt-3">v19.37</p>
                 </div>
             </div>
 
@@ -375,19 +375,19 @@
                     <div id="listsOverviewContent" class="space-y-2"></div>
                     <!-- Detail content (visible when a list is open) -->
                     <div id="listDetailContent" class="space-y-2">
-                        <div class="flex gap-2 items-center bg-white rounded-2xl border border-slate-200 shadow-sm px-3 py-2">
+                        <div id="handlelisteAddForm" class="flex gap-2 items-center bg-white rounded-2xl border border-slate-200 shadow-sm px-3 py-2.5">
                             <div class="relative flex-1">
                                 <input type="text" id="handlelisteInput" placeholder="Legg til vare..." autocomplete="off"
-                                    class="w-full bg-transparent px-1 py-1.5 outline-none font-bold text-sm text-slate-800 placeholder-slate-300">
+                                    class="w-full bg-transparent px-1 py-1.5 outline-none font-bold text-sm placeholder-slate-300">
                                 <div id="handlelisteAutocomplete" class="store-autocomplete hidden"></div>
                             </div>
-                            <div class="flex items-center gap-0.5 border-l border-slate-200 pl-2">
-                                <button onclick="document.getElementById('handlelisteQty').stepDown()" class="w-5 h-5 flex items-center justify-center text-slate-400 font-black text-base leading-none active:scale-90 transition-all">−</button>
+                            <div class="flex items-center gap-1 border-l border-slate-200 pl-2">
+                                <button onclick="document.getElementById('handlelisteQty').stepDown()" class="w-6 h-6 flex items-center justify-center text-slate-400 font-black text-base leading-none active:scale-90 transition-all">−</button>
                                 <input type="number" id="handlelisteQty" value="1" min="1" max="99"
-                                    class="w-7 text-center bg-transparent font-black text-sm text-slate-700 outline-none">
-                                <button onclick="document.getElementById('handlelisteQty').stepUp()" class="w-5 h-5 flex items-center justify-center text-slate-400 font-black text-base leading-none active:scale-90 transition-all">+</button>
+                                    class="w-7 text-center bg-transparent font-black text-sm outline-none">
+                                <button onclick="document.getElementById('handlelisteQty').stepUp()" class="w-6 h-6 flex items-center justify-center text-slate-400 font-black text-base leading-none active:scale-90 transition-all">+</button>
                             </div>
-                            <button onclick="addHandlelisteItem()" class="bg-indigo-600 text-white w-8 h-8 rounded-xl flex items-center justify-center active:scale-95 transition-all shadow-sm shrink-0">
+                            <button onclick="addHandlelisteItem()" class="bg-indigo-600 text-white w-9 h-9 rounded-xl flex items-center justify-center active:scale-95 transition-all shadow-sm shrink-0">
                                 <i data-lucide="plus" class="w-4 h-4"></i>
                             </button>
                         </div>

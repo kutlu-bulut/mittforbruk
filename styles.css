@@ -610,6 +610,12 @@ body.dark-mode {
     box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
 }
 
+/* Add form dark mode */
+.dark-mode #handlelisteAddForm {
+    background-color: #1e293b;
+    border-color: #334155;
+}
+
 /* ============================================================
    Theme Picker
    ============================================================ */

@@ -875,29 +875,33 @@ function renderDetailNav() {
     const menuChip = `w-9 h-9 rounded-full flex items-center justify-center shadow-sm transition-all active:scale-95 ${dark ? 'bg-slate-700 text-slate-400 border border-slate-600' : 'bg-white text-slate-500 border border-slate-200'}`;
 
     if (selectedGroupFilter === null) {
-        // Groups overview: ← Lister | list name | ··· | prev/next lists
+        // Groups overview nav: ← Lister | list name (centered) | ···
         const idx  = listsCache.findIndex(l => l.id === selectedListId);
         const prev = idx > 0 ? listsCache[idx - 1] : null;
         const next = idx < listsCache.length - 1 ? listsCache[idx + 1] : null;
         const prevBtn = prev
             ? `<button onclick="window.switchList('${escapeText(prev.id)}')" class="${navChip}"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>${escapeText(prev.name)}</button>`
-            : `<div></div>`;
+            : '';
         const nextBtn = next
-            ? `<button onclick="window.switchList('${escapeText(next.id)}')" class="${navChip}">${escapeText(next.name)}<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></button>`
-            : `<div></div>`;
+            ? `<button onclick="window.switchList('${escapeText(next.id)}')" class="ml-auto ${navChip}">${escapeText(next.name)}<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></button>`
+            : '';
         navEl.innerHTML = `
-            <div class="flex items-center justify-between mb-2">
-                <button onclick="window.backToLists()" class="${backChip}">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>Lister
-                </button>
-                <span class="font-bold text-sm ${dark ? 'text-slate-100' : 'text-slate-900'}">${currentList?.emoji || ''} ${escapeText(currentList?.name || '')}</span>
-                <button onclick="window.showListOptions('${escapeText(selectedListId)}')" class="${menuChip}">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
-                </button>
+            <div class="flex items-center mb-2">
+                <div class="flex-1">
+                    <button onclick="window.backToLists()" class="${backChip}">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>Lister
+                    </button>
+                </div>
+                <span class="font-bold text-sm ${dark ? 'text-slate-100' : 'text-slate-900'} truncate px-2">${currentList?.emoji || ''} ${escapeText(currentList?.name || '')}</span>
+                <div class="flex-1 flex justify-end">
+                    <button onclick="window.showListOptions('${escapeText(selectedListId)}')" class="${menuChip}">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+                    </button>
+                </div>
             </div>
-            ${listsCache.length > 1 ? `<div class="flex items-center justify-between">${prevBtn}${nextBtn}</div>` : ''}`;
+            ${(prev || next) ? `<div class="flex items-center gap-2">${prevBtn}${nextBtn}</div>` : ''}`;
     } else {
-        // Group detail: ← list name | group chip | prev/next groups
+        // Group detail nav: ← list name | group chip (centered) | (spacer)
         const listItems = handlelisteCache.filter(i => (i.listId || 'main') === selectedListId);
         const groups = [...new Set(listItems.filter(i => !i.checked).map(i => i.group || ''))].sort((a, b) => {
             if (a === '' && b !== '') return 1;
@@ -915,26 +919,28 @@ function renderDetailNav() {
         const gc = (selectedGroupFilter && selectedGroupFilter !== '__checked__') ? getGroupColor(selectedGroupFilter) : null;
         const groupChipStyle = gc
             ? `background:${dark ? gc.darkBg : gc.bg};color:${dark ? gc.darkText : gc.text};border:1.5px solid ${gc.dot}`
-            : ``;
+            : '';
         const groupChipCls = gc
             ? 'px-3 py-1.5 rounded-full text-sm font-bold shadow-sm'
             : `px-3 py-1.5 rounded-full text-sm font-bold shadow-sm ${dark ? 'bg-slate-700 text-slate-300 border border-slate-600' : 'bg-white text-slate-600 border border-slate-200'}`;
 
         const prevBtn = prevG !== null
             ? `<button onclick="window.openGroup('${escapeText(prevG)}')" class="${navChip}"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>${escapeText(gLabel(prevG))}</button>`
-            : `<div></div>`;
+            : '';
         const nextBtn = nextG !== null
-            ? `<button onclick="window.openGroup('${escapeText(nextG)}')" class="${navChip}">${escapeText(gLabel(nextG))}<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></button>`
-            : `<div></div>`;
+            ? `<button onclick="window.openGroup('${escapeText(nextG)}')" class="ml-auto ${navChip}">${escapeText(gLabel(nextG))}<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></button>`
+            : '';
         navEl.innerHTML = `
-            <div class="flex items-center justify-between mb-2">
-                <button onclick="window.backToGroups()" class="${backChip}">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>${escapeText(currentList?.emoji || '')} ${escapeText(currentList?.name || '')}
-                </button>
+            <div class="flex items-center mb-2">
+                <div class="flex-1">
+                    <button onclick="window.backToGroups()" class="${backChip}">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>${escapeText(currentList?.emoji || '')} ${escapeText(currentList?.name || '')}
+                    </button>
+                </div>
                 <span class="${groupChipCls}" style="${groupChipStyle}">${escapeText(gLabel(selectedGroupFilter))}</span>
-                <div class="w-9"></div>
+                <div class="flex-1"></div>
             </div>
-            ${allGroups.length > 1 ? `<div class="flex items-center justify-between">${prevBtn}${nextBtn}</div>` : ''}`;
+            ${(prevG !== null || nextG !== null) ? `<div class="flex items-center gap-2">${prevBtn}${nextBtn}</div>` : ''}`;
     }
 }
 
