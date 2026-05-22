@@ -6,13 +6,14 @@
     --t-primary-dim: #3730a3;
     --t-primary-bg:  #eef2ff;
     --t-primary-muted: #818cf8;
+    --t-primary-pill: rgba(79, 70, 229, 0.18);
 }
 
-body.theme-rose    { --t-primary: #f43f5e; --t-primary-dim: #be123c; --t-primary-bg: #fff1f2; --t-primary-muted: #fb7185; }
-body.theme-emerald { --t-primary: #10b981; --t-primary-dim: #059669; --t-primary-bg: #ecfdf5; --t-primary-muted: #34d399; }
-body.theme-amber   { --t-primary: #f59e0b; --t-primary-dim: #d97706; --t-primary-bg: #fffbeb; --t-primary-muted: #fbbf24; }
-body.theme-violet  { --t-primary: #7c3aed; --t-primary-dim: #6d28d9; --t-primary-bg: #f5f3ff; --t-primary-muted: #a78bfa; }
-body.theme-sky     { --t-primary: #0ea5e9; --t-primary-dim: #0284c7; --t-primary-bg: #f0f9ff; --t-primary-muted: #38bdf8; }
+body.theme-rose    { --t-primary: #f43f5e; --t-primary-dim: #be123c; --t-primary-bg: #fff1f2; --t-primary-muted: #fb7185; --t-primary-pill: rgba(244, 63, 94, 0.18); }
+body.theme-emerald { --t-primary: #10b981; --t-primary-dim: #059669; --t-primary-bg: #ecfdf5; --t-primary-muted: #34d399; --t-primary-pill: rgba(16, 185, 129, 0.18); }
+body.theme-amber   { --t-primary: #f59e0b; --t-primary-dim: #d97706; --t-primary-bg: #fffbeb; --t-primary-muted: #fbbf24; --t-primary-pill: rgba(245, 158, 11, 0.18); }
+body.theme-violet  { --t-primary: #7c3aed; --t-primary-dim: #6d28d9; --t-primary-bg: #f5f3ff; --t-primary-muted: #a78bfa; --t-primary-pill: rgba(124, 58, 237, 0.18); }
+body.theme-sky     { --t-primary: #0ea5e9; --t-primary-dim: #0284c7; --t-primary-bg: #f0f9ff; --t-primary-muted: #38bdf8; --t-primary-pill: rgba(14, 165, 233, 0.18); }
 
 /* Hide login screen immediately for returning logged-in users */
 html.auth-cached #loginScreen { display: none; }
@@ -159,9 +160,47 @@ body.dark-mode {
     border-color: #334155;
 }
 
+/* Header - always dark */
+header {
+    background-color: #0f172a !important;
+    border-color: #1e293b !important;
+}
+
+header .brand-bar {
+    background-color: #0f172a !important;
+    border-bottom: 1px solid #1e293b;
+}
+
+header #userNameDisplay,
+header #totalMonth {
+    color: #f1f5f9 !important;
+}
+
+header .text-slate-400 {
+    color: #94a3b8 !important;
+}
+
+header .bg-slate-100 {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+}
+
+header .border-slate-200 {
+    border-color: #334155 !important;
+}
+
 .dark-mode header {
-    background-color: #1e293b;
-    border-color: #334155;
+    background-color: #060b14 !important;
+    border-color: #111827 !important;
+}
+
+.dark-mode header .brand-bar {
+    background-color: #060b14 !important;
+    border-bottom-color: #111827 !important;
+}
+
+.dark-mode header .bg-slate-100 {
+    background-color: #0f172a !important;
 }
 
 .dark-mode .text-slate-900 {
@@ -223,41 +262,43 @@ body.dark-mode {
 }
 
 .nav-bar {
-    background-color: var(--t-primary) !important;
-    border-color: var(--t-primary) !important;
+    background-color: #0f172a !important;
+    border-top: 1px solid #1e293b;
+    border-color: #0f172a !important;
     padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
 }
 
 .nav-btn {
-    color: rgba(255, 255, 255, 0.5);
+    color: #64748b;
     transition: all 0.2s ease;
 }
 
 .nav-active {
-    color: #ffffff !important;
+    color: var(--t-primary) !important;
 }
 
 .nav-active .nav-inner {
-    background-color: rgba(255, 255, 255, 0.15);
-    color: #ffffff;
+    background-color: var(--t-primary-pill);
+    color: var(--t-primary);
 }
 
 .dark-mode .nav-bar {
-    background-color: var(--t-primary-dim) !important;
-    border-color: var(--t-primary-dim) !important;
+    background-color: #060b14 !important;
+    border-top-color: #111827 !important;
+    border-color: #060b14 !important;
 }
 
 .dark-mode .nav-btn {
-    color: rgba(255, 255, 255, 0.4);
+    color: #475569;
 }
 
 .dark-mode .nav-active {
-    color: #ffffff !important;
+    color: var(--t-primary) !important;
 }
 
 .dark-mode .nav-active .nav-inner {
-    background-color: rgba(255, 255, 255, 0.15);
-    color: #ffffff;
+    background-color: var(--t-primary-pill);
+    color: var(--t-primary);
 }
 
 /* --- Tabs & Animation --- */
@@ -508,8 +549,12 @@ body.dark-mode {
 .dark-mode .modal-card button#modalCancel { background-color: #334155; color: #e2e8f0; }
 
 /* --- Header brand bar --- */
+header .border-slate-100 {
+    border-color: #1e293b !important;
+}
+
 .dark-mode header .border-slate-100 {
-    border-color: #1e293b;
+    border-color: #111827 !important;
 }
 
 /* --- Store Autocomplete --- */

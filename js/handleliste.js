@@ -22,6 +22,7 @@ let selectedListId    = (() => { try { return sessionStorage.getItem('mittforbru
 let listsCache        = [{ id: 'main', name: 'Handleliste', emoji: '🛒', sortOrder: 0 }];
 let viewMode          = 'overview'; // 'overview' | 'detail'
 let selectedGroupFilter = null;    // null = groups overview, string = group name, '' = ungrouped, '__checked__' = checked items
+let showChecked       = false;     // hidden by default, toggled per-group
 
 // ---- Group color palette ----
 const GROUP_COLORS = [
@@ -186,23 +187,27 @@ function renderHandleliste(items) {
         }
     }
 
-    // ---- Checked section ----
+    // ---- Checked section (hidden by default, toggled via button) ----
     if (checked.length > 0) {
-        const divider = document.createElement('div');
-        divider.className = 'flex items-center gap-3 mt-5 mb-3';
-        divider.innerHTML = `
-            <div class="h-px flex-1 bg-slate-200 dark-divider"></div>
-            <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wide whitespace-nowrap">
-                Lagt i kurven (${checked.length})
-            </span>
-            <button onclick="window.clearCheckedItems()"
-                    class="text-[11px] font-bold text-rose-400 active:text-rose-500 whitespace-nowrap transition-colors">
-                Fjern alle
-            </button>
-            <div class="h-px flex-1 bg-slate-200 dark-divider"></div>
-        `;
-        list.appendChild(divider);
-        checked.forEach(item => list.appendChild(buildItemEl(item)));
+        if (!showChecked) {
+            const toggle = document.createElement('button');
+            toggle.className = 'w-full mt-4 py-2.5 text-xs font-bold text-slate-400 flex items-center justify-center gap-1.5 active:opacity-50 transition-opacity';
+            toggle.innerHTML = `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>${checked.length} i kurven`;
+            toggle.onclick = () => { showChecked = true; renderHandleliste(handlelisteCache); };
+            list.appendChild(toggle);
+        } else {
+            const divider = document.createElement('div');
+            divider.className = 'flex items-center gap-3 mt-5 mb-3';
+            divider.innerHTML = `
+                <div class="h-px flex-1 bg-slate-200 dark-divider"></div>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wide whitespace-nowrap">I kurven (${checked.length})</span>
+                <button onclick="window.clearCheckedItems()" class="text-[11px] font-bold text-rose-400 active:text-rose-500 whitespace-nowrap transition-colors">Fjern alle</button>
+                <button onclick="window.hideChecked()" class="text-[11px] font-bold text-slate-300 active:text-slate-500 whitespace-nowrap transition-colors">Skjul</button>
+                <div class="h-px flex-1 bg-slate-200 dark-divider"></div>
+            `;
+            list.appendChild(divider);
+            checked.forEach(item => list.appendChild(buildItemEl(item)));
+        }
     }
 }
 
@@ -1083,10 +1088,13 @@ function renderGroupsOverview(listItems) {
     updateGroupPills();
 }
 
+window.hideChecked = () => { showChecked = false; renderHandleliste(handlelisteCache); };
+
 window.openList = (id) => {
     selectedListId = id;
     viewMode = 'detail';
     selectedGroupFilter = null;
+    showChecked = false;
     try { sessionStorage.setItem('mittforbruk_list', id); } catch {}
     selectedAddGroup = '';
     renderHandleliste(handlelisteCache);
@@ -1095,6 +1103,7 @@ window.openList = (id) => {
 window.backToLists = () => {
     viewMode = 'overview';
     selectedGroupFilter = null;
+    showChecked = false;
     selectedAddGroup = '';
     renderHandleliste(handlelisteCache);
 };
@@ -1103,6 +1112,7 @@ window.switchList = (id) => {
     selectedListId = id;
     viewMode = 'detail';
     selectedGroupFilter = null;
+    showChecked = false;
     try { sessionStorage.setItem('mittforbruk_list', id); } catch {}
     selectedAddGroup = '';
     renderHandleliste(handlelisteCache);
@@ -1110,12 +1120,14 @@ window.switchList = (id) => {
 
 window.openGroup = (groupName) => {
     selectedGroupFilter = groupName;
+    showChecked = false;
     selectedAddGroup = (groupName === '__checked__' || groupName === null) ? '' : groupName;
     renderHandleliste(handlelisteCache);
 };
 
 window.backToGroups = () => {
     selectedGroupFilter = null;
+    showChecked = false;
     selectedAddGroup = '';
     renderHandleliste(handlelisteCache);
 };
