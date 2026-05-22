@@ -868,40 +868,28 @@ function renderDetailNav() {
 
     const dark        = document.body.classList.contains('dark-mode');
     const currentList = listsCache.find(l => l.id === selectedListId);
-
-    // Chip styles
-    const backChip = `flex items-center gap-1.5 pl-2.5 pr-3.5 py-2 rounded-full text-sm font-bold shadow-sm transition-all active:scale-95 ${dark ? 'bg-slate-700 text-indigo-400 border border-slate-600' : 'bg-white text-indigo-600 border border-indigo-100'}`;
-    const navChip  = `flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-bold shadow-sm transition-all active:scale-95 ${dark ? 'bg-slate-700 text-slate-300 border border-slate-600' : 'bg-white text-slate-500 border border-slate-200'}`;
-    const menuChip = `w-9 h-9 rounded-full flex items-center justify-center shadow-sm transition-all active:scale-95 ${dark ? 'bg-slate-700 text-slate-400 border border-slate-600' : 'bg-white text-slate-500 border border-slate-200'}`;
+    const arrowCls    = `w-10 h-10 flex items-center justify-center rounded-full transition-all active:scale-90 active:opacity-50 ${dark ? 'text-slate-400' : 'text-slate-400'}`;
 
     if (selectedGroupFilter === null) {
-        // Groups overview nav: ← Lister | list name (centered) | ···
-        const idx  = listsCache.findIndex(l => l.id === selectedListId);
-        const prev = idx > 0 ? listsCache[idx - 1] : null;
-        const next = idx < listsCache.length - 1 ? listsCache[idx + 1] : null;
-        const prevBtn = prev
-            ? `<button onclick="window.switchList('${escapeText(prev.id)}')" class="${navChip}"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>${escapeText(prev.name)}</button>`
-            : '';
-        const nextBtn = next
-            ? `<button onclick="window.switchList('${escapeText(next.id)}')" class="ml-auto ${navChip}">${escapeText(next.name)}<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></button>`
-            : '';
+        // Groups overview: ← | list title (tappable if multiple lists) | ···
+        const multiList   = listsCache.length > 1;
+        const titleCls    = `flex-1 text-center font-bold text-base truncate px-1 py-2 transition-all ${dark ? 'text-slate-100' : 'text-slate-900'} ${multiList ? 'active:opacity-50' : ''}`;
+        const titleAction = multiList ? `onclick="window.showListSwitcher()"` : '';
+
         navEl.innerHTML = `
-            <div class="flex items-center mb-2">
-                <div class="flex-1">
-                    <button onclick="window.backToLists()" class="${backChip}">
-                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>Lister
-                    </button>
-                </div>
-                <span class="font-bold text-sm ${dark ? 'text-slate-100' : 'text-slate-900'} truncate px-2">${currentList?.emoji || ''} ${escapeText(currentList?.name || '')}</span>
-                <div class="flex-1 flex justify-end">
-                    <button onclick="window.showListOptions('${escapeText(selectedListId)}')" class="${menuChip}">
-                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
-                    </button>
-                </div>
-            </div>
-            ${(prev || next) ? `<div class="flex items-center gap-2">${prevBtn}${nextBtn}</div>` : ''}`;
+            <div class="flex items-center">
+                <button onclick="window.backToLists()" class="${arrowCls}">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <button ${titleAction} class="${titleCls}">
+                    ${currentList?.emoji || ''} ${escapeText(currentList?.name || '')}${multiList ? ' <svg class="inline w-3 h-3 opacity-40 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>' : ''}
+                </button>
+                <button onclick="window.showListOptions('${escapeText(selectedListId)}')" class="${arrowCls}">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+                </button>
+            </div>`;
     } else {
-        // Group detail nav: ← list name | group chip (centered) | (spacer)
+        // Group detail: ← | group name (tappable) | →
         const listItems = handlelisteCache.filter(i => (i.listId || 'main') === selectedListId);
         const groups = [...new Set(listItems.filter(i => !i.checked).map(i => i.group || ''))].sort((a, b) => {
             if (a === '' && b !== '') return 1;
@@ -909,40 +897,111 @@ function renderDetailNav() {
             return a.localeCompare(b, 'nb');
         });
         const hasChecked = listItems.some(i => i.checked);
-        const allGroups = hasChecked ? [...groups, '__checked__'] : groups;
+        const allGroups  = hasChecked ? [...groups, '__checked__'] : groups;
         const gIdx  = allGroups.indexOf(selectedGroupFilter);
-        const prevG = gIdx > 0 ? allGroups[gIdx - 1] : null;
         const nextG = gIdx < allGroups.length - 1 ? allGroups[gIdx + 1] : null;
         const gLabel = g => g === '__checked__' ? 'Lagt i kurven' : g === '' ? 'Uten gruppe' : g;
 
-        // Colored chip for the current group name
-        const gc = (selectedGroupFilter && selectedGroupFilter !== '__checked__') ? getGroupColor(selectedGroupFilter) : null;
-        const groupChipStyle = gc
-            ? `background:${dark ? gc.darkBg : gc.bg};color:${dark ? gc.darkText : gc.text};border:1.5px solid ${gc.dot}`
-            : '';
-        const groupChipCls = gc
-            ? 'px-3 py-1.5 rounded-full text-sm font-bold shadow-sm'
-            : `px-3 py-1.5 rounded-full text-sm font-bold shadow-sm ${dark ? 'bg-slate-700 text-slate-300 border border-slate-600' : 'bg-white text-slate-600 border border-slate-200'}`;
+        const gc        = (selectedGroupFilter && selectedGroupFilter !== '__checked__') ? getGroupColor(selectedGroupFilter) : null;
+        const nameColor = gc ? (dark ? gc.darkText : gc.text) : (dark ? '#f1f5f9' : '#0f172a');
 
-        const prevBtn = prevG !== null
-            ? `<button onclick="window.openGroup('${escapeText(prevG)}')" class="${navChip}"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>${escapeText(gLabel(prevG))}</button>`
-            : '';
-        const nextBtn = nextG !== null
-            ? `<button onclick="window.openGroup('${escapeText(nextG)}')" class="ml-auto ${navChip}">${escapeText(gLabel(nextG))}<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></button>`
-            : '';
         navEl.innerHTML = `
-            <div class="flex items-center mb-2">
-                <div class="flex-1">
-                    <button onclick="window.backToGroups()" class="${backChip}">
-                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>${escapeText(currentList?.emoji || '')} ${escapeText(currentList?.name || '')}
-                    </button>
-                </div>
-                <span class="${groupChipCls}" style="${groupChipStyle}">${escapeText(gLabel(selectedGroupFilter))}</span>
-                <div class="flex-1"></div>
-            </div>
-            ${(prevG !== null || nextG !== null) ? `<div class="flex items-center gap-2">${prevBtn}${nextBtn}</div>` : ''}`;
+            <div class="flex items-center">
+                <button onclick="window.backToGroups()" class="${arrowCls}">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <button onclick="window.showGroupSwitcher()" class="flex-1 text-center font-bold text-base truncate px-1 py-2 transition-all active:opacity-50" style="color:${nameColor}">
+                    ${escapeText(gLabel(selectedGroupFilter))} <svg class="inline w-3 h-3 opacity-40 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+                </button>
+                ${nextG !== null
+                    ? `<button onclick="window.openGroup('${escapeText(nextG)}')" class="${arrowCls}"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></button>`
+                    : `<div class="w-10"></div>`}
+            </div>`;
     }
 }
+
+// ---- Group switcher sheet ----
+window.showGroupSwitcher = () => {
+    const dark      = document.body.classList.contains('dark-mode');
+    const listItems = handlelisteCache.filter(i => (i.listId || 'main') === selectedListId);
+    const groups    = [...new Set(listItems.filter(i => !i.checked).map(i => i.group || ''))].sort((a, b) => {
+        if (a === '' && b !== '') return 1;
+        if (a !== '' && b === '') return -1;
+        return a.localeCompare(b, 'nb');
+    });
+    const hasChecked = listItems.some(i => i.checked);
+    const allGroups  = hasChecked ? [...groups, '__checked__'] : groups;
+    const gLabel     = g => g === '__checked__' ? 'Lagt i kurven' : g === '' ? 'Uten gruppe' : g;
+
+    document.getElementById('_gsOverlay')?.remove();
+    const overlay = document.createElement('div');
+    overlay.id = '_gsOverlay';
+    overlay.className = 'fixed inset-0 z-50 flex items-end justify-center';
+    overlay.style.cssText = 'background:rgba(15,23,42,0.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)';
+
+    const sheet = document.createElement('div');
+    sheet.className = `w-full max-w-lg rounded-t-3xl p-4 shadow-2xl border-t ${dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`;
+    sheet.style.cssText = 'animation:slideUp 0.22s cubic-bezier(0.34,1.56,0.64,1)';
+
+    const close = () => overlay.remove();
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+    const rows = allGroups.map(g => {
+        const gc      = (g && g !== '__checked__') ? getGroupColor(g) : null;
+        const isCur   = g === selectedGroupFilter;
+        const dotColor = gc ? gc.dot : '#94a3b8';
+        const label   = escapeText(gLabel(g));
+        return `<button onclick="window.openGroup('${escapeText(g)}');document.getElementById('_gsOverlay')?.remove()"
+            class="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-left transition-all active:opacity-60 ${isCur ? (dark ? 'bg-slate-700' : 'bg-slate-50') : ''}">
+            <div class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${dotColor}"></div>
+            <span class="flex-1 font-bold text-sm ${dark ? 'text-slate-100' : 'text-slate-900'}">${label}</span>
+            ${isCur ? `<svg class="w-4 h-4 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>` : ''}
+        </button>`;
+    }).join('');
+
+    sheet.innerHTML = `
+        <div class="w-10 h-1 bg-slate-300 rounded-full mx-auto mb-4 opacity-50"></div>
+        <div class="space-y-1">${rows}</div>
+        <div style="height:env(safe-area-inset-bottom,0px)"></div>`;
+
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+};
+
+// ---- List switcher sheet ----
+window.showListSwitcher = () => {
+    const dark = document.body.classList.contains('dark-mode');
+    document.getElementById('_lsOverlay')?.remove();
+    const overlay = document.createElement('div');
+    overlay.id = '_lsOverlay';
+    overlay.className = 'fixed inset-0 z-50 flex items-end justify-center';
+    overlay.style.cssText = 'background:rgba(15,23,42,0.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)';
+
+    const sheet = document.createElement('div');
+    sheet.className = `w-full max-w-lg rounded-t-3xl p-4 shadow-2xl border-t ${dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`;
+    sheet.style.cssText = 'animation:slideUp 0.22s cubic-bezier(0.34,1.56,0.64,1)';
+
+    const close = () => overlay.remove();
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+    const rows = listsCache.map(list => {
+        const isCur = list.id === selectedListId;
+        return `<button onclick="window.switchList('${escapeText(list.id)}');document.getElementById('_lsOverlay')?.remove()"
+            class="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-left transition-all active:opacity-60 ${isCur ? (dark ? 'bg-slate-700' : 'bg-slate-50') : ''}">
+            <span class="text-2xl shrink-0">${list.emoji || '📋'}</span>
+            <span class="flex-1 font-bold text-sm ${dark ? 'text-slate-100' : 'text-slate-900'}">${escapeText(list.name)}</span>
+            ${isCur ? `<svg class="w-4 h-4 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>` : ''}
+        </button>`;
+    }).join('');
+
+    sheet.innerHTML = `
+        <div class="w-10 h-1 bg-slate-300 rounded-full mx-auto mb-4 opacity-50"></div>
+        <div class="space-y-1">${rows}</div>
+        <div style="height:env(safe-area-inset-bottom,0px)"></div>`;
+
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+};
 
 // ============================================================
 // Groups overview — list of groups as cards
