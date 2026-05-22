@@ -15,22 +15,24 @@ let handlelisteCache  = [];   // { id, name, quantity, checked, group, listId, s
 let sortableInstances = [];
 let suppressRender    = false;
 let pendingRenderItems = null;
-let selectedAddGroup  = '';   // always '' — new items have no group
-let suppressTimer     = null;
+let selectedAddGroup  = '';   // group pre-selected in the add form
+let suppressTimer     = null; // for suppressHold cleanup
+let groupOrderMemory  = [];   // stable group insertion order (never reordered by drag)
 let selectedListId    = (() => { try { return sessionStorage.getItem('mittforbruk_list') || 'main'; } catch { return 'main'; } })();
 let listsCache        = [{ id: 'main', name: 'Handleliste', emoji: '🛒', sortOrder: 0 }];
 let viewMode          = 'overview'; // 'overview' | 'detail'
+let selectedGroupFilter = null;    // null = groups overview, string = group name, '' = ungrouped, '__checked__' = checked items
 
-// Group colors used for the colored left border on items that have a group
+// ---- Group color palette ----
 const GROUP_COLORS = [
-    { dot: '#818cf8' },
-    { dot: '#f87171' },
-    { dot: '#fbbf24' },
-    { dot: '#34d399' },
-    { dot: '#38bdf8' },
-    { dot: '#c084fc' },
-    { dot: '#fb923c' },
-    { dot: '#2dd4bf' },
+    { dot: '#818cf8', bg: '#eef2ff', text: '#4338ca', darkBg: '#312e81', darkText: '#a5b4fc' }, // indigo
+    { dot: '#f87171', bg: '#fff1f2', text: '#be123c', darkBg: '#4c0519', darkText: '#fca5a5' }, // rose
+    { dot: '#fbbf24', bg: '#fffbeb', text: '#b45309', darkBg: '#451a03', darkText: '#fcd34d' }, // amber
+    { dot: '#34d399', bg: '#ecfdf5', text: '#065f46', darkBg: '#022c22', darkText: '#6ee7b7' }, // emerald
+    { dot: '#38bdf8', bg: '#f0f9ff', text: '#0369a1', darkBg: '#082f49', darkText: '#7dd3fc' }, // sky
+    { dot: '#c084fc', bg: '#faf5ff', text: '#6d28d9', darkBg: '#2e1065', darkText: '#d8b4fe' }, // violet
+    { dot: '#fb923c', bg: '#fff7ed', text: '#c2410c', darkBg: '#431407', darkText: '#fdba74' }, // orange
+    { dot: '#2dd4bf', bg: '#f0fdfa', text: '#0f766e', darkBg: '#042f2e', darkText: '#5eead4' }, // teal
 ];
 
 function getGroupColor(groupName) {
@@ -49,6 +51,7 @@ export function initHandlelisteListener() {
 
     initSwipeNavigation();
 
+    // No orderBy — sort in JS to avoid needing a composite index
     onSnapshot(
         collection(db, "households", state.currentHid, "handleliste"),
         (snap) => {
@@ -117,6 +120,7 @@ function renderHandleliste(items) {
     const emptyState = document.getElementById('handlelisteEmpty');
     if (!list) return;
 
+    // Show detail, clear overview
     const overviewEl = document.getElementById('listsOverviewContent');
     const detailEl   = document.getElementById('listDetailContent');
     if (overviewEl) overviewEl.innerHTML = '';
@@ -124,31 +128,54 @@ function renderHandleliste(items) {
 
     renderDetailNav();
 
+    // Filter to the active list (items without listId belong to 'main')
     const listItems = items.filter(i => (i.listId || 'main') === selectedListId);
 
+    // Groups overview — show group cards instead of flat item list
+    if (selectedGroupFilter === null) {
+        renderGroupsOverview(listItems);
+        return;
+    }
+
+    // Group detail — filter to selected group
+    const isCurvedView = selectedGroupFilter === '__checked__';
+    const scopedItems = isCurvedView
+        ? listItems.filter(i => i.checked)
+        : listItems.filter(i => (i.group || '') === selectedGroupFilter);
+
+    // Tear down old SortableJS instances before rebuilding DOM
     sortableInstances.forEach(s => { try { s.destroy(); } catch (_) {} });
     sortableInstances = [];
+
     list.innerHTML = '';
 
-    const unchecked = sortedItems(listItems.filter(i => !i.checked));
-    const checked   = sortedItems(listItems.filter(i => i.checked));
+    const unchecked = isCurvedView ? [] : sortedItems(scopedItems.filter(i => !i.checked));
+    const checked   = sortedItems(scopedItems.filter(i => i.checked));
 
     if (emptyState) {
-        emptyState.classList.toggle('hidden', listItems.length > 0);
-        const currentList = listsCache.find(l => l.id === selectedListId);
+        emptyState.classList.toggle('hidden', scopedItems.length > 0);
         const nameEl = emptyState.querySelector('p.font-bold');
-        if (nameEl) nameEl.textContent = (currentList?.name || 'Handlelisten') + ' er tom';
+        if (nameEl) nameEl.textContent = isCurvedView ? 'Ingen varer i kurven'
+            : selectedGroupFilter ? `Ingen varer i «${selectedGroupFilter}»`
+            : 'Ingen varer uten gruppe';
     }
-    if (unchecked.length === 0 && checked.length === 0) return;
+    if (unchecked.length === 0 && checked.length === 0) {
+        updateGroupPills();
+        return;
+    }
 
+    updateGroupPills();
+
+    // ---- Items (flat list — group header not needed in group detail view) ----
     if (unchecked.length > 0) {
         const container = document.createElement('div');
         container.className = 'space-y-2';
-        container.dataset.group = '';
+        container.dataset.group = isCurvedView ? '' : selectedGroupFilter;
         unchecked.forEach(item => container.appendChild(buildItemEl(item)));
         list.appendChild(container);
         if (typeof Sortable !== 'undefined') {
             sortableInstances.push(Sortable.create(container, {
+                group:       'handleliste-items',
                 handle:      '.drag-handle',
                 animation:   150,
                 ghostClass:  'sortable-ghost',
@@ -159,6 +186,7 @@ function renderHandleliste(items) {
         }
     }
 
+    // ---- Checked section ----
     if (checked.length > 0) {
         const divider = document.createElement('div');
         divider.className = 'flex items-center gap-3 mt-5 mb-3';
@@ -178,6 +206,134 @@ function renderHandleliste(items) {
     }
 }
 
+// ---- Group pill row in add form — hidden; new items always go to no-group ----
+function updateGroupPills() {
+    const row   = document.getElementById('handlelisteGroupRow');
+    const pills = document.getElementById('handlelisteGroupPills');
+    if (!row || !pills) return;
+
+    // Keep row hidden — group selection is not exposed in the add form
+    row.classList.add('hidden');
+    pills.innerHTML = '';
+    selectedAddGroup = '';
+    return;
+
+    const groups = [...new Set(
+        handlelisteCache
+            .filter(i => i.group && (i.listId || 'main') === selectedListId)
+            .map(i => i.group)
+    )].sort();
+
+    const dark = document.body.classList.contains('dark-mode');
+
+    if (groups.length > 0) {
+        // "Ingen gruppe" pill
+        const noneBtn = document.createElement('button');
+        noneBtn.className = selectedAddGroup === ''
+            ? 'hl-group-pill hl-group-pill-active'
+            : 'hl-group-pill hl-group-pill-inactive';
+        noneBtn.textContent = 'Ingen gruppe';
+        noneBtn.onclick = () => { selectedAddGroup = ''; updateGroupPills(); };
+        pills.appendChild(noneBtn);
+
+        // Existing group pills
+        groups.forEach(g => {
+            const btn = document.createElement('button');
+            const pillColor = getGroupColor(g);
+            if (selectedAddGroup === g) {
+                btn.className = 'hl-group-pill';
+                btn.style.backgroundColor = dark ? pillColor.darkBg : pillColor.bg;
+                btn.style.color = dark ? pillColor.darkText : pillColor.text;
+                btn.style.border = `1.5px solid ${pillColor.dot}`;
+            } else {
+                btn.className = 'hl-group-pill hl-group-pill-inactive';
+            }
+            btn.textContent = g;
+            btn.onclick = () => {
+                selectedAddGroup = selectedAddGroup === g ? '' : g;
+                updateGroupPills();
+            };
+            pills.appendChild(btn);
+        });
+    }
+
+    // "Ny gruppe" pill — always shown
+    const newBtn = document.createElement('button');
+    newBtn.className = 'hl-group-pill hl-group-pill-new';
+    newBtn.innerHTML = '<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg> Ny gruppe';
+    newBtn.onclick = () => showNewGroupSheet();
+    pills.appendChild(newBtn);
+}
+
+function showNewGroupInput(pills, existingGroups) {
+    // Replace the "+" button with an inline input
+    const last = pills.lastChild;
+    if (last) last.remove();
+
+    const wrap = document.createElement('div');
+    wrap.className = 'flex items-center gap-1';
+
+    const inp = document.createElement('input');
+    inp.placeholder = 'Gruppenavn...';
+    inp.className = 'text-xs font-bold bg-slate-50 border border-slate-200 rounded-full px-3 py-1 outline-none focus:border-indigo-400 w-28 transition-colors';
+    inp.style.minWidth = '0';
+
+    const confirm = document.createElement('button');
+    confirm.className = 'hl-group-pill hl-group-pill-active';
+    confirm.textContent = 'OK';
+
+    const doConfirm = () => {
+        const name = inp.value.trim();
+        if (name) selectedAddGroup = name;
+        updateGroupPills();
+    };
+
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') doConfirm(); if (e.key === 'Escape') updateGroupPills(); });
+    confirm.onclick = doConfirm;
+
+    wrap.appendChild(inp);
+    wrap.appendChild(confirm);
+    pills.appendChild(wrap);
+    inp.focus();
+}
+
+// ---- Group header ----
+function buildGroupHeader(groupName, groupItems) {
+    const header = document.createElement('div');
+    header.className = 'flex items-center gap-2 mb-2 mt-1 px-1';
+
+    if (groupName) {
+        const color = getGroupColor(groupName);
+        const dark = document.body.classList.contains('dark-mode');
+
+        const dot = document.createElement('div');
+        dot.className = 'w-2 h-2 rounded-full shrink-0';
+        dot.style.backgroundColor = color.dot;
+
+        const nameEl = document.createElement('span');
+        nameEl.className = 'text-xs font-bold uppercase tracking-wider flex-1 truncate';
+        nameEl.style.color = dark ? color.darkText : color.text;
+        nameEl.textContent = groupName;
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'text-[10px] text-slate-300 font-semibold px-2 py-0.5 rounded-full border border-slate-200 active:border-indigo-300 active:text-indigo-500 transition-colors shrink-0';
+        editBtn.textContent = 'Gi nytt navn';
+        editBtn.onclick = () => inlineRenameGroup(groupName, nameEl, groupItems.map(i => i.id));
+
+        header.appendChild(dot);
+        header.appendChild(nameEl);
+        header.appendChild(editBtn);
+    } else {
+        // Ungrouped label — only shown when there are also named groups
+        const nameEl = document.createElement('span');
+        nameEl.className = 'text-xs font-semibold text-slate-300 uppercase tracking-wider';
+        nameEl.textContent = 'Uten gruppe';
+        header.appendChild(nameEl);
+    }
+
+    return header;
+}
+
 // ---- Item element ----
 function buildItemEl(item) {
     const el = document.createElement('div');
@@ -187,7 +343,7 @@ function buildItemEl(item) {
         item.checked ? 'border-slate-100 handleliste-item-checked' : 'border-slate-200',
     ].join(' ');
 
-    // Colored left border for items with a group (visual grouping, automatic)
+    // Colored left border for group (unchecked only, no extra space)
     if (!item.checked && item.group) {
         const gc = getGroupColor(item.group);
         el.style.borderLeftColor = gc.dot;
@@ -199,9 +355,9 @@ function buildItemEl(item) {
         const handle = document.createElement('div');
         handle.className = 'drag-handle flex flex-col items-center gap-[3px] cursor-grab active:cursor-grabbing shrink-0 px-0.5 rounded-md active:bg-slate-100 transition-colors';
         handle.innerHTML = `
-            <div class="w-3.5 h-[2px] bg-slate-300 rounded-full"></div>
-            <div class="w-3.5 h-[2px] bg-slate-300 rounded-full"></div>
-            <div class="w-3.5 h-[2px] bg-slate-300 rounded-full"></div>
+            <div class="w-3 h-[2px] bg-slate-300 rounded-full"></div>
+            <div class="w-3 h-[2px] bg-slate-300 rounded-full"></div>
+            <div class="w-3 h-[2px] bg-slate-300 rounded-full"></div>
         `;
         el.appendChild(handle);
     }
@@ -250,6 +406,7 @@ function buildItemEl(item) {
     }
     textWrap.appendChild(nameEl);
 
+    // Domain subtitle for URL items when we have a fetched page title
     if (isUrl && item.pageTitle) {
         const domainEl = document.createElement('span');
         domainEl.className = 'block text-[10px] text-slate-400 font-medium leading-tight mt-0.5';
@@ -264,6 +421,7 @@ function buildItemEl(item) {
         textWrap.appendChild(byEl);
     }
 
+    // Notes preview (unchecked only)
     if (!item.checked && item.notes) {
         const noteEl = document.createElement('p');
         noteEl.className = 'text-[10px] text-slate-400 mt-0.5 leading-tight';
@@ -272,6 +430,7 @@ function buildItemEl(item) {
         textWrap.appendChild(noteEl);
     }
 
+    // Assigned-to badge
     if (!item.checked && item.assignedTo) {
         const member = (state.householdMembers || []).find(m => m.name === item.assignedTo);
         const badge = document.createElement('span');
@@ -279,6 +438,14 @@ function buildItemEl(item) {
         badge.style.backgroundColor = member?.color || '#4f46e5';
         badge.textContent = '→ ' + item.assignedTo;
         textWrap.appendChild(badge);
+    }
+
+    if (!item.checked && !item.group) {
+        const chip = document.createElement('button');
+        chip.className = 'mt-0.5 inline-flex items-center text-[10px] text-slate-300 hover:text-slate-400 transition-colors';
+        chip.innerHTML = `<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>`;
+        chip.onclick = (e) => { e.stopPropagation(); showGroupPicker(item.id); };
+        textWrap.appendChild(chip);
     }
 
     el.appendChild(textWrap);
@@ -289,7 +456,7 @@ function buildItemEl(item) {
         linkBtn.href = item.name;
         linkBtn.target = '_blank';
         linkBtn.rel = 'noopener';
-        linkBtn.className = 'p-2 rounded-xl text-indigo-400 active:text-indigo-600 transition-colors shrink-0';
+        linkBtn.className = 'p-1.5 rounded-lg text-indigo-400 active:text-indigo-600 transition-colors shrink-0';
         linkBtn.innerHTML = '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
         linkBtn.onclick = (e) => e.stopPropagation();
         el.appendChild(linkBtn);
@@ -306,7 +473,7 @@ function buildItemEl(item) {
         minusBtn.onclick = (e) => { e.stopPropagation(); window.updateHandlelisteQty(item.id, -1); };
 
         const qtyLabel = document.createElement('span');
-        qtyLabel.className = 'text-xs font-bold text-slate-700 min-w-[1.4rem] text-center';
+        qtyLabel.className = 'text-xs font-bold text-slate-700 min-w-[1.2rem] text-center';
         qtyLabel.textContent = String(item.quantity > 1 ? item.quantity : 1);
 
         const plusBtn = document.createElement('button');
@@ -322,11 +489,12 @@ function buildItemEl(item) {
 
     // Delete button
     const delBtn = document.createElement('button');
-    delBtn.className = 'p-1.5 rounded-xl text-slate-300 active:text-rose-400 transition-colors shrink-0';
+    delBtn.className = 'p-1 rounded-lg text-slate-300 active:text-rose-400 transition-colors shrink-0';
     delBtn.innerHTML = '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>';
     delBtn.onclick = (e) => { e.stopPropagation(); window.deleteHandlelisteItem(item.id); };
     el.appendChild(delBtn);
 
+    // Tapping anywhere on an unchecked card opens the detail sheet
     if (!item.checked) {
         el.style.cursor = 'pointer';
         el.onclick = () => showItemDetail(item.id);
@@ -337,19 +505,40 @@ function buildItemEl(item) {
 
 // ---- Drag end handler ----
 async function handleDragEnd(evt) {
-    const container = evt.to;
-    const destIds = [...container.querySelectorAll('[data-id]')].map(el => el.dataset.id);
+    const draggedId     = evt.item.dataset.id;
+    const srcContainer  = evt.from;
+    const destContainer = evt.to;
+    const newGroup      = destContainer.dataset.group ?? '';
+
+    // --- Optimistic: update local cache from DOM order ---
+    const destIds = [...destContainer.querySelectorAll('[data-id]')].map(el => el.dataset.id);
+    const srcIds  = srcContainer !== destContainer
+        ? [...srcContainer.querySelectorAll('[data-id]')].map(el => el.dataset.id)
+        : [];
 
     destIds.forEach((id, idx) => {
+        const item = handlelisteCache.find(i => i.id === id);
+        if (!item) return;
+        item.sortOrder = (idx + 1) * 1000;
+        if (id === draggedId && srcContainer !== destContainer) item.group = newGroup;
+    });
+    srcIds.forEach((id, idx) => {
         const item = handlelisteCache.find(i => i.id === id);
         if (item) item.sortOrder = (idx + 1) * 1000;
     });
 
+    // SortableJS already moved the DOM node — suppress snapshot re-renders
     suppressHold();
 
+    // --- Write to Firestore in background ---
     try {
         const batch = writeBatch(db);
         destIds.forEach((id, idx) => {
+            const upd = { sortOrder: (idx + 1) * 1000 };
+            if (id === draggedId && srcContainer !== destContainer) upd.group = newGroup;
+            batch.update(doc(db, "households", state.currentHid, "handleliste", id), upd);
+        });
+        srcIds.forEach((id, idx) => {
             batch.update(doc(db, "households", state.currentHid, "handleliste", id), {
                 sortOrder: (idx + 1) * 1000,
             });
@@ -364,6 +553,9 @@ async function handleDragEnd(evt) {
 // Optimistic update helpers
 // ============================================================
 
+// Suppress onSnapshot re-renders for a window after a local write.
+// Any snapshot that arrives while suppressed is stored and flushed
+// only if its data differs from what we already rendered locally.
 function suppressHold(ms = 1500) {
     suppressRender = true;
     if (suppressTimer) clearTimeout(suppressTimer);
@@ -377,6 +569,8 @@ function suppressHold(ms = 1500) {
     }, ms);
 }
 
+// Apply a mutation to handlelisteCache, re-render immediately from
+// local state, then write to Firestore in the background.
 async function optimisticWrite(mutateFn, firestoreFn) {
     mutateFn();
     renderHandleliste(handlelisteCache);
@@ -384,9 +578,161 @@ async function optimisticWrite(mutateFn, firestoreFn) {
     try {
         await firestoreFn();
     } catch (err) {
+        // Let the next snapshot correct any divergence
         suppressRender = false;
         showToast("Feil: " + err.message, 'error');
     }
+}
+
+// ============================================================
+// Group picker (bottom sheet)
+// ============================================================
+
+function showGroupPicker(itemId) {
+    const item = handlelisteCache.find(i => i.id === itemId);
+    if (!item) return;
+
+    document.getElementById('groupPickerOverlay')?.remove();
+
+    const dark = document.body.classList.contains('dark-mode');
+    const existingGroups = [...new Set(
+        handlelisteCache.filter(i => i.group).map(i => i.group)
+    )].sort();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'groupPickerOverlay';
+    overlay.className = 'fixed inset-0 z-50 flex items-end justify-center';
+    overlay.style.cssText = 'background: rgba(15,23,42,0.55); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);';
+
+    const sheet = document.createElement('div');
+    sheet.className = [
+        'w-full max-w-lg rounded-t-3xl p-5 shadow-2xl border-t',
+        dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100',
+    ].join(' ');
+    // Slide up animation
+    sheet.style.cssText = 'animation: slideUp 0.25s cubic-bezier(0.34,1.56,0.64,1);';
+
+    // Header
+    const hdr = document.createElement('div');
+    hdr.className = 'flex items-center justify-between mb-5';
+    hdr.innerHTML = `
+        <div>
+            <p class="text-[10px] font-bold uppercase tracking-widest ${dark ? 'text-slate-400' : 'text-slate-400'} mb-0.5">Gruppe</p>
+            <h3 class="font-bold text-base ${dark ? 'text-slate-100' : 'text-slate-900'}">${escapeText(item.name)}</h3>
+        </div>
+        <button id="_gp_close" class="w-9 h-9 rounded-full flex items-center justify-center ${dark ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-400'} active:opacity-70 transition-opacity">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+    `;
+    sheet.appendChild(hdr);
+
+    // Existing group pills
+    if (existingGroups.length > 0) {
+        const grid = document.createElement('div');
+        grid.className = 'flex flex-wrap gap-2 mb-4';
+        existingGroups.forEach(g => {
+            const isActive = item.group === g;
+            const btn = document.createElement('button');
+            const gc = getGroupColor(g);
+            if (isActive) {
+                btn.className = 'px-4 py-2 rounded-xl text-sm font-bold shadow-sm active:opacity-80 transition-opacity';
+                btn.style.backgroundColor = dark ? gc.darkBg : gc.bg;
+                btn.style.color = dark ? gc.darkText : gc.text;
+                btn.style.border = `1.5px solid ${gc.dot}`;
+            } else {
+                btn.className = `px-4 py-2 rounded-xl text-sm font-bold active:opacity-70 transition-opacity ${dark ? 'bg-slate-700 text-slate-200' : 'bg-slate-100 text-slate-700'}`;
+            }
+            btn.textContent = g;
+            btn.onclick = () => { window.setItemGroup(itemId, g); overlay.remove(); };
+            grid.appendChild(btn);
+        });
+        sheet.appendChild(grid);
+    }
+
+    // New group input row
+    const inputRow = document.createElement('div');
+    inputRow.className = 'flex gap-2';
+
+    const newInput = document.createElement('input');
+    newInput.id = '_gp_input';
+    newInput.placeholder = existingGroups.length ? 'Ny gruppe...' : 'Skriv gruppenavn...';
+    newInput.className = [
+        'flex-1 px-4 py-3 text-sm font-semibold rounded-xl border focus:outline-none focus:border-indigo-400 transition-colors',
+        dark ? 'bg-slate-900 border-slate-600 text-slate-100 placeholder-slate-500' : 'bg-slate-50 border-slate-200 text-slate-900',
+    ].join(' ');
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'px-5 py-3 bg-indigo-600 text-white rounded-xl text-sm font-bold active:bg-indigo-700 transition-colors shrink-0';
+    addBtn.textContent = 'Legg til';
+
+    const doAdd = () => {
+        const name = newInput.value.trim();
+        if (!name) return;
+        window.setItemGroup(itemId, name);
+        overlay.remove();
+    };
+
+    newInput.addEventListener('keydown', e => { if (e.key === 'Enter') doAdd(); });
+    addBtn.onclick = doAdd;
+    inputRow.appendChild(newInput);
+    inputRow.appendChild(addBtn);
+    sheet.appendChild(inputRow);
+
+    // Remove group button
+    if (item.group) {
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'mt-3 w-full py-3 text-sm font-bold text-rose-400 rounded-xl border border-rose-100 active:bg-rose-50 transition-colors';
+        removeBtn.textContent = 'Fjern fra gruppe';
+        removeBtn.onclick = () => { window.setItemGroup(itemId, ''); overlay.remove(); };
+        sheet.appendChild(removeBtn);
+    }
+
+    // Safe area padding
+    const safe = document.createElement('div');
+    safe.style.height = 'env(safe-area-inset-bottom, 0px)';
+    sheet.appendChild(safe);
+
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    overlay.querySelector('#_gp_close').onclick = () => overlay.remove();
+
+    if (!existingGroups.length) setTimeout(() => newInput.focus(), 100);
+}
+
+// Inline rename: replaces group name text with an input field
+function inlineRenameGroup(oldName, nameEl, itemIds) {
+    const input = document.createElement('input');
+    input.value = oldName;
+    input.className = 'text-xs font-bold text-indigo-600 uppercase tracking-wider bg-transparent border-b-2 border-indigo-400 outline-none flex-1 min-w-0';
+    nameEl.replaceWith(input);
+    input.focus();
+    input.select();
+
+    const save = async () => {
+        const newName = input.value.trim();
+        // Restore label regardless
+        nameEl.textContent = newName || oldName;
+        input.replaceWith(nameEl);
+        if (!newName || newName === oldName) return;
+        try {
+            const batch = writeBatch(db);
+            itemIds.forEach(id => {
+                batch.update(doc(db, "households", state.currentHid, "handleliste", id), { group: newName });
+            });
+            await batch.commit();
+            showToast(`Gruppe omdøpt til "${newName}"!`);
+        } catch (err) {
+            showToast("Feil: " + err.message, 'error');
+        }
+    };
+
+    input.addEventListener('blur', save);
+    input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') input.blur();
+        if (e.key === 'Escape') { input.value = oldName; input.blur(); }
+    });
 }
 
 // ============================================================
@@ -411,11 +757,58 @@ function initSwipeNavigation() {
     section.addEventListener('touchend', e => {
         const dx = e.changedTouches[0].clientX - startX;
         const dy = e.changedTouches[0].clientY - startY;
+        // Must be clearly horizontal (dx > dy) and long enough
         if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
         const idx = listsCache.findIndex(l => l.id === selectedListId);
         if (dx < 0 && idx < listsCache.length - 1) window.switchList(listsCache[idx + 1].id);
         else if (dx > 0 && idx > 0) window.switchList(listsCache[idx - 1].id);
     }, { passive: true });
+}
+
+// ============================================================
+// New group bottom sheet (from list view)
+// ============================================================
+
+function showNewGroupSheet() {
+    const dark = document.body.classList.contains('dark-mode');
+    document.getElementById('newGroupOverlay')?.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'newGroupOverlay';
+    overlay.className = 'fixed inset-0 z-50 flex items-end justify-center';
+    overlay.style.cssText = 'background:rgba(15,23,42,0.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)';
+
+    const sheet = document.createElement('div');
+    sheet.className = `w-full max-w-lg rounded-t-3xl p-5 shadow-2xl border-t ${dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`;
+    sheet.style.cssText = 'animation:slideUp 0.25s cubic-bezier(0.34,1.56,0.64,1)';
+
+    sheet.innerHTML = `
+        <h3 class="font-bold text-base ${dark ? 'text-slate-100' : 'text-slate-900'} mb-4">Ny gruppe</h3>
+        <input id="_ng_input" type="text" placeholder="Gruppenavn..." maxlength="30"
+            class="w-full px-4 py-3 rounded-xl text-sm font-bold border ${dark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'bg-slate-50 border-slate-200'} outline-none focus:border-indigo-400 mb-3">
+        <button id="_ng_confirm" class="w-full py-3 rounded-xl text-sm font-bold bg-indigo-600 text-white active:opacity-80">Opprett gruppe</button>
+        <div style="height:env(safe-area-inset-bottom,0px)"></div>`;
+
+    const close = () => overlay.remove();
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+    sheet.querySelector('#_ng_confirm').onclick = () => {
+        const name = sheet.querySelector('#_ng_input').value.trim();
+        if (!name) return;
+        selectedAddGroup = name;
+        updateGroupPills();
+        close();
+        document.getElementById('handlelisteInput')?.focus();
+        showToast(`Gruppe «${name}» valgt – legg til varer!`);
+    };
+    sheet.querySelector('#_ng_input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') sheet.querySelector('#_ng_confirm').click();
+        if (e.key === 'Escape') close();
+    });
+
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+    setTimeout(() => sheet.querySelector('#_ng_input')?.focus(), 300);
 }
 
 // ============================================================
@@ -442,22 +835,22 @@ function renderListsOverview() {
 
         return `
             <button onclick="window.openList('${escapeText(list.id)}')"
-                class="w-full flex items-center gap-4 p-4 rounded-2xl border shadow-sm active:opacity-70 transition-opacity text-left
+                class="w-full flex items-center gap-3 p-4 rounded-2xl border shadow-sm active:opacity-70 transition-opacity text-left
                     ${dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}">
-                <span class="text-3xl shrink-0">${list.emoji || '📋'}</span>
+                <span class="text-2xl shrink-0">${list.emoji || '📋'}</span>
                 <div class="flex-1 min-w-0">
-                    <p class="font-bold text-base truncate ${dark ? 'text-slate-100' : 'text-slate-900'}">${escapeText(list.name)}</p>
+                    <p class="font-bold text-sm truncate ${dark ? 'text-slate-100' : 'text-slate-900'}">${escapeText(list.name)}</p>
                     <p class="text-xs ${dark ? 'text-slate-400' : 'text-slate-400'} mt-0.5">${countText}</p>
                 </div>
-                <svg class="w-5 h-5 shrink-0 ${dark ? 'text-slate-600' : 'text-slate-300'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+                <svg class="w-4 h-4 shrink-0 ${dark ? 'text-slate-600' : 'text-slate-300'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
             </button>`;
     }).join('');
 
     overviewEl.innerHTML = cards + `
         <button onclick="window.showNewListDialog()"
-            class="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-dashed active:opacity-70 transition-opacity
+            class="w-full flex items-center gap-3 p-4 rounded-2xl border-2 border-dashed active:opacity-70 transition-opacity
                 ${dark ? 'border-slate-700 text-slate-500' : 'border-slate-200 text-slate-400'}">
-            <svg class="w-6 h-6 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
             <span class="font-bold text-sm">Ny liste</span>
         </button>`;
 }
@@ -472,44 +865,159 @@ function renderDetailNav() {
 
     const dark        = document.body.classList.contains('dark-mode');
     const currentList = listsCache.find(l => l.id === selectedListId);
-    const btnCls      = `flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold ${dark ? 'text-slate-400 active:bg-slate-700' : 'text-slate-400 active:bg-slate-100'} transition-colors`;
+    const btnCls      = `flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs font-bold ${dark ? 'text-slate-400 active:bg-slate-700' : 'text-slate-400 active:bg-slate-100'} transition-colors`;
 
-    const idx  = listsCache.findIndex(l => l.id === selectedListId);
-    const prev = idx > 0 ? listsCache[idx - 1] : null;
-    const next = idx < listsCache.length - 1 ? listsCache[idx + 1] : null;
-    const prevBtn = prev
-        ? `<button onclick="window.switchList('${escapeText(prev.id)}')" class="${btnCls}"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>${escapeText(prev.name)}</button>`
-        : `<div class="w-16"></div>`;
-    const nextBtn = next
-        ? `<button onclick="window.switchList('${escapeText(next.id)}')" class="${btnCls}">${escapeText(next.name)}<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></button>`
-        : `<div class="w-16"></div>`;
-    navEl.innerHTML = `
-        <div class="flex items-center justify-between mb-1">
-            <button onclick="window.backToLists()" class="flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-bold ${dark ? 'text-indigo-400 active:bg-slate-700' : 'text-indigo-500 active:bg-indigo-50'} transition-colors">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>Lister
-            </button>
-            <span class="font-bold text-sm ${dark ? 'text-slate-100' : 'text-slate-900'}">${currentList?.emoji || ''} ${escapeText(currentList?.name || '')}</span>
-            <button onclick="window.showListOptions('${escapeText(selectedListId)}')" class="w-9 h-9 rounded-xl flex items-center justify-center ${dark ? 'text-slate-400 active:bg-slate-700' : 'text-slate-400 active:bg-slate-100'} transition-colors">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
-            </button>
-        </div>
-        ${listsCache.length > 1 ? `<div class="flex items-center justify-between">${prevBtn}${nextBtn}</div>` : ''}`;
+    if (selectedGroupFilter === null) {
+        // Groups overview: ← Lister | list name | ··· | prev/next lists
+        const idx  = listsCache.findIndex(l => l.id === selectedListId);
+        const prev = idx > 0 ? listsCache[idx - 1] : null;
+        const next = idx < listsCache.length - 1 ? listsCache[idx + 1] : null;
+        const prevBtn = prev
+            ? `<button onclick="window.switchList('${escapeText(prev.id)}')" class="${btnCls}"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>${escapeText(prev.name)}</button>`
+            : `<div class="w-16"></div>`;
+        const nextBtn = next
+            ? `<button onclick="window.switchList('${escapeText(next.id)}')" class="${btnCls}">${escapeText(next.name)}<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></button>`
+            : `<div class="w-16"></div>`;
+        navEl.innerHTML = `
+            <div class="flex items-center justify-between mb-1">
+                <button onclick="window.backToLists()" class="flex items-center gap-1 px-2 py-1.5 rounded-xl text-sm font-bold ${dark ? 'text-indigo-400 active:bg-slate-700' : 'text-indigo-500 active:bg-indigo-50'} transition-colors">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>Lister
+                </button>
+                <span class="font-bold text-sm ${dark ? 'text-slate-100' : 'text-slate-900'}">${currentList?.emoji || ''} ${escapeText(currentList?.name || '')}</span>
+                <button onclick="window.showListOptions('${escapeText(selectedListId)}')" class="w-8 h-8 rounded-xl flex items-center justify-center ${dark ? 'text-slate-400 active:bg-slate-700' : 'text-slate-400 active:bg-slate-100'} transition-colors">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+                </button>
+            </div>
+            ${listsCache.length > 1 ? `<div class="flex items-center justify-between">${prevBtn}${nextBtn}</div>` : ''}`;
+    } else {
+        // Group detail: ← list name | group name | prev/next groups
+        const listItems = handlelisteCache.filter(i => (i.listId || 'main') === selectedListId);
+        const groups = [...new Set(listItems.filter(i => !i.checked).map(i => i.group || ''))].sort((a, b) => {
+            if (a === '' && b !== '') return 1;
+            if (a !== '' && b === '') return -1;
+            return a.localeCompare(b, 'nb');
+        });
+        const hasChecked = listItems.some(i => i.checked);
+        const allGroups = hasChecked ? [...groups, '__checked__'] : groups;
+        const gIdx  = allGroups.indexOf(selectedGroupFilter);
+        const prevG = gIdx > 0 ? allGroups[gIdx - 1] : null;
+        const nextG = gIdx < allGroups.length - 1 ? allGroups[gIdx + 1] : null;
+        const gLabel = g => g === '__checked__' ? 'Lagt i kurven' : g === '' ? 'Uten gruppe' : g;
+        const prevBtn = prevG !== null
+            ? `<button onclick="window.openGroup('${escapeText(prevG)}')" class="${btnCls}"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>${escapeText(gLabel(prevG))}</button>`
+            : `<div class="w-16"></div>`;
+        const nextBtn = nextG !== null
+            ? `<button onclick="window.openGroup('${escapeText(nextG)}')" class="${btnCls}">${escapeText(gLabel(nextG))}<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></button>`
+            : `<div class="w-16"></div>`;
+        navEl.innerHTML = `
+            <div class="flex items-center justify-between mb-1">
+                <button onclick="window.backToGroups()" class="flex items-center gap-1 px-2 py-1.5 rounded-xl text-sm font-bold ${dark ? 'text-indigo-400 active:bg-slate-700' : 'text-indigo-500 active:bg-indigo-50'} transition-colors">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>${escapeText(currentList?.emoji || '')} ${escapeText(currentList?.name || '')}
+                </button>
+                <span class="font-bold text-sm ${dark ? 'text-slate-100' : 'text-slate-900'}">${escapeText(gLabel(selectedGroupFilter))}</span>
+                <div class="w-8"></div>
+            </div>
+            ${allGroups.length > 1 ? `<div class="flex items-center justify-between">${prevBtn}${nextBtn}</div>` : ''}`;
+    }
 }
 
 // ============================================================
-// Navigation
+// Groups overview — list of groups as cards
 // ============================================================
+
+function renderGroupsOverview(listItems) {
+    const list = document.getElementById('handlelisteList');
+    const emptyState = document.getElementById('handlelisteEmpty');
+    if (!list) return;
+
+    sortableInstances.forEach(s => { try { s.destroy(); } catch (_) {} });
+    sortableInstances = [];
+
+    const dark = document.body.classList.contains('dark-mode');
+    const unchecked = listItems.filter(i => !i.checked);
+    const checked   = listItems.filter(i => i.checked);
+
+    // Collect groups from unchecked items (sorted: named groups A-Z, then ungrouped)
+    const groupMap = new Map();
+    unchecked.forEach(item => {
+        const g = item.group || '';
+        if (!groupMap.has(g)) groupMap.set(g, []);
+        groupMap.get(g).push(item);
+    });
+    const sortedGroups = [...groupMap.keys()].sort((a, b) => {
+        if (a === '' && b !== '') return 1;
+        if (a !== '' && b === '') return -1;
+        return a.localeCompare(b, 'nb');
+    });
+
+    if (emptyState) {
+        emptyState.classList.toggle('hidden', listItems.length > 0);
+        const currentList = listsCache.find(l => l.id === selectedListId);
+        const nameEl = emptyState.querySelector('p.font-bold');
+        if (nameEl) nameEl.textContent = (currentList?.name || 'Handlelisten') + ' er tom';
+    }
+
+    list.innerHTML = '';
+
+    sortedGroups.forEach(groupName => {
+        const groupItems = groupMap.get(groupName);
+        const color = groupName ? getGroupColor(groupName) : null;
+        const label = groupName || 'Uten gruppe';
+
+        const btn = document.createElement('button');
+        btn.className = `w-full flex items-center gap-3 p-4 rounded-2xl border shadow-sm active:opacity-70 transition-opacity text-left ${dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`;
+        btn.onclick = () => window.openGroup(groupName);
+
+        const iconBg = color
+            ? (dark ? color.darkBg : color.bg)
+            : (dark ? '#1e293b' : '#f1f5f9');
+        const labelColor = color ? (dark ? color.darkText : color.text) : '';
+
+        btn.innerHTML = `
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background:${iconBg}">
+                ${color
+                    ? `<div class="w-3 h-3 rounded-full" style="background:${color.dot}"></div>`
+                    : `<svg class="w-4 h-4 ${dark ? 'text-slate-500' : 'text-slate-400'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>`}
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="font-bold text-sm truncate" style="${labelColor ? `color:${labelColor}` : `color:${dark ? '#f1f5f9' : '#0f172a'}`}">${escapeText(label)}</p>
+                <p class="text-xs ${dark ? 'text-slate-400' : 'text-slate-400'} mt-0.5">${groupItems.length} vare${groupItems.length !== 1 ? 'r' : ''}</p>
+            </div>
+            <svg class="w-4 h-4 shrink-0 ${dark ? 'text-slate-600' : 'text-slate-300'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>`;
+        list.appendChild(btn);
+    });
+
+    if (checked.length > 0) {
+        const btn = document.createElement('button');
+        btn.className = `w-full flex items-center gap-3 p-4 rounded-2xl border shadow-sm active:opacity-70 transition-opacity text-left opacity-60 ${dark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`;
+        btn.onclick = () => window.openGroup('__checked__');
+        btn.innerHTML = `
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${dark ? 'bg-slate-700' : 'bg-slate-100'}">
+                <svg class="w-4 h-4 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="font-bold text-sm ${dark ? 'text-slate-300' : 'text-slate-600'}">Lagt i kurven</p>
+                <p class="text-xs ${dark ? 'text-slate-400' : 'text-slate-400'} mt-0.5">${checked.length} vare${checked.length !== 1 ? 'r' : ''}</p>
+            </div>
+            <svg class="w-4 h-4 shrink-0 ${dark ? 'text-slate-600' : 'text-slate-300'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>`;
+        list.appendChild(btn);
+    }
+
+    updateGroupPills();
+}
 
 window.openList = (id) => {
     selectedListId = id;
     viewMode = 'detail';
-    selectedAddGroup = '';
+    selectedGroupFilter = null;
     try { sessionStorage.setItem('mittforbruk_list', id); } catch {}
+    selectedAddGroup = '';
     renderHandleliste(handlelisteCache);
 };
 
 window.backToLists = () => {
     viewMode = 'overview';
+    selectedGroupFilter = null;
     selectedAddGroup = '';
     renderHandleliste(handlelisteCache);
 };
@@ -517,8 +1025,21 @@ window.backToLists = () => {
 window.switchList = (id) => {
     selectedListId = id;
     viewMode = 'detail';
-    selectedAddGroup = '';
+    selectedGroupFilter = null;
     try { sessionStorage.setItem('mittforbruk_list', id); } catch {}
+    selectedAddGroup = '';
+    renderHandleliste(handlelisteCache);
+};
+
+window.openGroup = (groupName) => {
+    selectedGroupFilter = groupName;
+    selectedAddGroup = (groupName === '__checked__' || groupName === null) ? '' : groupName;
+    renderHandleliste(handlelisteCache);
+};
+
+window.backToGroups = () => {
+    selectedGroupFilter = null;
+    selectedAddGroup = '';
     renderHandleliste(handlelisteCache);
 };
 
@@ -546,8 +1067,8 @@ window.showListOptions = (listId) => {
             </button>
         </div>
         <div class="space-y-2">
-            <button id="_lo_rename" class="w-full px-4 py-3.5 rounded-xl text-sm font-bold text-left ${dark ? 'bg-slate-700 text-slate-200' : 'bg-slate-50 text-slate-700'} active:opacity-70">✏️ Gi nytt navn</button>
-            <button id="_lo_delete" class="w-full px-4 py-3.5 rounded-xl text-sm font-bold text-left ${canDelete ? 'bg-rose-50 text-rose-500' : 'bg-slate-50 text-slate-300'} active:opacity-70" ${canDelete ? '' : 'disabled'}>
+            <button id="_lo_rename" class="w-full px-4 py-3 rounded-xl text-sm font-bold text-left ${dark ? 'bg-slate-700 text-slate-200' : 'bg-slate-50 text-slate-700'} active:opacity-70">✏️ Gi nytt navn</button>
+            <button id="_lo_delete" class="w-full px-4 py-3 rounded-xl text-sm font-bold text-left ${canDelete ? 'bg-rose-50 text-rose-500' : 'bg-slate-50 text-slate-300'} active:opacity-70" ${canDelete ? '' : 'disabled'}>
                 🗑️ Slett liste${canDelete ? '' : ' (trenger minst 1 liste)'}
             </button>
         </div>`;
@@ -565,10 +1086,14 @@ window.showListOptions = (listId) => {
 window.showNewListDialog = () => {
     document.getElementById('listMgmtOverlay')?.remove();
     const EMOJIS = [
+        // Mat & dagligvarer
         '🛒','🍎','🥦','🥩','🧀','🍞','🥛','🥚','🐟','🍗',
         '🍕','🥗','🫙','🧃','☕','🧈','🧅','🧄','🍋','🫐',
+        // Hjem & husholdning
         '🏠','🛍️','🧹','🧺','🪴','🧽','🔧','🪣','💡','🛏️',
+        // Helse, barn & fritid
         '💊','🧴','👶','🎒','📚','🎨','🧸','🐾','🏋️','🎵',
+        // Reise & diverse
         '✈️','🏖️','🚗','🎁','🐶','🌱','📦','🎮','🎓','🌸',
     ];
     let pickedEmoji = '🛒';
@@ -595,7 +1120,7 @@ window.showNewListDialog = () => {
         </div>
         <input id="_nl_input" type="text" placeholder="Navn på listen..." maxlength="30"
             class="w-full px-4 py-3 rounded-xl text-sm font-bold border ${dark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'bg-slate-50 border-slate-200'} outline-none focus:border-indigo-400 mb-4">
-        <button id="_nl_confirm" class="w-full py-3.5 rounded-xl text-sm font-bold bg-indigo-600 text-white active:opacity-80">Opprett liste</button>`;
+        <button id="_nl_confirm" class="w-full py-3 rounded-xl text-sm font-bold bg-indigo-600 text-white active:opacity-80">Opprett liste</button>`;
 
     const close = () => overlay.remove();
     overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
@@ -644,8 +1169,8 @@ function showRenameListDialog(listId) {
         <h3 class="font-bold text-base ${dark ? 'text-slate-100' : 'text-slate-900'} mb-4">Gi nytt navn</h3>
         <input id="_rl_input" type="text" value="${escapeText(list.name)}" maxlength="30"
             class="w-full px-4 py-3 rounded-xl text-sm font-bold border ${dark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'bg-slate-50 border-slate-200'} outline-none focus:border-indigo-400 mb-4">
-        <button id="_rl_confirm" class="w-full py-3.5 rounded-xl text-sm font-bold bg-indigo-600 text-white active:opacity-80 mb-2">Lagre</button>
-        <button id="_rl_cancel" class="w-full py-3.5 rounded-xl text-sm font-bold ${dark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'} active:opacity-80">Avbryt</button>`;
+        <button id="_rl_confirm" class="w-full py-3 rounded-xl text-sm font-bold bg-indigo-600 text-white active:opacity-80 mb-2">Lagre</button>
+        <button id="_rl_cancel" class="w-full py-3 rounded-xl text-sm font-bold ${dark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'} active:opacity-80">Avbryt</button>`;
 
     const close = () => overlay.remove();
     overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
@@ -681,8 +1206,8 @@ function showDeleteListConfirm(listId) {
     sheet.innerHTML = `
         <h3 class="font-bold text-base ${dark ? 'text-slate-100' : 'text-slate-900'} mb-2">Slett «${escapeText(list.name)}»?</h3>
         <p class="text-sm ${dark ? 'text-slate-400' : 'text-slate-500'} mb-5">${itemCount > 0 ? `${itemCount} vare${itemCount !== 1 ? 'r' : ''} vil også bli slettet.` : 'Listen er tom.'}</p>
-        <button id="_dl_confirm" class="w-full py-3.5 rounded-xl text-sm font-bold bg-rose-500 text-white active:opacity-80 mb-2">Slett liste</button>
-        <button id="_dl_cancel" class="w-full py-3.5 rounded-xl text-sm font-bold ${dark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'} active:opacity-80">Avbryt</button>`;
+        <button id="_dl_confirm" class="w-full py-3 rounded-xl text-sm font-bold bg-rose-500 text-white active:opacity-80 mb-2">Slett liste</button>
+        <button id="_dl_cancel" class="w-full py-3 rounded-xl text-sm font-bold ${dark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'} active:opacity-80">Avbryt</button>`;
 
     const close = () => overlay.remove();
     overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
@@ -720,6 +1245,7 @@ window.addHandlelisteItem = async () => {
     const quantity = parseInt(qtyEl?.value) || 1;
     if (!name) return;
 
+    // Check for existing item with same name in the active list
     const existing = handlelisteCache.find(i =>
         i.name.toLowerCase() === name.toLowerCase() &&
         (i.listId || 'main') === selectedListId
@@ -727,6 +1253,7 @@ window.addHandlelisteItem = async () => {
 
     if (existing) {
         if (existing.checked) {
+            // Reactivate: uncheck and bubble to top of its group
             try {
                 const uncheckedInGroup = handlelisteCache.filter(i => !i.checked && i.group === (existing.group || ''));
                 const minOrder = uncheckedInGroup.length
@@ -752,6 +1279,7 @@ window.addHandlelisteItem = async () => {
         return;
     }
 
+    // New item — append after last item in the target group (or overall)
     const targetGroup = selectedAddGroup;
     const listItemsUnchecked = handlelisteCache.filter(i => !i.checked && (i.listId || 'main') === selectedListId);
     const itemsInGroup = listItemsUnchecked.filter(i => (i.group || '') === targetGroup);
@@ -771,6 +1299,7 @@ window.addHandlelisteItem = async () => {
             addedAt:   Date.now(),
         });
         await ensureProdukterExists(name);
+        // Background: fetch page title for URL items
         if (/^https?:\/\//i.test(name)) {
             fetchUrlMeta(name).then(meta => {
                 if (meta?.title) {
@@ -806,6 +1335,7 @@ window.toggleHandlelisteItem = (id, checked) =>
     );
 
 window.deleteHandlelisteItem = async (id) => {
+    // Delete has no local-cache equivalent — just write and let snapshot update
     try {
         await deleteDoc(doc(db, "households", state.currentHid, "handleliste", id));
     } catch (err) {
@@ -943,6 +1473,7 @@ function showItemDetail(itemId) {
     const close = () => overlay.remove();
     overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
 
+    // Header
     const hdr = document.createElement('div');
     hdr.className = 'flex items-start justify-between p-5 pb-4';
 
@@ -1011,7 +1542,7 @@ function showItemDetail(itemId) {
     notesSection.appendChild(notesSaveBtn);
     body.appendChild(notesSection);
 
-    // ---- Sub-items ----
+    // ---- Sub-items (deleliste) ----
     const subSection = document.createElement('div');
     const subLabel = document.createElement('p');
     subLabel.className = 'text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2';
@@ -1091,7 +1622,7 @@ function showItemDetail(itemId) {
             pillRow.innerHTML = '';
             const allBtn = document.createElement('button');
             const allActive = !item.assignedTo;
-            allBtn.className = `px-4 py-2.5 rounded-xl text-sm font-bold transition-colors active:opacity-70 ${allActive ? 'bg-indigo-600 text-white' : (dark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600')}`;
+            allBtn.className = `px-4 py-2 rounded-xl text-sm font-bold transition-colors active:opacity-70 ${allActive ? 'bg-indigo-600 text-white' : (dark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600')}`;
             allBtn.textContent = 'Alle';
             allBtn.onclick = async () => { item.assignedTo = null; refreshPills(); suppressHold(); await updateDoc(doc(db, "households", state.currentHid, "handleliste", itemId), { assignedTo: null }).catch(() => {}); };
             pillRow.appendChild(allBtn);
@@ -1099,10 +1630,10 @@ function showItemDetail(itemId) {
                 const btn = document.createElement('button');
                 const active = item.assignedTo === m.name;
                 if (active) {
-                    btn.className = 'px-4 py-2.5 rounded-xl text-sm font-bold text-white active:opacity-70 transition-colors';
+                    btn.className = 'px-4 py-2 rounded-xl text-sm font-bold text-white active:opacity-70 transition-colors';
                     btn.style.backgroundColor = m.color || '#4f46e5';
                 } else {
-                    btn.className = `px-4 py-2.5 rounded-xl text-sm font-bold active:opacity-70 transition-colors ${dark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`;
+                    btn.className = `px-4 py-2 rounded-xl text-sm font-bold active:opacity-70 transition-colors ${dark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`;
                 }
                 btn.textContent = m.name;
                 btn.onclick = async () => { item.assignedTo = m.name; refreshPills(); suppressHold(); await updateDoc(doc(db, "households", state.currentHid, "handleliste", itemId), { assignedTo: m.name }).catch(() => {}); };
@@ -1143,6 +1674,7 @@ window.deleteSubitem = (itemId, subitemId) => {
     );
 };
 
+// Fetch page title via microlink.io (best-effort, fire-and-forget)
 async function fetchUrlMeta(url) {
     try {
         const res = await fetch(
@@ -1156,6 +1688,7 @@ async function fetchUrlMeta(url) {
     } catch { return null; }
 }
 
+// Safe text helper (no innerHTML with user data)
 function escapeText(str) {
     return String(str)
         .replace(/&/g, '&amp;')
