@@ -134,8 +134,13 @@ function renderHandleliste(items) {
 
     // Groups overview — show group cards instead of flat item list
     if (selectedGroupFilter === null) {
-        renderGroupsOverview(listItems);
-        return;
+        const hasNamedGroups = listItems.some(i => !i.checked && i.group && i.group !== '');
+        if (!hasNamedGroups) {
+            selectedGroupFilter = '';
+        } else {
+            renderGroupsOverview(listItems);
+            return;
+        }
     }
 
     // Group detail — filter to selected group
