@@ -225,7 +225,10 @@ function updateGroupPills() {
     // Keep row hidden — group selection is not exposed in the add form
     row.classList.add('hidden');
     pills.innerHTML = '';
-    selectedAddGroup = '';
+    // Only reset group if not inside a named group view
+    if (!selectedGroupFilter || selectedGroupFilter === '__checked__') {
+        selectedAddGroup = '';
+    }
     return;
 
     const groups = [...new Set(
