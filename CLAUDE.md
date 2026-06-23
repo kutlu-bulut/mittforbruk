@@ -164,6 +164,13 @@ Da er det alltid noe å rendre, selv før Firestore svarer.
 
 **Regel:** Module-level state som brukes i render skal ha meningsfulle defaults, ikke tomme arrays.
 
+### Side-effekt-funksjoner som skriver til persistert state
+`switchTab()` (navigation.js) skriver valgt fane til `sessionStorage` ved *hvert* kall. Et ekstra `switchTab('hjem')` på modul-nivå i `app.js` (kjørte før innlogging) satte derfor alltid `sessionStorage` til `'hjem'`. I `startApp()` leses `sessionStorage` først med fallback til brukerens `defaultTab` — men fallbacken ble aldri nådd, så "Startside"-innstillingen var død kode selv om den ble lagret i Firestore.
+
+**Løsning:** Ikke kall `switchTab()` (eller andre funksjoner med skrive-side-effekter) før appen faktisk er klar. `#sectionHjem` har allerede `active` i HTML, så standardfanen vises uansett før innlogging.
+
+**Regel:** Funksjoner som muterer persistert state (localStorage/sessionStorage/Firestore) skal ikke kalles "for syns skyld" ved modul-last. Et tidlig kall kan stille overstyre en brukerinnstilling som leses senere.
+
 ---
 
 ## Retningslinjer for videre utvikling
