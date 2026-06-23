@@ -294,4 +294,7 @@ if ('serviceWorker' in navigator) {
 
 lucide.createIcons();
 initAuth(startApp);
-window.switchTab('hjem');
+// NB: Ikke kall switchTab her. switchTab() skriver til sessionStorage, så et kall
+// før innlogging ville alltid sette 'hjem' og overstyre brukerens startside-valg
+// (state.currentUserData.defaultTab) i startApp(). #sectionHjem er allerede 'active'
+// i HTML, så fanen vises korrekt før innlogging uansett.
