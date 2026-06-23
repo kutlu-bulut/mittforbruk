@@ -77,11 +77,10 @@ export function startApp() {
     document.getElementById('onboardingScreen').classList.add('hidden');
     document.getElementById('appContent').classList.remove('hidden');
 
-    // Restore last-visited tab on refresh; fall back to user's default tab preference
+    // Åpne alltid på brukerens valgte startside (Innstillinger → Startside)
     if (!appStarted) {
         appStarted = true;
-        const savedTab = (() => { try { return sessionStorage.getItem('mittforbruk_tab'); } catch { return null; } })();
-        window.switchTab(savedTab || state.currentUserData.defaultTab || 'hjem');
+        window.switchTab(state.currentUserData.defaultTab || 'hjem');
     }
 
     document.getElementById('displayHid').innerText = state.currentHid;

@@ -14,10 +14,7 @@ const tabTitles = {
 };
 
 window.switchTab = (t, preventScroll = false) => {
-    if (t !== 'add') {
-        state.activeTab = t;
-        try { sessionStorage.setItem('mittforbruk_tab', t); } catch {}
-    }
+    if (t !== 'add') state.activeTab = t;
 
     document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('nav-active'));
