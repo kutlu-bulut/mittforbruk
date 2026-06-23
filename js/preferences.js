@@ -64,11 +64,57 @@ export function renderDefaultTabSetting() {
         btn.onclick = () => window.setDefaultTab(tab.id);
         container.appendChild(btn);
     });
+
+    renderDefaultListSetting();
 }
+
+// Vises kun når startsiden er 'liste': velg hvilken handleliste som åpnes.
+// null = vis oversikten over alle lister.
+window.renderDefaultListSetting = function renderDefaultListSetting() {
+    const wrap = document.getElementById('defaultListSetting');
+    const container = document.getElementById('defaultListSettingOptions');
+    if (!wrap || !container) return;
+
+    const tabIsListe = (state.currentUserData.defaultTab || 'hjem') === 'liste';
+    wrap.classList.toggle('hidden', !tabIsListe);
+    if (!tabIsListe) return;
+
+    const lists = (window.getShoppingLists?.() || []);
+    const currentListId = state.currentUserData.defaultListId || null;
+    container.innerHTML = '';
+
+    const addOption = (id, emoji, label) => {
+        const btn = document.createElement('button');
+        const active = (id === null && !currentListId) || id === currentListId;
+        btn.className = [
+            'flex items-center gap-1.5 py-2 px-3 rounded-xl font-bold text-xs transition-all',
+            active
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'bg-slate-50 text-slate-500 border border-slate-200 active:bg-slate-100',
+        ].join(' ');
+        const emojiEl = document.createElement('span');
+        emojiEl.className = 'text-base';
+        emojiEl.textContent = emoji;
+        const labelEl = document.createElement('span');
+        labelEl.textContent = label;
+        btn.appendChild(emojiEl);
+        btn.appendChild(labelEl);
+        btn.onclick = () => window.setDefaultList(id);
+        container.appendChild(btn);
+    };
+
+    addOption(null, '🗂️', 'Oversikt');
+    lists.forEach(l => addOption(l.id, l.emoji || '🛒', l.name || 'Liste'));
+};
 
 window.setDefaultTab = async (tab) => {
     await updateDoc(doc(db, "users", auth.currentUser.uid), { defaultTab: tab });
     showToast('Startside lagret!');
+};
+
+window.setDefaultList = async (listId) => {
+    await updateDoc(doc(db, "users", auth.currentUser.uid), { defaultListId: listId });
+    showToast('Startliste lagret!');
 };
 
 export function applyUserPreferences() {

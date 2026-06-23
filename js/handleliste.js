@@ -97,8 +97,13 @@ export function initShoppingListsListener() {
         if (!listsCache.find(l => l.id === selectedListId)) selectedListId = listsCache[0].id;
         try { sessionStorage.setItem('mittforbruk_list', selectedListId); } catch {}
         renderHandleliste(handlelisteCache);
+        // Oppdater startliste-velgeren i Innstillinger når listene endres
+        window.renderDefaultListSetting?.();
     }, err => console.error("ShoppingLists listener error:", err));
 }
+
+// Eksponer listene til startliste-velgeren (preferences.js)
+window.getShoppingLists = () => listsCache.slice();
 
 // ============================================================
 // Render

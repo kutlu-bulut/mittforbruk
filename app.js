@@ -80,7 +80,12 @@ export function startApp() {
     // Åpne alltid på brukerens valgte startside (Innstillinger → Startside)
     if (!appStarted) {
         appStarted = true;
-        window.switchTab(state.currentUserData.defaultTab || 'hjem');
+        const dTab = state.currentUserData.defaultTab || 'hjem';
+        window.switchTab(dTab);
+        // Hopp rett inn i en bestemt handleliste hvis valgt (ellers vises oversikten)
+        if (dTab === 'liste' && state.currentUserData.defaultListId) {
+            window.openList(state.currentUserData.defaultListId);
+        }
     }
 
     document.getElementById('displayHid').innerText = state.currentHid;
