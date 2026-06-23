@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hvor går pengene? v19.43</title>
+    <title>Hvor går pengene? v19.44</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,10 +13,18 @@
     <meta name="apple-mobile-web-app-title" content="Hvor går pengene?">
     <link rel="apple-touch-icon" href="logo.png">
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@0.408.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+    <!-- Speed opp oppstart: forhåndskoble til eksterne kilder -->
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link rel="dns-prefetch" href="https://unpkg.com">
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+
+    <!-- Forhåndsbygd Tailwind (erstatter den trege runtime-CDN-kompilatoren) -->
+    <link rel="stylesheet" href="tailwind.css">
     <link rel="stylesheet" href="styles.css">
+    <!-- defer: ikke blokker første rendring; app.js (module) kjører etter disse -->
+    <script src="https://unpkg.com/lucide@0.408.0" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js" defer></script>
     <script>
         try {
             if (localStorage.getItem('mittforbruk_authed'))
@@ -49,7 +57,7 @@
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                 <span class="text-[10px] text-indigo-300 font-medium">Ingen registrering nødvendig</span>
             </div>
-            <p class="text-[10px] text-indigo-400 font-mono mt-8">v19.43</p>
+            <p class="text-[10px] text-indigo-400 font-mono mt-8">v19.44</p>
         </div>
     </div>
 
@@ -86,7 +94,7 @@
         <header class="bg-white sticky top-0 z-40 border-b border-slate-200 shadow-sm">
             <div class="brand-bar flex items-center justify-center py-1.5 relative">
                 <span class="brand-text text-white">Hvor går pengene?</span>
-                <span class="absolute right-3 text-[9px] font-mono text-slate-500">v19.43</span>
+                <span class="absolute right-3 text-[9px] font-mono text-slate-500">v19.44</span>
             </div>
             <div id="headerUserBudget" class="px-5 pt-3 pb-3.5">
                 <div class="flex justify-between items-center mb-3">
@@ -362,7 +370,7 @@
                 </div>
                 <div class="text-center pt-2 pb-4">
                     <button id="btnLogout" onclick="logout()" class="text-rose-500 font-bold text-xs uppercase active:opacity-50 transition-opacity">Logg ut</button>
-                    <p class="text-[10px] text-slate-300 font-mono mt-3">v19.43</p>
+                    <p class="text-[10px] text-slate-300 font-mono mt-3">v19.44</p>
                 </div>
             </div>
 
